@@ -79,6 +79,19 @@ interface Landmark {
   name: string;
   location: string;
   coordinates: [number, number];
+  thumbnail?: string | null;
+  purchaseDate?: string | null;
+  priceSol?: number | null;
+}
+
+/**
+ * Build a Mapbox Static Images URL for a thumbnail map of a coordinate.
+ * Returns a small streets-v12 image centered on the tile — used in the
+ * "Your Landmark" list as a preview photo.
+ */
+function buildStaticMapUrl(lng: number, lat: number): string {
+  const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+  return `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${lng},${lat},14,0,0/80x80@2x?access_token=${token}`;
 }
 
 const LANDMARKS: Landmark[] = [
@@ -226,13 +239,46 @@ export default function LandmarkPage() {
           const mapped: Landmark[] = data.tiles.map((t: any) => {
             const latNum = parseFloat(t.lat);
             const lngNum = parseFloat(t.lng);
+            // Format purchase date (createdAt ISO → "Jul 12, 2026")
+            const createdAt = t.createdAt ? new Date(t.createdAt) : null;
+            const purchaseDate = createdAt
+              ? createdAt.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })
+              : null;
+            // priceLamports comes back as a string from the backend
+            const lamports = t.priceLamports ? Number(t.priceLamports) : null;
             return {
-              name: `Blockland Tile`,
+              name: purchaseDate ?? "Blockland Tile",
+              purchaseDate,
+              priceSol: lamports !== null ? lamportsToSol(lamports) : null,
+              // Fallback before reverse geocoding resolves below.
               location: `${latNum.toFixed(4)}, ${lngNum.toFixed(4)}`,
               coordinates: [lngNum, latNum] as [number, number],
+              thumbnail: buildStaticMapUrl(lngNum, latNum),
             };
           });
-          setUserLandmarks(mapped);
+
+          // Reverse geocode each tile in parallel for a human-readable address.
+          const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+          const enriched = await Promise.all(
+            mapped.map(async (lm) => {
+              try {
+                const [lng, lat] = lm.coordinates;
+                const res = await fetch(
+                  `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${token}&country=us&limit=1`,
+                );
+                const data = await res.json();
+                const placeName = data.features?.[0]?.place_name;
+                return placeName ? { ...lm, location: placeName } : lm;
+              } catch {
+                return lm; // keep coordinate fallback on failure
+              }
+            }),
+          );
+          setUserLandmarks(enriched);
         } else {
           setUserLandmarks([]);
         }
@@ -1312,19 +1358,37 @@ export default function LandmarkPage() {
                                 <button
                                   key={idx}
                                   onClick={() => flyToLandmark(landmark)}
-                                  className="flex items-center justify-between p-3 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 transition-all text-left cursor-pointer group/item w-full"
+                                  className="flex items-center gap-3 p-3 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 transition-all text-left cursor-pointer group/item w-full"
                                 >
-                                  <div>
-                                    <div className="font-medium text-white group-hover/item:text-primary">
+                                  {landmark.thumbnail ? (
+                                    <img
+                                      src={landmark.thumbnail}
+                                      alt=""
+                                      loading="lazy"
+                                      className="size-12 rounded-lg object-cover border border-zinc-800 shrink-0"
+                                    />
+                                  ) : (
+                                    <div className="size-12 rounded-lg border border-zinc-800 shrink-0 bg-zinc-900" />
+                                  )}
+                                  <div className="min-w-0 flex-1">
+                                    <div className="font-medium text-white group-hover/item:text-primary truncate">
                                       {landmark.name}
                                     </div>
-                                    <div className="text-sm text-zinc-500">
+                                    <div className="text-sm text-zinc-500 truncate">
                                       {landmark.location}
                                     </div>
                                   </div>
-                                  <div className="text-zinc-600 group-hover/item:text-primary transition-colors">
-                                    <MapPin className="h-4 w-4" />
-                                  </div>
+                                  {landmark.priceSol !== null &&
+                                    landmark.priceSol !== undefined && (
+                                      <div className="text-right shrink-0">
+                                        <div className="text-sm font-semibold text-primary">
+                                          {landmark.priceSol.toFixed(5)} SOL
+                                        </div>
+                                        <div className="text-[10px] text-zinc-600 uppercase tracking-wide">
+                                          purchase
+                                        </div>
+                                      </div>
+                                    )}
                                 </button>
                               ))}
                             </div>
