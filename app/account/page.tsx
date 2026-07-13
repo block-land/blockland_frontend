@@ -8,8 +8,10 @@ import { getRarityBadgeColor } from "@/lib/tiles";
 import { withCustomButton } from "@/components/custom/button_custom";
 import { useDialogStore } from "@/store/useDialogStore";
 import { getOwnerTiles, type CompressedNft } from "@/lib/solana/helius";
-import { lamportsToSol } from "@/lib/solana/mint";
-import { NETWORK_LABEL, SOLSCAN_CLUSTER_PARAM } from "@/lib/solana/constants";
+import { lamportsToSol, getWalletBalance } from "@/lib/solana/mint";
+import { NETWORK_LABEL, SOLSCAN_CLUSTER_PARAM, IS_MAINNET, RPC_URL } from "@/lib/solana/constants";
+import { useProfileStore } from "@/store/useProfileStore";
+import Avatar from "boring-avatars";
 
 const ButtonCustom = withCustomButton("button");
 
@@ -45,7 +47,7 @@ function nftToTile(nft: CompressedNft): OwnedTile {
     coordinates: `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`,
     rarity: (rarityAttr?.value as OwnedTile["rarity"]) || "Common",
     imageUrl: nft.content.metadata.image || "",
-    purchasePrice: 0, // not on-chain for MVP; filled from DB later
+    purchasePrice: 0.0025, // Fallback default price (approx $0.2 equivalent)
     purchasedDate: new Date().toLocaleDateString("en-US", {
       month: "short",
       day: "2-digit",
@@ -60,16 +62,148 @@ export default function AccountPage() {
   const [copied, setCopied] = React.useState(false);
   const [ownedTiles, setOwnedTiles] = React.useState<OwnedTile[]>([]);
   const [loading, setLoading] = React.useState(false);
+  
+  // Real Balances
+  const [solBalance, setSolBalance] = React.useState<number | null>(null);
+  const [usdcBalance, setUsdcBalance] = React.useState<number | null>(null);
+
+  // Profile Store
+  const { profileData, checkProfile } = useProfileStore();
 
   const openDialog = useDialogStore((state) => state.openDialog);
   const closeDialog = useDialogStore((state) => state.closeDialog);
+
+  // Check/fetch profile when wallet connected
+  React.useEffect(() => {
+    if (wallet?.address) {
+      checkProfile(wallet.address);
+    }
+  }, [wallet?.address, checkProfile]);
+
+  // Fetch balances dynamically when wallet connects
+  React.useEffect(() => {
+    if (!wallet?.address) {
+      setSolBalance(null);
+      setUsdcBalance(null);
+      return;
+    }
+
+    const fetchBalances = async () => {
+      // 1. Fetch SOL Balance
+      try {
+        const bal = await getWalletBalance(wallet.address);
+        setSolBalance(bal);
+      } catch (err) {
+        console.error("Error fetching SOL balance:", err);
+      }
+
+      // 2. Fetch USDC Balance
+      try {
+        const USDC_MINT = IS_MAINNET
+          ? "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+          : "Gh9ZwEmdLJ8DscKNTMETqIG36ZPzSTuSAMrXJmW8kmQs";
+
+        const res = await fetch(RPC_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            method: "getTokenAccountsByOwner",
+            params: [
+              wallet.address,
+              { mint: USDC_MINT },
+              { encoding: "jsonParsed" }
+            ]
+          })
+        });
+        const data = await res.json();
+        const accounts = data?.result?.value || [];
+        let totalUsdc = 0;
+        for (const acc of accounts) {
+          const uiAmount = acc?.account?.data?.parsed?.info?.tokenAmount?.uiAmount;
+          if (typeof uiAmount === "number") {
+            totalUsdc += uiAmount;
+          }
+        }
+        setUsdcBalance(totalUsdc);
+      } catch (err) {
+        console.error("Error fetching USDC balance:", err);
+        setUsdcBalance(0);
+      }
+    };
+
+    fetchBalances();
+  }, [wallet?.address]);
 
   const loadTiles = React.useCallback(async () => {
     if (!wallet?.address) return;
     setLoading(true);
     try {
+      // 1. Fetch on-chain tiles (via Helius DAS)
       const nfts = await getOwnerTiles(wallet.address);
-      setOwnedTiles(nfts.map(nftToTile));
+
+      // 2. Fetch backend DB tiles
+      const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+      let dbTiles: any[] = [];
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/tiles/owner/${wallet.address}`);
+        const data = await res.json();
+        if (data.ok && Array.isArray(data.tiles)) {
+          dbTiles = data.tiles;
+        }
+      } catch (dbErr) {
+        console.error("Failed to load tiles from backend database:", dbErr);
+      }
+
+      // Map on-chain tiles and enrich them with database details (real prices & dates)
+      const mapped = nfts.map((nft) => {
+        const uiTile = nftToTile(nft);
+        const match = dbTiles.find((t) => t.assetId === nft.id);
+        if (match) {
+          const lamports = match.priceLamports ? Number(match.priceLamports) : 0;
+          uiTile.purchasePrice = lamportsToSol(lamports);
+
+          if (match.createdAt) {
+            const createdAt = new Date(match.createdAt);
+            uiTile.purchasedDate = createdAt.toLocaleDateString("en-US", {
+              month: "short",
+              day: "2-digit",
+              year: "numeric",
+            });
+          }
+        }
+        return uiTile;
+      });
+
+      // Fallback: If Helius DAS API returns nothing (common in dev environment),
+      // populate owned tiles directly using backend DB records
+      if (mapped.length === 0 && dbTiles.length > 0) {
+        const fallbackMapped = dbTiles.map((t: any) => {
+          const lat = parseFloat(t.lat);
+          const lng = parseFloat(t.lng);
+          const lamports = t.priceLamports ? Number(t.priceLamports) : 0;
+          const createdAt = t.createdAt ? new Date(t.createdAt) : new Date();
+
+          return {
+            id: t.assetId,
+            name: `BLT ${lat.toFixed(3)},${lng.toFixed(3)}`,
+            location: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+            coordinates: `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`,
+            rarity: (t.rarity as OwnedTile["rarity"]) || "Common",
+            imageUrl: t.imageUri || "",
+            purchasePrice: lamportsToSol(lamports),
+            purchasedDate: createdAt.toLocaleDateString("en-US", {
+              month: "short",
+              day: "2-digit",
+              year: "numeric",
+            }),
+          };
+        });
+        setOwnedTiles(fallbackMapped);
+      } else {
+        setOwnedTiles(mapped);
+      }
     } catch (err) {
       console.error("Failed to load tiles:", err);
       setOwnedTiles([]);
@@ -105,7 +239,7 @@ export default function AccountPage() {
             alt={tile.name}
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent opacity-60" />
+          <div className="absolute inset-0 bg-gradient-to-t from-zinc-955 to-transparent opacity-60" />
           <span className={`absolute top-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}>
             {tile.rarity}
           </span>
@@ -129,19 +263,19 @@ export default function AccountPage() {
           <div className="grid grid-cols-2 gap-4 text-sm font-mono">
             <div className="space-y-1">
               <span className="text-zinc-550">TILE ID</span>
-              <p className="text-zinc-300 font-semibold">{tile.id}</p>
+              <p className="text-zinc-350 font-semibold">{tile.id}</p>
             </div>
             <div className="space-y-1">
               <span className="text-zinc-550">PURCHASE PRICE</span>
-              <p className="text-primary font-semibold">{tile.purchasePrice} USDC</p>
+              <p className="text-primary font-semibold">{tile.purchasePrice.toFixed(5)} SOL</p>
             </div>
             <div className="space-y-1">
               <span className="text-zinc-555">ACQUIRED DATE</span>
-              <p className="text-zinc-300 font-semibold">{tile.purchasedDate}</p>
+              <p className="text-zinc-350 font-semibold">{tile.purchasedDate}</p>
             </div>
             <div className="space-y-1">
               <span className="text-zinc-555">BLOCKCHAIN</span>
-              <p className="text-zinc-300 font-semibold">{NETWORK_LABEL}</p>
+              <p className="text-zinc-350 font-semibold">{NETWORK_LABEL}</p>
             </div>
           </div>
         </div>
@@ -185,7 +319,7 @@ export default function AccountPage() {
           <div className="space-y-3">
             <div className="flex justify-between text-sm">
               <span>Listing Price</span>
-              <span className="font-semibold text-primary">{priceInput} USDC</span>
+              <span className="font-semibold text-primary">{priceInput} SOL</span>
             </div>
             <div className="flex justify-between text-sm">
               <span>Platform Service Fee</span>
@@ -213,10 +347,10 @@ export default function AccountPage() {
                     <div>
                       <h4 className="font-bold text-white text-lg">Tile Listed!</h4>
                       <p className="text-sm text-zinc-400 mt-1">
-                        <strong>{tile.name}</strong> is now listed for sale at <strong>{priceInput} USDC</strong>.
+                        <strong>{tile.name}</strong> is now listed for sale at <strong>{priceInput} SOL</strong>.
                       </p>
                     </div>
-                    <div className="text-xs font-mono bg-black p-3 rounded-lg border border-zinc-800 text-zinc-500 text-left overflow-x-auto">
+                    <div className="text-xs font-mono bg-black p-3 rounded-lg border border-zinc-800 text-zinc-550 text-left overflow-x-auto">
                       Tx: 7s9aK...e98v1u
                     </div>
                     <ButtonCustom onClick={closeDialog} className="w-full justify-center">
@@ -255,17 +389,17 @@ export default function AccountPage() {
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs text-zinc-500 uppercase tracking-wider font-mono">Set Listing Price</label>
+          <label className="text-xs text-zinc-550 uppercase tracking-wider font-mono">Set Listing Price</label>
           <div className="relative bg-black flex gap-2 h-[48px] items-center px-4 rounded-xl border border-zinc-800 focus-within:border-zinc-700">
             <input
               type="number"
-              step="0.01"
-              placeholder="e.g. 500"
+              step="0.0001"
+              placeholder="e.g. 0.05"
               onChange={(e) => { priceInput = e.target.value; }}
               className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none p-0 text-[15px] font-normal text-white placeholder-zinc-650"
               required
             />
-            <span className="text-xs font-mono text-zinc-500 shrink-0 select-none">USDC</span>
+            <span className="text-xs font-mono text-zinc-500 shrink-0 select-none">SOL</span>
           </div>
         </div>
 
@@ -298,21 +432,39 @@ export default function AccountPage() {
             <div className="relative">
               <div className="w-20 h-20 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-3xl overflow-hidden">
                 {wallet ? (
-                  <img
-                    src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60"
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
+                  profileData?.photoUrl ? (
+                    <img
+                      src={profileData.photoUrl}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full rounded-xl overflow-hidden isolate">
+                      <Avatar
+                        colors={[
+                          "#f5e1a4",
+                          "#d9d593",
+                          "#ee7f27",
+                          "#bc162a",
+                          "#302325",
+                        ]}
+                        variant="pixel"
+                        size={80}
+                      />
+                    </div>
+                  )
                 ) : (
                   <User className="h-10 w-10 text-zinc-550" />
                 )}
               </div>
-              <span className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-zinc-950 ${wallet ? "bg-emerald-500" : "bg-zinc-500"}`} />
+              <span className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-zinc-955 ${wallet ? "bg-emerald-500" : "bg-zinc-500"}`} />
             </div>
 
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold text-white">Coordinate Owner</h1>
+                <h1 className="text-2xl font-bold text-white">
+                  {profileData?.username || "Coordinate Owner"}
+                </h1>
                 <Shield className="h-4.5 w-4.5 text-primary shrink-0" />
               </div>
               <div className="flex items-center gap-2 text-zinc-400 text-sm font-mono">
@@ -348,11 +500,15 @@ export default function AccountPage() {
           </div>
           <div className="bg-zinc-950 border border-zinc-900 rounded-3xl p-6 space-y-2">
             <span className="text-xs text-zinc-500 uppercase tracking-wider font-mono">USDC Balance</span>
-            <div className="text-3xl font-extrabold text-primary font-mono">540.00 USDC</div>
+            <div className="text-3xl font-extrabold text-primary font-mono">
+              {usdcBalance !== null ? `${usdcBalance.toFixed(2)} USDC` : "Loading..."}
+            </div>
           </div>
           <div className="bg-zinc-950 border border-zinc-900 rounded-3xl p-6 space-y-2">
             <span className="text-xs text-zinc-500 uppercase tracking-wider font-mono">SOL Balance</span>
-            <div className="text-3xl font-extrabold text-zinc-300 font-mono">1.45 SOL</div>
+            <div className="text-3xl font-extrabold text-zinc-300 font-mono">
+              {solBalance !== null ? `${solBalance.toFixed(4)} SOL` : "Loading..."}
+            </div>
           </div>
         </div>
 
@@ -409,7 +565,7 @@ export default function AccountPage() {
                       {tile.name}
                     </h3>
                     <p className="text-sm text-zinc-400 flex items-center gap-1.5">
-                      <MapPin className="h-4 w-4 text-zinc-500" />
+                      <MapPin className="h-4 w-4 text-zinc-550" />
                       {tile.location}
                     </p>
                   </div>
@@ -420,7 +576,7 @@ export default function AccountPage() {
                         Buy Price
                       </div>
                       <div className="text-base font-bold text-zinc-300">
-                        {tile.purchasePrice} USDC
+                        {tile.purchasePrice.toFixed(5)} SOL
                       </div>
                     </div>
 
@@ -428,7 +584,7 @@ export default function AccountPage() {
                       <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
                         Acquired
                       </div>
-                      <div className="text-xs font-semibold text-zinc-400">
+                      <div className="text-xs font-semibold text-zinc-450">
                         {tile.purchasedDate}
                       </div>
                     </div>
