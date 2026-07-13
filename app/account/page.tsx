@@ -2,16 +2,41 @@
 
 import React from "react";
 import { useWallets } from "@privy-io/react-auth/solana";
-import { MapPin, Grid, Shield, ExternalLink, RefreshCw, Copy, Check, User, Info, Tag, Loader2 } from "lucide-react";
+import {
+  MapPin,
+  Grid,
+  Shield,
+  ExternalLink,
+  RefreshCw,
+  Copy,
+  Check,
+  User,
+  Info,
+  Tag,
+  Loader2,
+} from "lucide-react";
 import Link from "next/link";
 import { getRarityBadgeColor } from "@/lib/tiles";
 import { withCustomButton } from "@/components/custom/button_custom";
 import { useDialogStore } from "@/store/useDialogStore";
 import { getOwnerTiles, type CompressedNft } from "@/lib/solana/helius";
 import { lamportsToSol, getWalletBalance } from "@/lib/solana/mint";
-import { NETWORK_LABEL, SOLSCAN_CLUSTER_PARAM, IS_MAINNET, RPC_URL } from "@/lib/solana/constants";
+import {
+  NETWORK_LABEL,
+  SOLSCAN_CLUSTER_PARAM,
+  IS_MAINNET,
+  RPC_URL,
+} from "@/lib/solana/constants";
 import { useProfileStore } from "@/store/useProfileStore";
 import Avatar from "boring-avatars";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 const ButtonCustom = withCustomButton("button");
 
@@ -29,13 +54,13 @@ interface OwnedTile {
 /** Map a compressed NFT to the UI's OwnedTile shape. */
 function nftToTile(nft: CompressedNft): OwnedTile {
   const latAttr = nft.content.metadata.attributes?.find(
-    (a) => a.trait_type === "latitude"
+    (a) => a.trait_type === "latitude",
   );
   const lngAttr = nft.content.metadata.attributes?.find(
-    (a) => a.trait_type === "longitude"
+    (a) => a.trait_type === "longitude",
   );
   const rarityAttr = nft.content.metadata.attributes?.find(
-    (a) => a.trait_type === "rarity"
+    (a) => a.trait_type === "rarity",
   );
   const lat = Number(latAttr?.value ?? 0);
   const lng = Number(lngAttr?.value ?? 0);
@@ -62,7 +87,7 @@ export default function AccountPage() {
   const [copied, setCopied] = React.useState(false);
   const [ownedTiles, setOwnedTiles] = React.useState<OwnedTile[]>([]);
   const [loading, setLoading] = React.useState(false);
-  
+
   // Real Balances
   const [solBalance, setSolBalance] = React.useState<number | null>(null);
   const [usdcBalance, setUsdcBalance] = React.useState<number | null>(null);
@@ -72,6 +97,19 @@ export default function AccountPage() {
 
   const openDialog = useDialogStore((state) => state.openDialog);
   const closeDialog = useDialogStore((state) => state.closeDialog);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const ITEMS_PER_PAGE = 6;
+
+  // Reset page when tiles length changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [ownedTiles.length]);
+
+  const totalPages = Math.ceil(ownedTiles.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedTiles = ownedTiles.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   // Check/fetch profile when wallet connected
   React.useEffect(() => {
@@ -113,15 +151,16 @@ export default function AccountPage() {
             params: [
               wallet.address,
               { mint: USDC_MINT },
-              { encoding: "jsonParsed" }
-            ]
-          })
+              { encoding: "jsonParsed" },
+            ],
+          }),
         });
         const data = await res.json();
         const accounts = data?.result?.value || [];
         let totalUsdc = 0;
         for (const acc of accounts) {
-          const uiAmount = acc?.account?.data?.parsed?.info?.tokenAmount?.uiAmount;
+          const uiAmount =
+            acc?.account?.data?.parsed?.info?.tokenAmount?.uiAmount;
           if (typeof uiAmount === "number") {
             totalUsdc += uiAmount;
           }
@@ -144,10 +183,13 @@ export default function AccountPage() {
       const nfts = await getOwnerTiles(wallet.address);
 
       // 2. Fetch backend DB tiles
-      const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+      const BACKEND_URL =
+        process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
       let dbTiles: any[] = [];
       try {
-        const res = await fetch(`${BACKEND_URL}/api/tiles/owner/${wallet.address}`);
+        const res = await fetch(
+          `${BACKEND_URL}/api/tiles/owner/${wallet.address}`,
+        );
         const data = await res.json();
         if (data.ok && Array.isArray(data.tiles)) {
           dbTiles = data.tiles;
@@ -161,7 +203,9 @@ export default function AccountPage() {
         const uiTile = nftToTile(nft);
         const match = dbTiles.find((t) => t.assetId === nft.id);
         if (match) {
-          const lamports = match.priceLamports ? Number(match.priceLamports) : 0;
+          const lamports = match.priceLamports
+            ? Number(match.priceLamports)
+            : 0;
           uiTile.purchasePrice = lamportsToSol(lamports);
 
           if (match.createdAt) {
@@ -240,7 +284,9 @@ export default function AccountPage() {
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-zinc-955 to-transparent opacity-60" />
-          <span className={`absolute top-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}>
+          <span
+            className={`absolute top-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
+          >
             {tile.rarity}
           </span>
           <div className="absolute bottom-3 left-3 flex gap-1 items-center text-zinc-300 text-xs font-mono">
@@ -262,16 +308,20 @@ export default function AccountPage() {
 
           <div className="grid grid-cols-2 gap-4 text-sm font-mono">
             <div className="space-y-1">
-              <span className="text-zinc-550">TILE ID</span>
+              <span className="text-zinc-555">TILE ID</span>
               <p className="text-zinc-350 font-semibold">{tile.id}</p>
             </div>
             <div className="space-y-1">
-              <span className="text-zinc-550">PURCHASE PRICE</span>
-              <p className="text-primary font-semibold">{tile.purchasePrice.toFixed(5)} SOL</p>
+              <span className="text-zinc-555">PURCHASE PRICE</span>
+              <p className="text-primary font-semibold">
+                {tile.purchasePrice.toFixed(5)} SOL
+              </p>
             </div>
             <div className="space-y-1">
               <span className="text-zinc-555">ACQUIRED DATE</span>
-              <p className="text-zinc-350 font-semibold">{tile.purchasedDate}</p>
+              <p className="text-zinc-350 font-semibold">
+                {tile.purchasedDate}
+              </p>
             </div>
             <div className="space-y-1">
               <span className="text-zinc-555">BLOCKCHAIN</span>
@@ -285,7 +335,7 @@ export default function AccountPage() {
             Close
           </ButtonCustom>
         </div>
-      </div>
+      </div>,
     );
   };
 
@@ -306,7 +356,9 @@ export default function AccountPage() {
               className="w-16 h-16 object-cover rounded-lg border border-zinc-800"
             />
             <div className="space-y-0.5">
-              <span className={`text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}>
+              <span
+                className={`text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}
+              >
                 {tile.rarity}
               </span>
               <h4 className="font-semibold text-white mt-1">{tile.name}</h4>
@@ -319,7 +371,9 @@ export default function AccountPage() {
           <div className="space-y-3">
             <div className="flex justify-between text-sm">
               <span>Listing Price</span>
-              <span className="font-semibold text-primary">{priceInput} SOL</span>
+              <span className="font-semibold text-primary">
+                {priceInput} SOL
+              </span>
             </div>
             <div className="flex justify-between text-sm">
               <span>Platform Service Fee</span>
@@ -345,18 +399,24 @@ export default function AccountPage() {
                       ✓
                     </div>
                     <div>
-                      <h4 className="font-bold text-white text-lg">Tile Listed!</h4>
+                      <h4 className="font-bold text-white text-lg">
+                        Tile Listed!
+                      </h4>
                       <p className="text-sm text-zinc-400 mt-1">
-                        <strong>{tile.name}</strong> is now listed for sale at <strong>{priceInput} SOL</strong>.
+                        <strong>{tile.name}</strong> is now listed for sale at{" "}
+                        <strong>{priceInput} SOL</strong>.
                       </p>
                     </div>
                     <div className="text-xs font-mono bg-black p-3 rounded-lg border border-zinc-800 text-zinc-550 text-left overflow-x-auto">
                       Tx: 7s9aK...e98v1u
                     </div>
-                    <ButtonCustom onClick={closeDialog} className="w-full justify-center">
+                    <ButtonCustom
+                      onClick={closeDialog}
+                      className="w-full justify-center"
+                    >
                       Done
                     </ButtonCustom>
-                  </div>
+                  </div>,
                 );
               }}
               className="flex-1 bg-primary hover:bg-primary/95 text-black font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm"
@@ -364,7 +424,7 @@ export default function AccountPage() {
               Confirm Listing
             </button>
           </div>
-        </div>
+        </div>,
       );
     };
 
@@ -378,7 +438,9 @@ export default function AccountPage() {
             className="w-16 h-16 object-cover rounded-lg border border-zinc-800"
           />
           <div className="space-y-0.5">
-            <span className={`text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}>
+            <span
+              className={`text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}
+            >
               {tile.rarity}
             </span>
             <h4 className="font-semibold text-white mt-1">{tile.name}</h4>
@@ -389,17 +451,23 @@ export default function AccountPage() {
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs text-zinc-550 uppercase tracking-wider font-mono">Set Listing Price</label>
+          <label className="text-xs text-zinc-550 uppercase tracking-wider font-mono">
+            Set Listing Price
+          </label>
           <div className="relative bg-black flex gap-2 h-[48px] items-center px-4 rounded-xl border border-zinc-800 focus-within:border-zinc-700">
             <input
               type="number"
               step="0.0001"
               placeholder="e.g. 0.05"
-              onChange={(e) => { priceInput = e.target.value; }}
+              onChange={(e) => {
+                priceInput = e.target.value;
+              }}
               className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none p-0 text-[15px] font-normal text-white placeholder-zinc-650"
               required
             />
-            <span className="text-xs font-mono text-zinc-500 shrink-0 select-none">SOL</span>
+            <span className="text-xs font-mono text-zinc-500 shrink-0 select-none">
+              SOL
+            </span>
           </div>
         </div>
 
@@ -418,19 +486,18 @@ export default function AccountPage() {
             List Item
           </button>
         </div>
-      </form>
+      </form>,
     );
   };
 
   return (
     <div className="min-h-screen bg-black text-white pt-32 pb-24 font-sans">
       <div className="mx-auto max-w-[1440px] px-6 sm:px-10 lg:px-[68px] space-y-12">
-        
         {/* Profile Card Header */}
         <div className="bg-zinc-950 border border-zinc-900 rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <div className="relative">
-              <div className="w-20 h-20 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-3xl overflow-hidden">
+              <div className="w-20 h-20 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-3xl overflow-hidden">
                 {wallet ? (
                   profileData?.photoUrl ? (
                     <img
@@ -439,7 +506,7 @@ export default function AccountPage() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full rounded-xl overflow-hidden isolate">
+                    <div className="rounded-xl overflow-hidden isolate">
                       <Avatar
                         colors={[
                           "#f5e1a4",
@@ -450,6 +517,7 @@ export default function AccountPage() {
                         ]}
                         variant="pixel"
                         size={80}
+                        square
                       />
                     </div>
                   )
@@ -457,7 +525,9 @@ export default function AccountPage() {
                   <User className="h-10 w-10 text-zinc-550" />
                 )}
               </div>
-              <span className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-zinc-955 ${wallet ? "bg-emerald-500" : "bg-zinc-500"}`} />
+              <span
+                className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-zinc-955 ${wallet ? "bg-emerald-500" : "bg-zinc-500"}`}
+              />
             </div>
 
             <div className="space-y-1.5">
@@ -468,10 +538,21 @@ export default function AccountPage() {
                 <Shield className="h-4.5 w-4.5 text-primary shrink-0" />
               </div>
               <div className="flex items-center gap-2 text-zinc-400 text-sm font-mono">
-                <span>{wallet ? shortenAddress(wallet.address) : "Wallet not connected"}</span>
+                <span>
+                  {wallet
+                    ? shortenAddress(wallet.address)
+                    : "Wallet not connected"}
+                </span>
                 {wallet && (
-                  <button onClick={handleCopy} className="text-zinc-550 hover:text-white transition-colors cursor-pointer">
-                    {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+                  <button
+                    onClick={handleCopy}
+                    className="text-zinc-550 hover:text-white transition-colors cursor-pointer"
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4 text-emerald-500" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
                   </button>
                 )}
               </div>
@@ -495,19 +576,31 @@ export default function AccountPage() {
         {/* Portfolio Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-zinc-950 border border-zinc-900 rounded-3xl p-6 space-y-2">
-            <span className="text-xs text-zinc-500 uppercase tracking-wider font-mono">Owned Tiles</span>
-            <div className="text-3xl font-extrabold text-white font-mono">{ownedTiles.length} Units</div>
-          </div>
-          <div className="bg-zinc-950 border border-zinc-900 rounded-3xl p-6 space-y-2">
-            <span className="text-xs text-zinc-500 uppercase tracking-wider font-mono">USDC Balance</span>
-            <div className="text-3xl font-extrabold text-primary font-mono">
-              {usdcBalance !== null ? `${usdcBalance.toFixed(2)} USDC` : "Loading..."}
+            <span className="text-xs text-zinc-500 uppercase tracking-wider font-mono">
+              Owned Tiles
+            </span>
+            <div className="text-3xl font-extrabold text-white font-mono">
+              {ownedTiles.length} Units
             </div>
           </div>
           <div className="bg-zinc-950 border border-zinc-900 rounded-3xl p-6 space-y-2">
-            <span className="text-xs text-zinc-500 uppercase tracking-wider font-mono">SOL Balance</span>
+            <span className="text-xs text-zinc-500 uppercase tracking-wider font-mono">
+              USDC Balance
+            </span>
+            <div className="text-3xl font-extrabold text-primary font-mono">
+              {usdcBalance !== null
+                ? `${usdcBalance.toFixed(2)} USDC`
+                : "Loading..."}
+            </div>
+          </div>
+          <div className="bg-zinc-950 border border-zinc-900 rounded-3xl p-6 space-y-2">
+            <span className="text-xs text-zinc-500 uppercase tracking-wider font-mono">
+              SOL Balance
+            </span>
             <div className="text-3xl font-extrabold text-zinc-300 font-mono">
-              {solBalance !== null ? `${solBalance.toFixed(4)} SOL` : "Loading..."}
+              {solBalance !== null
+                ? `${solBalance.toFixed(4)} SOL`
+                : "Loading..."}
             </div>
           </div>
         </div>
@@ -518,7 +611,9 @@ export default function AccountPage() {
             <h2 className="text-2xl font-bold flex items-center gap-2">
               <Grid className="h-5 w-5 text-primary" /> Owned Coordinate Units
             </h2>
-            <span className="text-xs text-zinc-550 font-mono">Showing {ownedTiles.length} units</span>
+            <span className="text-xs text-zinc-550 font-mono">
+              Showing {ownedTiles.length} units
+            </span>
           </div>
 
           {loading ? (
@@ -530,87 +625,136 @@ export default function AccountPage() {
             <div className="flex flex-col items-center justify-center py-24 text-zinc-500 border border-dashed border-zinc-800 rounded-2xl">
               <Grid className="h-10 w-10 mb-4 text-zinc-700" />
               <p className="text-sm">You don't own any tiles yet.</p>
-              <Link href="/landmark" className="mt-4 text-primary text-sm font-semibold hover:underline">
+              <Link
+                href="/landmark"
+                className="mt-4 text-primary text-sm font-semibold hover:underline"
+              >
                 Explore the map →
               </Link>
             </div>
           ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {ownedTiles.map((tile) => (
-              <div
-                key={tile.id}
-                className="bg-zinc-950 border border-zinc-900 rounded-2xl overflow-hidden hover:border-zinc-800 transition-all hover:scale-[1.01] flex flex-col group"
-              >
-                {/* Photo & Rarity */}
-                <div className="relative aspect-video overflow-hidden">
-                  <img
-                    src={tile.imageUrl}
-                    alt={tile.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent opacity-60" />
-                  <span className={`absolute top-4 left-4 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}>
-                    {tile.rarity}
-                  </span>
-                  <div className="absolute bottom-4 left-4 flex gap-1 items-center text-zinc-300 text-xs font-mono">
-                    <Grid className="h-3.5 w-3.5 text-primary" />
-                    <span>{tile.coordinates}</span>
-                  </div>
-                </div>
-
-                {/* Details */}
-                <div className="p-6 flex-1 flex flex-col justify-between space-y-6">
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors">
-                      {tile.name}
-                    </h3>
-                    <p className="text-sm text-zinc-400 flex items-center gap-1.5">
-                      <MapPin className="h-4 w-4 text-zinc-550" />
-                      {tile.location}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-4 border-t border-zinc-900 font-mono">
-                    <div className="space-y-0.5">
-                      <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
-                        Buy Price
-                      </div>
-                      <div className="text-base font-bold text-zinc-300">
-                        {tile.purchasePrice.toFixed(5)} SOL
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {paginatedTiles.map((tile) => (
+                  <div
+                    key={tile.id}
+                    className="bg-zinc-950 border border-zinc-900 rounded-2xl overflow-hidden hover:border-zinc-800 transition-all hover:scale-[1.01] flex flex-col group"
+                  >
+                    {/* Photo & Rarity */}
+                    <div className="relative aspect-video overflow-hidden">
+                      <img
+                        src={tile.imageUrl}
+                        alt={tile.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-zinc-955 to-transparent opacity-60" />
+                      <span
+                        className={`absolute top-4 left-4 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
+                      >
+                        {tile.rarity}
+                      </span>
+                      <div className="absolute bottom-4 left-4 flex gap-1 items-center text-zinc-300 text-xs font-mono">
+                        <Grid className="h-3.5 w-3.5 text-primary" />
+                        <span>{tile.coordinates}</span>
                       </div>
                     </div>
 
-                    <div className="text-right space-y-0.5">
-                      <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
-                        Acquired
+                    {/* Details */}
+                    <div className="p-6 flex-1 flex flex-col justify-between space-y-6">
+                      <div className="space-y-2">
+                        <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors">
+                          {tile.name}
+                        </h3>
+                        <p className="text-sm text-zinc-400 flex items-center gap-1.5">
+                          <MapPin className="h-4 w-4 text-zinc-550" />
+                          {tile.location}
+                        </p>
                       </div>
-                      <div className="text-xs font-semibold text-zinc-450">
-                        {tile.purchasedDate}
+
+                      <div className="flex items-center justify-between pt-4 border-t border-zinc-900 font-mono">
+                        <div className="space-y-0.5">
+                          <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
+                            Buy Price
+                          </div>
+                          <div className="text-base font-bold text-zinc-300">
+                            {tile.purchasePrice.toFixed(5)} SOL
+                          </div>
+                        </div>
+
+                        <div className="text-right space-y-0.5">
+                          <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
+                            Acquired
+                          </div>
+                          <div className="text-xs font-semibold text-zinc-450">
+                            {tile.purchasedDate}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 w-full pt-2">
+                        <button
+                          onClick={() => handleShowDetail(tile)}
+                          className="flex-1 flex items-center justify-center gap-1.5 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 py-2.5 rounded-xl transition-all cursor-pointer font-semibold text-xs text-zinc-300"
+                        >
+                          <Info className="h-3.5 w-3.5" /> Detail
+                        </button>
+                        <button
+                          onClick={() => handleSellTile(tile)}
+                          className="flex-1 flex items-center justify-center gap-1.5 bg-primary hover:bg-primary/95 text-black py-2.5 rounded-xl transition-all cursor-pointer font-semibold text-xs"
+                        >
+                          <Tag className="h-3.5 w-3.5" /> Sell
+                        </button>
                       </div>
                     </div>
                   </div>
-
-                  <div className="flex gap-2 w-full pt-2">
-                    <button
-                      onClick={() => handleShowDetail(tile)}
-                      className="flex-1 flex items-center justify-center gap-1.5 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 py-2.5 rounded-xl transition-all cursor-pointer font-semibold text-xs text-zinc-300"
-                    >
-                      <Info className="h-3.5 w-3.5" /> Detail
-                    </button>
-                    <button
-                      onClick={() => handleSellTile(tile)}
-                      className="flex-1 flex items-center justify-center gap-1.5 bg-primary hover:bg-primary/95 text-black py-2.5 rounded-xl transition-all cursor-pointer font-semibold text-xs"
-                    >
-                      <Tag className="h-3.5 w-3.5" /> Sell
-                    </button>
-                  </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+              {/* Pagination controls below the grid */}
+              {totalPages > 1 && (
+                <div className="pt-8 border-t border-zinc-900">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <button
+                          onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                          disabled={currentPage === 1}
+                          className="flex items-center gap-1 pl-2.5 pr-3 py-2 text-sm font-semibold border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                        >
+                          <PaginationPrevious className="pointer-events-none" />
+                        </button>
+                      </PaginationItem>
+
+                      {Array.from({ length: totalPages }).map((_, idx) => (
+                        <PaginationItem key={idx}>
+                          <PaginationLink
+                            isActive={currentPage === idx + 1}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setCurrentPage(idx + 1);
+                            }}
+                            className={`cursor-pointer ${currentPage === idx + 1 ? "!bg-primary !text-black border-0" : "border-zinc-800 text-zinc-400"}`}
+                          >
+                            {idx + 1}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+
+                      <PaginationItem>
+                        <button
+                          onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                          disabled={currentPage === totalPages}
+                          className="flex items-center gap-1 pl-3 pr-2.5 py-2 text-sm font-semibold border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                        >
+                          <PaginationNext className="pointer-events-none" />
+                        </button>
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
+            </>
           )}
         </div>
-
       </div>
     </div>
   );
