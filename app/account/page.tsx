@@ -20,7 +20,6 @@ import {
 import Link from "next/link";
 import { getRarityBadgeColor } from "@/lib/tiles";
 import { withCustomButton } from "@/components/custom/button_custom";
-import { useDialogStore } from "@/store/useDialogStore";
 import { getOwnerTiles, type CompressedNft } from "@/lib/solana/helius";
 import { lamportsToSol, getWalletBalance } from "@/lib/solana/mint";
 import {
@@ -115,14 +114,16 @@ export default function AccountPage() {
   // Profile Store
   const { profileData, checkProfile } = useProfileStore();
 
-  const openDialog = useDialogStore((state) => state.openDialog);
-  const closeDialog = useDialogStore((state) => state.closeDialog);
-
   // Search state
   const [searchQuery, setSearchQuery] = React.useState("");
 
   // Local dialog detail state
   const [selectedDetailTile, setSelectedDetailTile] = React.useState<OwnedTile | null>(null);
+
+  // Local dialog sell state
+  const [sellingTile, setSellingTile] = React.useState<OwnedTile | null>(null);
+  const [sellPriceInput, setSellPriceInput] = React.useState("");
+  const [sellStatus, setSellStatus] = React.useState<"idle" | "confirm" | "success">("idle");
 
   // Pagination states
   const [currentPage, setCurrentPage] = React.useState(1);
@@ -317,154 +318,9 @@ export default function AccountPage() {
   };
 
   const handleSellTile = (tile: OwnedTile) => {
-    let priceInput = "";
-
-    const handleFormSubmit = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!priceInput || parseFloat(priceInput) <= 0) return;
-
-      openDialog(
-        "Confirm Listing",
-        <div className="space-y-6 text-zinc-300">
-          <div className="flex gap-4 items-start border-b border-zinc-800 pb-4">
-            <img
-              src={tile.imageUrl}
-              alt={tile.name}
-              className="w-16 h-16 object-cover rounded-lg border border-zinc-800"
-            />
-            <div className="space-y-0.5">
-              <span
-                className={`text-[9px] uppercase font-semibold tracking-wider px-1.5 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}
-              >
-                {tile.rarity}
-              </span>
-              <h4 className="font-semibold text-white mt-1">{tile.name}</h4>
-              <p className="text-xs text-zinc-400 flex items-center gap-1">
-                <MapPin className="h-3 w-3" /> {tile.location}
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex justify-between text-sm">
-              <span>Listing Price</span>
-              <span className="font-semibold text-primary">
-                {priceInput} SOL
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>Platform Service Fee</span>
-              <span className="text-zinc-500">1.5%</span>
-            </div>
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => handleSellTile(tile)}
-              className="flex-1 border border-zinc-800 hover:bg-zinc-900 font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm"
-            >
-              Back
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                openDialog(
-                  "Listing Successful",
-                  <div className="text-center space-y-4 py-4">
-                    <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto text-xl border border-emerald-500/20">
-                      ✓
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-white text-lg">
-                        Tile Listed!
-                      </h4>
-                      <p className="text-sm text-zinc-400 mt-1">
-                        <strong>{tile.name}</strong> is now listed for sale at{" "}
-                        <strong>{priceInput} SOL</strong>.
-                      </p>
-                    </div>
-                    <div className="text-xs font-mono bg-black p-3 rounded-lg border border-zinc-800 text-zinc-550 text-left overflow-x-auto">
-                      Tx: 7s9aK...e98v1u
-                    </div>
-                    <ButtonCustom
-                      onClick={closeDialog}
-                      className="w-full justify-center"
-                    >
-                      Done
-                    </ButtonCustom>
-                  </div>,
-                );
-              }}
-              className="flex-1 bg-primary hover:bg-primary/95 text-black font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm"
-            >
-              Confirm Listing
-            </button>
-          </div>
-        </div>,
-      );
-    };
-
-    openDialog(
-      "List Tile for Sale",
-      <form onSubmit={handleFormSubmit} className="space-y-6 text-zinc-300">
-        <div className="flex gap-4 items-start border-b border-zinc-800 pb-4">
-          <img
-            src={tile.imageUrl}
-            alt={tile.name}
-            className="w-16 h-16 object-cover rounded-lg border border-zinc-800"
-          />
-          <div className="space-y-0.5">
-            <span
-              className={`text-[9px] uppercase font-semibold tracking-wider px-1.5 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}
-            >
-              {tile.rarity}
-            </span>
-            <h4 className="font-semibold text-white mt-1">{tile.name}</h4>
-            <p className="text-xs text-zinc-400 flex items-center gap-1">
-              <MapPin className="h-3 w-3" /> {tile.location}
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-xs text-zinc-555 uppercase tracking-wider font-mono">
-            Set Listing Price
-          </label>
-          <div className="relative bg-black flex gap-2 h-[48px] items-center px-4 rounded-xl border border-zinc-800 focus-within:border-zinc-700">
-            <input
-              type="number"
-              step="0.0001"
-              placeholder="e.g. 0.05"
-              onChange={(e) => {
-                priceInput = e.target.value;
-              }}
-              className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none p-0 text-[15px] font-normal text-white placeholder-zinc-650"
-              required
-            />
-            <span className="text-xs font-mono text-zinc-500 shrink-0 select-none">
-              SOL
-            </span>
-          </div>
-        </div>
-
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={closeDialog}
-            className="flex-1 border border-zinc-800 hover:bg-zinc-900 font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="flex-1 bg-primary hover:bg-primary/95 text-black font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm"
-          >
-            List Item
-          </button>
-        </div>
-      </form>,
-    );
+    setSellingTile(tile);
+    setSellPriceInput("");
+    setSellStatus("idle");
   };
 
   // Redirect to Wallet Connect View if wallet is not connected
@@ -863,6 +719,159 @@ export default function AccountPage() {
                   Close
                 </ButtonCustom>
               </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Local Sell Tile Dialog */}
+      <Dialog
+        open={sellingTile !== null}
+        onOpenChange={(open) => {
+          if (!open) setSellingTile(null);
+        }}
+      >
+        <DialogContent className="max-w-xl text-zinc-300">
+          <DialogHeader>
+            <DialogTitle className="text-white">
+              {sellStatus === "idle" && "List Tile for Sale"}
+              {sellStatus === "confirm" && "Confirm Listing"}
+              {sellStatus === "success" && "Listing Successful"}
+            </DialogTitle>
+          </DialogHeader>
+
+          {sellingTile && (
+            <div className="space-y-6 mt-4">
+              {/* Common Header Info */}
+              <div className="flex gap-4 items-start border-b border-zinc-800 pb-4">
+                <img
+                  src={sellingTile.imageUrl}
+                  alt={sellingTile.name}
+                  className="w-16 h-16 object-cover rounded-lg border border-zinc-800 shrink-0"
+                />
+                <div className="space-y-0.5">
+                  <span
+                    className={`text-[9px] uppercase font-semibold tracking-wider px-1.5 py-0.5 rounded border ${getRarityBadgeColor(sellingTile.rarity)}`}
+                  >
+                    {sellingTile.rarity}
+                  </span>
+                  <h4 className="font-semibold text-white mt-1">{sellingTile.name}</h4>
+                  <p className="text-xs text-zinc-400 flex items-center gap-1">
+                    <MapPin className="h-3.5 w-3.5" /> {sellingTile.location}
+                  </p>
+                </div>
+              </div>
+
+              {/* State: IDLE (Form Input) */}
+              {sellStatus === "idle" && (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (sellPriceInput && parseFloat(sellPriceInput) > 0) {
+                      setSellStatus("confirm");
+                    }
+                  }}
+                  className="space-y-6"
+                >
+                  <div className="space-y-2">
+                    <label className="text-xs text-zinc-555 uppercase tracking-wider font-mono">
+                      Set Listing Price
+                    </label>
+                    <div className="relative bg-black flex gap-2 h-[48px] items-center px-4 rounded-xl border border-zinc-800 focus-within:border-zinc-700">
+                      <input
+                        type="number"
+                        step="0.0001"
+                        placeholder="e.g. 0.05"
+                        value={sellPriceInput}
+                        onChange={(e) => setSellPriceInput(e.target.value)}
+                        className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none p-0 text-[15px] font-normal text-white placeholder-zinc-650"
+                        required
+                      />
+                      <span className="text-xs font-mono text-zinc-500 shrink-0 select-none">
+                        SOL
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setSellingTile(null)}
+                      className="flex-1 border border-zinc-800 hover:bg-zinc-900 font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 bg-primary hover:bg-primary/95 text-black font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm"
+                    >
+                      List Item
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* State: CONFIRM */}
+              {sellStatus === "confirm" && (
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span>Listing Price</span>
+                      <span className="font-semibold text-primary">
+                        {sellPriceInput} SOL
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Platform Service Fee</span>
+                      <span className="text-zinc-500">1.5%</span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setSellStatus("idle")}
+                      className="flex-1 border border-zinc-800 hover:bg-zinc-900 font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSellStatus("success")}
+                      className="flex-1 bg-primary hover:bg-primary/95 text-black font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm"
+                    >
+                      Confirm Listing
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* State: SUCCESS */}
+              {sellStatus === "success" && (
+                <div className="text-center space-y-4 py-4">
+                  <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto text-xl border border-emerald-500/20">
+                    ✓
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-white text-lg">
+                      Tile Listed!
+                    </h4>
+                    <p className="text-sm text-zinc-400 mt-1">
+                      <strong>{sellingTile.name}</strong> is now listed for sale at{" "}
+                      <strong>{sellPriceInput} SOL</strong>.
+                    </p>
+                  </div>
+                  <div className="text-xs font-mono bg-black p-3 rounded-lg border border-zinc-800 text-zinc-550 text-left overflow-x-auto">
+                    Tx: 7s9aK...e98v1u
+                  </div>
+                  <ButtonCustom
+                    onClick={() => setSellingTile(null)}
+                    className="w-full justify-center"
+                  >
+                    Done
+                  </ButtonCustom>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>

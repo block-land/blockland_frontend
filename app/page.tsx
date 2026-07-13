@@ -2,8 +2,14 @@
 
 import { Button } from "@/components/ui/button";
 import { withCustomButton } from "@/components/custom/button_custom";
-import { useDialogStore } from "@/store/useDialogStore";
 import VideoPlayer from "@/components/custom/video-player";
+import * as React from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   IconBox,
   IconDatabase,
@@ -17,23 +23,23 @@ import { RiCheckboxBlankCircleFill } from "react-icons/ri";
 const ButtonCustom = withCustomButton("button");
 
 export default function Home() {
-  const openDialog = useDialogStore((state) => state.openDialog);
+  const [isVideoOpen, setIsVideoOpen] = React.useState(false);
 
   const handleWatchVision = () => {
-    const videoJsOptions = {
-      autoplay: true,
-      controls: true,
-      responsive: true,
-      fluid: true,
-      sources: [
-        {
-          src: "https://pub-435ea7c908ea4035b5643ba33e5eef48.r2.dev/blockland/vision.webm",
-          type: "video/webm",
-        },
-      ],
-    };
+    setIsVideoOpen(true);
+  };
 
-    openDialog("Watch Vision", <VideoPlayer options={videoJsOptions} />);
+  const videoJsOptions = {
+    autoplay: true,
+    controls: true,
+    responsive: true,
+    fluid: true,
+    sources: [
+      {
+        src: "https://pub-435ea7c908ea4035b5643ba33e5eef48.r2.dev/blockland/vision.webm",
+        type: "video/webm",
+      },
+    ],
   };
 
   return (
@@ -301,6 +307,18 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Local Video Vision Dialog */}
+      <Dialog open={isVideoOpen} onOpenChange={setIsVideoOpen}>
+        <DialogContent className="max-w-3xl sm:max-w-4xl p-0 overflow-hidden bg-transparent border-0">
+          <DialogHeader className="p-6 pb-0 opacity-0">
+            <DialogTitle className="text-xl font-semibold text-white">Watch Vision</DialogTitle>
+          </DialogHeader>
+          <div className="w-full">
+            <VideoPlayer options={videoJsOptions} />
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

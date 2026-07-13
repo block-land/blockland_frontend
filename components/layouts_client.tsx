@@ -6,9 +6,7 @@ import Header from "./header";
 import Footer from "./footer";
 import PrivyProviderWrapper from "./privy-provider";
 import { motion, useScroll, useSpring, useTransform, AnimatePresence } from "framer-motion";
-import { useDialogStore } from "@/store/useDialogStore";
 import ProfileDialogWatcher from "./profile-dialog-watcher";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function LayoutsClient({
   children,
@@ -18,8 +16,6 @@ export default function LayoutsClient({
   const pathname = usePathname();
   const showFooter = pathname !== "/landmark" && pathname !== "/message";
   const isAbsoluteHeader = pathname === "/" || pathname === "/landmark";
-
-  const { isOpen, title, content, closeDialog } = useDialogStore();
 
   // Home page uses GSAP ScrollTrigger pin, which is incompatible with the
   // custom smooth-scroll (fixed + transformed container). Bypass smooth-scroll
@@ -220,17 +216,6 @@ export default function LayoutsClient({
         <div style={{ height: isLoading ? "100vh" : contentHeight }} className="w-full pointer-events-none" />
       )}
 
-      {/* Global Dialog Component */}
-      <Dialog open={isOpen} onOpenChange={(open) => !open && closeDialog()}>
-        <DialogContent className="max-w-3xl sm:max-w-4xl p-0 overflow-hidden bg-transparent border-0 min-h-screen">
-          {title && (
-            <DialogHeader className="p-6 pb-0 opacity-0">
-              <DialogTitle className="text-xl font-semibold text-white">{title}</DialogTitle>
-            </DialogHeader>
-          )}
-          <div className="">{content}</div>
-        </DialogContent>
-      </Dialog>
       <ProfileDialogWatcher />
     </PrivyProviderWrapper>
   );

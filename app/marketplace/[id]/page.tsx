@@ -6,17 +6,23 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, MapPin, Grid, Calendar, User, ShieldCheck, Share2, DollarSign, MessageSquare, Send, X, Minimize2, Tag } from "lucide-react";
 import { withCustomButton } from "@/components/custom/button_custom";
-import { useDialogStore } from "@/store/useDialogStore";
 import { DUMMY_TILES, getRarityBadgeColor } from "@/lib/tiles";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const ButtonCustom = withCustomButton("button");
 
 export default function TileDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const openDialog = useDialogStore((state) => state.openDialog);
-  const closeDialog = useDialogStore((state) => state.closeDialog);
+
+  // Local Modal States
+  const [activeModal, setActiveModal] = React.useState<"buy" | "buy-success" | "offer" | "offer-success" | null>(null);
 
   const tileId = params?.id as string;
   const tile = DUMMY_TILES.find((t) => t.id === tileId);
@@ -122,172 +128,13 @@ export default function TileDetailPage() {
   }
 
   const handleBuy = () => {
-    openDialog(
-      "Confirm Purchase",
-      <div className="space-y-6 text-zinc-300">
-        <div className="flex gap-4 items-start border-b border-zinc-800 pb-4">
-          <img
-            src={tile.imageUrl}
-            alt={tile.name}
-            className="w-20 h-20 object-cover rounded-lg border border-zinc-800"
-          />
-          <div className="space-y-1">
-            <span className={`text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}>
-              {tile.rarity}
-            </span>
-            <h4 className="font-semibold text-white mt-1">{tile.name}</h4>
-            <p className="text-xs text-zinc-400 flex items-center gap-1">
-              <MapPin className="h-3 w-3" /> {tile.location}
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex justify-between text-sm">
-            <span>Price</span>
-            <span className="font-semibold text-primary">{tile.price} USDC</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span>Transaction Fee</span>
-            <span className="text-zinc-500">0.05 USDC</span>
-          </div>
-          <div className="border-t border-zinc-800 pt-3 flex justify-between font-semibold text-white text-base">
-            <span>Total Cost</span>
-            <span className="text-primary">{tile.price + 0.05} USDC</span>
-          </div>
-        </div>
-
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={closeDialog}
-            className="flex-1 border border-zinc-800 hover:bg-zinc-900 font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              // Simulating transaction success dialog
-              openDialog(
-                "Transaction Success",
-                <div className="text-center space-y-4 py-4">
-                  <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto text-xl border border-emerald-500/20">
-                    ✓
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-white text-lg">Tile Acquired!</h4>
-                    <p className="text-sm text-zinc-400 mt-1">
-                      You are now the proud owner of <strong>{tile.name}</strong> coordinate unit.
-                    </p>
-                  </div>
-                  <div className="text-xs font-mono bg-black p-3 rounded-lg border border-zinc-800 text-zinc-500 text-left overflow-x-auto">
-                    Tx: 4v7yJ...H98t1x
-                  </div>
-                  <ButtonCustom onClick={closeDialog} className="w-full justify-center">
-                    Close
-                  </ButtonCustom>
-                </div>
-              );
-            }}
-            className="flex-1 bg-primary hover:bg-primary/95 text-black font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm"
-          >
-            Confirm Buy
-          </button>
-        </div>
-      </div>
-    );
+    setActiveModal("buy");
   };
 
   const handleMakeOffer = (e: React.FormEvent) => {
     e.preventDefault();
     if (!offerPrice || parseFloat(offerPrice) <= 0) return;
-
-    openDialog(
-      "Confirm Offer Submission",
-      <div className="space-y-6 text-zinc-300">
-        <div className="flex gap-4 items-start border-b border-zinc-800 pb-4">
-          <img
-            src={tile.imageUrl}
-            alt={tile.name}
-            className="w-20 h-20 object-cover rounded-lg border border-zinc-800"
-          />
-          <div className="space-y-1">
-            <span className={`text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}>
-              {tile.rarity}
-            </span>
-            <h4 className="font-semibold text-white mt-1">{tile.name}</h4>
-            <p className="text-xs text-zinc-400 flex items-center gap-1">
-              <MapPin className="h-3 w-3" /> {tile.location}
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex justify-between text-sm">
-            <span>Current Price</span>
-            <span className="text-zinc-400 font-semibold">{tile.price} USDC</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span>Your Offering Price</span>
-            <span className="font-semibold text-primary">{offerPrice} USDC</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span>Offer Expiry</span>
-            <span className="text-zinc-400">7 Days</span>
-          </div>
-        </div>
-
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={closeDialog}
-            className="flex-1 border border-zinc-800 hover:bg-zinc-900 font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              openDialog(
-                "Offer Submitted",
-                <div className="text-center space-y-4 py-4">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto text-xl border border-primary/20">
-                    ✓
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-white text-lg">Offer Submitted Successfully!</h4>
-                    <p className="text-sm text-zinc-400 mt-1">
-                      Your offer of <strong>{offerPrice} USDC</strong> has been submitted to the publisher.
-                    </p>
-                  </div>
-                  <ButtonCustom onClick={() => {
-                    // Add new offer to list dynamically
-                    setOffers((prev) => [
-                      {
-                        id: `off-${Date.now()}`,
-                        bidder: "You (0xActive)",
-                        price: parseFloat(offerPrice),
-                        date: "Just now",
-                        avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60"
-                      },
-                      ...prev
-                    ]);
-                    setOfferPrice("");
-                    closeDialog();
-                  }} className="w-full justify-center">
-                    Close
-                  </ButtonCustom>
-                </div>
-              );
-            }}
-            className="flex-1 bg-primary hover:bg-primary/95 text-black font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm"
-          >
-            Submit Offer
-          </button>
-        </div>
-      </div>
-    );
+    setActiveModal("offer");
   };
 
   return (
@@ -590,6 +437,195 @@ export default function TileDetailPage() {
         </div>,
         document.body
       )}
+
+      {/* Local Buy Coordinate Dialog */}
+      <Dialog
+        open={activeModal === "buy" || activeModal === "buy-success"}
+        onOpenChange={(open) => {
+          if (!open) setActiveModal(null);
+        }}
+      >
+        <DialogContent className="max-w-xl text-zinc-300">
+          <DialogHeader>
+            <DialogTitle className="text-white font-semibold">
+              {activeModal === "buy" ? "Confirm Purchase" : "Transaction Success"}
+            </DialogTitle>
+          </DialogHeader>
+
+          {activeModal === "buy" && (
+            <div className="space-y-6 mt-4">
+              <div className="flex gap-4 items-start border-b border-zinc-800 pb-4">
+                <img
+                  src={tile.imageUrl}
+                  alt={tile.name}
+                  className="w-20 h-20 object-cover rounded-lg border border-zinc-800 shrink-0"
+                />
+                <div className="space-y-1">
+                  <span className={`text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}>
+                    {tile.rarity}
+                  </span>
+                  <h4 className="font-semibold text-white mt-1">{tile.name}</h4>
+                  <p className="text-xs text-zinc-400 flex items-center gap-1">
+                    <MapPin className="h-3.5 w-3.5" /> {tile.location}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span>Price</span>
+                  <span className="font-semibold text-primary">{tile.price} USDC</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Transaction Fee</span>
+                  <span className="text-zinc-500">0.05 USDC</span>
+                </div>
+                <div className="border-t border-zinc-800 pt-3 flex justify-between font-semibold text-white text-base">
+                  <span>Total Cost</span>
+                  <span className="text-primary">{tile.price + 0.05} USDC</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="flex-1 border border-zinc-800 hover:bg-zinc-900 font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm text-center"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveModal("buy-success")}
+                  className="flex-1 bg-primary hover:bg-primary/95 text-black font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm text-center"
+                >
+                  Confirm Buy
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeModal === "buy-success" && (
+            <div className="text-center space-y-4 py-4 mt-4">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto text-xl border border-emerald-500/20">
+                ✓
+              </div>
+              <div>
+                <h4 className="font-semibold text-white text-lg">Tile Acquired!</h4>
+                <p className="text-sm text-zinc-400 mt-1">
+                  You are now the proud owner of <strong>{tile.name}</strong> coordinate unit.
+                </p>
+              </div>
+              <div className="text-xs font-mono bg-black p-3 rounded-lg border border-zinc-800 text-zinc-500 text-left overflow-x-auto">
+                Tx: 4v7yJ...H98t1x
+              </div>
+              <ButtonCustom onClick={() => setActiveModal(null)} className="w-full justify-center">
+                Close
+              </ButtonCustom>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Local Offer Submission Dialog */}
+      <Dialog
+        open={activeModal === "offer" || activeModal === "offer-success"}
+        onOpenChange={(open) => {
+          if (!open) setActiveModal(null);
+        }}
+      >
+        <DialogContent className="max-w-xl text-zinc-300">
+          <DialogHeader>
+            <DialogTitle className="text-white font-semibold">
+              {activeModal === "offer" ? "Confirm Offer Submission" : "Offer Submitted"}
+            </DialogTitle>
+          </DialogHeader>
+
+          {activeModal === "offer" && (
+            <div className="space-y-6 mt-4">
+              <div className="flex gap-4 items-start border-b border-zinc-800 pb-4">
+                <img
+                  src={tile.imageUrl}
+                  alt={tile.name}
+                  className="w-20 h-20 object-cover rounded-lg border border-zinc-800 shrink-0"
+                />
+                <div className="space-y-1">
+                  <span className={`text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}>
+                    {tile.rarity}
+                  </span>
+                  <h4 className="font-semibold text-white mt-1">{tile.name}</h4>
+                  <p className="text-xs text-zinc-400 flex items-center gap-1">
+                    <MapPin className="h-3.5 w-3.5" /> {tile.location}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span>Current Price</span>
+                  <span className="text-zinc-400 font-semibold">{tile.price} USDC</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Your Offering Price</span>
+                  <span className="font-semibold text-primary">{offerPrice} USDC</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Offer Expiry</span>
+                  <span className="text-zinc-400">7 Days</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="flex-1 border border-zinc-800 hover:bg-zinc-900 font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm text-center"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Add new offer to list dynamically
+                    setOffers((prev) => [
+                      {
+                        id: `off-${Date.now()}`,
+                        bidder: "You (0xActive)",
+                        price: parseFloat(offerPrice),
+                        date: "Just now",
+                        avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60"
+                      },
+                      ...prev
+                    ]);
+                    setOfferPrice("");
+                    setActiveModal("offer-success");
+                  }}
+                  className="flex-1 bg-primary hover:bg-primary/95 text-black font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm text-center"
+                >
+                  Submit Offer
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeModal === "offer-success" && (
+            <div className="text-center space-y-4 py-4 mt-4">
+              <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto text-xl border border-primary/20">
+                ✓
+              </div>
+              <div>
+                <h4 className="font-semibold text-white text-lg">Offer Submitted Successfully!</h4>
+                <p className="text-sm text-zinc-400 mt-1">
+                  Your offer has been submitted to the publisher.
+                </p>
+              </div>
+              <ButtonCustom onClick={() => setActiveModal(null)} className="w-full justify-center">
+                Close
+              </ButtonCustom>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
