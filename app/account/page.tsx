@@ -107,26 +107,23 @@ export default function AccountPage() {
   // Pagination states
   const [currentPage, setCurrentPage] = React.useState(1);
   const ITEMS_PER_PAGE = 6;
+  const [totalTilesCount, setTotalTilesCount] = React.useState(0);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = React.useState("");
 
-  // Filter owned tiles based on query
-  const filteredTiles = ownedTiles.filter((tile) => {
-    if (!searchQuery.trim()) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      tile.name.toLowerCase().includes(query) ||
-      tile.location.toLowerCase().includes(query) ||
-      tile.coordinates.toLowerCase().includes(query)
-    );
-  });
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-  // Reset page when tiles length or search query changes
+  // Reset page when search query changes
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, ownedTiles.length]);
+  }, [debouncedSearchQuery]);
 
-  const totalPages = Math.ceil(filteredTiles.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedTiles = filteredTiles.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(totalTilesCount / ITEMS_PER_PAGE);
+  const paginatedTiles = ownedTiles;
 
   // Check/fetch profile when wallet connected
   React.useEffect(() => {
@@ -192,55 +189,23 @@ export default function AccountPage() {
     fetchBalances();
   }, [wallet?.address]);
 
-  const loadTiles = React.useCallback(async () => {
+  const loadTiles = React.useCallback(async (page: number, searchVal: string) => {
     if (!wallet?.address) return;
     setLoading(true);
     try {
-      // 1. Fetch on-chain tiles (via Helius DAS)
-      const nfts = await getOwnerTiles(wallet.address);
-
-      // 2. Fetch backend DB tiles
       const BACKEND_URL =
         process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
-      let dbTiles: any[] = [];
-      try {
-        const res = await fetch(
-          `${BACKEND_URL}/api/tiles/owner/${wallet.address}`,
-        );
-        const data = await res.json();
-        if (data.ok && Array.isArray(data.tiles)) {
-          dbTiles = data.tiles;
-        }
-      } catch (dbErr) {
-        console.error("Failed to load tiles from backend database:", dbErr);
-      }
-
-      // Map on-chain tiles and enrich them with database details (real prices & dates)
-      const mapped = nfts.map((nft) => {
-        const uiTile = nftToTile(nft);
-        const match = dbTiles.find((t) => t.assetId === nft.id);
-        if (match) {
-          const lamports = match.priceLamports
-            ? Number(match.priceLamports)
-            : 0;
-          uiTile.purchasePrice = lamportsToSol(lamports);
-
-          if (match.createdAt) {
-            const createdAt = new Date(match.createdAt);
-            uiTile.purchasedDate = createdAt.toLocaleDateString("en-US", {
-              month: "short",
-              day: "2-digit",
-              year: "numeric",
-            });
-          }
-        }
-        return uiTile;
-      });
-
-      // Fallback: If Helius DAS API returns nothing (common in dev environment),
-      // populate owned tiles directly using backend DB records
-      if (mapped.length === 0 && dbTiles.length > 0) {
-        const fallbackMapped = dbTiles.map((t: any) => {
+      
+      const offset = (page - 1) * ITEMS_PER_PAGE;
+      const searchParam = searchVal.trim() ? `&search=${encodeURIComponent(searchVal.trim())}` : "";
+      
+      const res = await fetch(
+        `${BACKEND_URL}/api/tiles/owner/${wallet.address}?limit=${ITEMS_PER_PAGE}&offset=${offset}${searchParam}`
+      );
+      const data = await res.json();
+      
+      if (data.ok && Array.isArray(data.tiles)) {
+        const mapped = data.tiles.map((t: any) => {
           const lat = parseFloat(t.lat);
           const lng = parseFloat(t.lng);
           const lamports = t.priceLamports ? Number(t.priceLamports) : 0;
@@ -261,21 +226,26 @@ export default function AccountPage() {
             }),
           };
         });
-        setOwnedTiles(fallbackMapped);
-      } else {
         setOwnedTiles(mapped);
+        setTotalTilesCount(data.total ?? mapped.length);
+      } else {
+        setOwnedTiles([]);
+        setTotalTilesCount(0);
       }
     } catch (err) {
       console.error("Failed to load tiles:", err);
       setOwnedTiles([]);
+      setTotalTilesCount(0);
     } finally {
       setLoading(false);
     }
   }, [wallet?.address]);
 
   React.useEffect(() => {
-    loadTiles();
-  }, [loadTiles]);
+    if (wallet?.address) {
+      loadTiles(currentPage, debouncedSearchQuery);
+    }
+  }, [currentPage, debouncedSearchQuery, wallet?.address, loadTiles]);
 
   const handleCopy = () => {
     if (wallet?.address) {
@@ -615,7 +585,7 @@ export default function AccountPage() {
               Owned Tiles
             </span>
             <div className="text-3xl font-extrabold text-white font-mono">
-              {ownedTiles.length} Units
+              {totalTilesCount} Units
             </div>
           </div>
           <div className="bg-zinc-950 border border-zinc-900 rounded-3xl p-6 space-y-2">
@@ -668,7 +638,7 @@ export default function AccountPage() {
                 )}
               </div>
               <span className="text-xs text-zinc-550 font-mono shrink-0">
-                Showing {filteredTiles.length} of {ownedTiles.length} units
+                Showing {paginatedTiles.length} of {totalTilesCount} units
               </span>
             </div>
           </div>
@@ -678,100 +648,100 @@ export default function AccountPage() {
               <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
               <p className="text-sm">Loading your tiles from Solana...</p>
             </div>
-          ) : ownedTiles.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 text-zinc-550 border border-dashed border-zinc-800 rounded-2xl">
-              <Grid className="h-10 w-10 mb-4 text-zinc-700" />
-              <p className="text-sm">You don't own any tiles yet.</p>
-              <Link
-                href="/landmark"
-                className="mt-4 text-primary text-sm font-semibold hover:underline"
-              >
-                Explore the map →
-              </Link>
-            </div>
+          ) : totalTilesCount === 0 ? (
+            searchQuery.trim() ? (
+              <div className="text-center py-20 text-zinc-500 border border-dashed border-zinc-850 rounded-2xl">
+                No matching tiles found for "{searchQuery}".
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-24 text-zinc-555 border border-dashed border-zinc-800 rounded-2xl">
+                <Grid className="h-10 w-10 mb-4 text-zinc-700" />
+                <p className="text-sm">You don't own any tiles yet.</p>
+                <Link
+                  href="/landmark"
+                  className="mt-4 text-primary text-sm font-semibold hover:underline"
+                >
+                  Explore the map →
+                </Link>
+              </div>
+            )
           ) : (
             <>
-              {filteredTiles.length === 0 ? (
-                <div className="text-center py-20 text-zinc-500 border border-dashed border-zinc-850 rounded-2xl">
-                  No matching tiles found for "{searchQuery}".
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {paginatedTiles.map((tile) => (
-                    <div
-                      key={tile.id}
-                      className="bg-zinc-950 border border-zinc-900 rounded-2xl overflow-hidden hover:border-zinc-800 transition-all hover:scale-[1.01] flex flex-col group"
-                    >
-                      {/* Photo & Rarity */}
-                      <div className="relative aspect-video overflow-hidden">
-                        <img
-                          src={tile.imageUrl}
-                          alt={tile.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-zinc-955 to-transparent opacity-60" />
-                        <span
-                          className={`absolute top-4 left-4 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
-                        >
-                          {tile.rarity}
-                        </span>
-                        <div className="absolute bottom-4 left-4 flex gap-1 items-center text-zinc-300 text-xs font-mono">
-                          <Grid className="h-3.5 w-3.5 text-primary" />
-                          <span>{tile.coordinates}</span>
-                        </div>
-                      </div>
-
-                      {/* Details */}
-                      <div className="p-6 flex-1 flex flex-col justify-between space-y-6">
-                        <div className="space-y-2">
-                          <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors">
-                            {tile.name}
-                          </h3>
-                          <p className="text-sm text-zinc-400 flex items-center gap-1.5">
-                            <MapPin className="h-4 w-4 text-zinc-550" />
-                            {tile.location}
-                          </p>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-4 border-t border-zinc-900 font-mono">
-                          <div className="space-y-0.5">
-                            <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
-                              Buy Price
-                            </div>
-                            <div className="text-base font-bold text-zinc-300">
-                              {tile.purchasePrice.toFixed(5)} SOL
-                            </div>
-                          </div>
-
-                          <div className="text-right space-y-0.5">
-                            <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
-                              Acquired
-                            </div>
-                            <div className="text-xs font-semibold text-zinc-450">
-                              {tile.purchasedDate}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex gap-2 w-full pt-2">
-                          <button
-                            onClick={() => handleShowDetail(tile)}
-                            className="flex-1 flex items-center justify-center gap-1.5 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 py-2.5 rounded-xl transition-all cursor-pointer font-semibold text-xs text-zinc-300"
-                          >
-                            Detail
-                          </button>
-                          <button
-                            onClick={() => handleSellTile(tile)}
-                            className="flex-1 flex items-center justify-center gap-1.5 bg-primary hover:bg-primary/95 text-black py-2.5 rounded-xl transition-all cursor-pointer font-semibold text-xs"
-                          >
-                            Sell
-                          </button>
-                        </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {paginatedTiles.map((tile) => (
+                  <div
+                    key={tile.id}
+                    className="bg-zinc-950 border border-zinc-900 rounded-2xl overflow-hidden hover:border-zinc-800 transition-all hover:scale-[1.01] flex flex-col group"
+                  >
+                    {/* Photo & Rarity */}
+                    <div className="relative aspect-video overflow-hidden">
+                      <img
+                        src={tile.imageUrl}
+                        alt={tile.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-zinc-955 to-transparent opacity-60" />
+                      <span
+                        className={`absolute top-4 left-4 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
+                      >
+                        {tile.rarity}
+                      </span>
+                      <div className="absolute bottom-4 left-4 flex gap-1 items-center text-zinc-300 text-xs font-mono">
+                        <Grid className="h-3.5 w-3.5 text-primary" />
+                        <span>{tile.coordinates}</span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+
+                    {/* Details */}
+                    <div className="p-6 flex-1 flex flex-col justify-between space-y-6">
+                      <div className="space-y-2">
+                        <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors">
+                          {tile.name}
+                        </h3>
+                        <p className="text-sm text-zinc-400 flex items-center gap-1.5">
+                          <MapPin className="h-4 w-4 text-zinc-550" />
+                          {tile.location}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-4 border-t border-zinc-900 font-mono">
+                        <div className="space-y-0.5">
+                          <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
+                            Buy Price
+                          </div>
+                          <div className="text-base font-bold text-zinc-300">
+                            {tile.purchasePrice.toFixed(5)} SOL
+                          </div>
+                        </div>
+
+                        <div className="text-right space-y-0.5">
+                          <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
+                            Acquired
+                          </div>
+                          <div className="text-xs font-semibold text-zinc-450">
+                            {tile.purchasedDate}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 w-full pt-2">
+                        <button
+                          onClick={() => handleShowDetail(tile)}
+                          className="flex-1 flex items-center justify-center gap-1.5 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 py-2.5 rounded-xl transition-all cursor-pointer font-semibold text-xs text-zinc-300"
+                        >
+                          Detail
+                        </button>
+                        <button
+                          onClick={() => handleSellTile(tile)}
+                          className="flex-1 flex items-center justify-center gap-1.5 bg-primary hover:bg-primary/95 text-black py-2.5 rounded-xl transition-all cursor-pointer font-semibold text-xs"
+                        >
+                          Sell
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
               {/* Pagination controls below the grid */}
               {totalPages > 1 && (
                 <div className="pt-8 border-t border-zinc-900">

@@ -148,7 +148,16 @@ export default function LandmarkPage() {
   const [landmarksOffset, setLandmarksOffset] = useState(0);
   const [totalLandmarksCount, setTotalLandmarksCount] = useState(0);
   const [userLandmarksSearchQuery, setUserLandmarksSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(userLandmarksSearchQuery);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [userLandmarksSearchQuery]);
 
   // Clear search query when dialog is closed
   useEffect(() => {
@@ -156,16 +165,6 @@ export default function LandmarkPage() {
       setUserLandmarksSearchQuery("");
     }
   }, [isDialogOpen]);
-
-  // Filter landmarks based on search query
-  const filteredUserLandmarks = userLandmarks.filter((landmark) => {
-    if (!userLandmarksSearchQuery.trim()) return true;
-    const query = userLandmarksSearchQuery.toLowerCase();
-    return (
-      landmark.name.toLowerCase().includes(query) ||
-      landmark.location.toLowerCase().includes(query)
-    );
-  });
 
   // Tile multi-select state — array of selected H3 cell IDs available to buy
   const [selectedCells, setSelectedCells] = useState<string[]>([]);
@@ -239,7 +238,7 @@ export default function LandmarkPage() {
   const wallet = wallets[0];
 
   // Fetch user landmarks when wallet is connected and dialog is opened
-  const fetchUserLandmarks = async (offsetVal: number, replace: boolean = false) => {
+  const fetchUserLandmarks = async (offsetVal: number, replace: boolean = false, currentSearch: string = "") => {
     if (!wallet?.address) return;
     if (offsetVal === 0) {
       setIsLoadingLandmarks(true);
@@ -250,9 +249,12 @@ export default function LandmarkPage() {
     const BACKEND_URL =
       process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
     try {
+      // Build search query param
+      const searchParam = currentSearch.trim() ? `&search=${encodeURIComponent(currentSearch.trim())}` : "";
+
       // Fetch user landmarks using pagination (limit = 10)
       const res = await fetch(
-        `${BACKEND_URL}/api/tiles/owner/${wallet.address}?limit=10&offset=${offsetVal}`,
+        `${BACKEND_URL}/api/tiles/owner/${wallet.address}?limit=10&offset=${offsetVal}${searchParam}`,
       );
       const data = await res.json();
       if (data.ok && Array.isArray(data.tiles)) {
@@ -322,24 +324,24 @@ export default function LandmarkPage() {
     }
   };
 
-  // Reset offset and fetch first page when dialog is opened or wallet address changes
+  // Reset offset and fetch first page when dialog is opened, wallet address changes, or search query changes
   useEffect(() => {
     if (isDialogOpen && wallet?.address) {
       setUserLandmarks([]);
       setLandmarksOffset(0);
       setHasMoreLandmarks(true);
-      fetchUserLandmarks(0, true);
+      fetchUserLandmarks(0, true, debouncedSearchQuery);
     } else if (!isDialogOpen) {
       setUserLandmarks([]);
       setLandmarksOffset(0);
       setHasMoreLandmarks(true);
     }
-  }, [wallet?.address, isDialogOpen]);
+  }, [wallet?.address, isDialogOpen, debouncedSearchQuery]);
 
   // Load more function
   const loadMoreLandmarks = () => {
     if (isLoadingMoreLandmarks || !hasMoreLandmarks) return;
-    fetchUserLandmarks(landmarksOffset, false);
+    fetchUserLandmarks(landmarksOffset, false, debouncedSearchQuery);
   };
 
   // IntersectionObserver for infinite scrolling
@@ -1449,14 +1451,14 @@ export default function LandmarkPage() {
                                 </button>
                               )}
                             </div>
-                            {filteredUserLandmarks.length === 0 ? (
+                            {userLandmarks.length === 0 ? (
                               <div className="text-center py-8 text-zinc-500 text-sm">
                                 No matching landmarks found.
                               </div>
                             ) : (
                               <ScrollArea className="max-h-[300px] pr-2">
                                 <div className="flex flex-col gap-2">
-                                  {filteredUserLandmarks.map((landmark, idx) => (
+                                  {userLandmarks.map((landmark, idx) => (
                                     <button
                                       key={idx}
                                       onClick={() => flyToLandmark(landmark)}
