@@ -140,10 +140,15 @@ export default function LandmarkPage() {
   const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
   const [mapStyle, setMapStyle] = useState<"default" | "realistic">("default");
 
-  // User owned landmarks from backend
+  // User owned landmarks states
   const [userLandmarks, setUserLandmarks] = useState<Landmark[]>([]);
   const [isLoadingLandmarks, setIsLoadingLandmarks] = useState(false);
+  const [isLoadingMoreLandmarks, setIsLoadingMoreLandmarks] = useState(false);
+  const [hasMoreLandmarks, setHasMoreLandmarks] = useState(true);
+  const [landmarksOffset, setLandmarksOffset] = useState(0);
+  const [totalLandmarksCount, setTotalLandmarksCount] = useState(0);
   const [userLandmarksSearchQuery, setUserLandmarksSearchQuery] = useState("");
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   // Clear search query when dialog is closed
   useEffect(() => {
@@ -234,81 +239,130 @@ export default function LandmarkPage() {
   const wallet = wallets[0];
 
   // Fetch user landmarks when wallet is connected and dialog is opened
-  useEffect(() => {
-    if (!wallet?.address || !isDialogOpen) {
-      if (!wallet?.address) {
-        setUserLandmarks([]);
-      }
-      return;
+  const fetchUserLandmarks = async (offsetVal: number, replace: boolean = false) => {
+    if (!wallet?.address) return;
+    if (offsetVal === 0) {
+      setIsLoadingLandmarks(true);
+    } else {
+      setIsLoadingMoreLandmarks(true);
     }
 
-    const fetchUserLandmarks = async () => {
-      setIsLoadingLandmarks(true);
-      const BACKEND_URL =
-        process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
-      try {
-        // Solana addresses are base58 case-sensitive — never lowercase
-        const res = await fetch(
-          `${BACKEND_URL}/api/tiles/owner/${wallet.address}`,
-        );
-        const data = await res.json();
-        if (data.ok && Array.isArray(data.tiles)) {
-          const mapped: Landmark[] = data.tiles.map((t: any) => {
-            const latNum = parseFloat(t.lat);
-            const lngNum = parseFloat(t.lng);
-            // Format purchase date (createdAt ISO → "Jul 12, 2026")
-            const createdAt = t.createdAt ? new Date(t.createdAt) : null;
-            const purchaseDate = createdAt
-              ? createdAt.toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })
-              : null;
-            // priceLamports comes back as a string from the backend
-            const lamports = t.priceLamports ? Number(t.priceLamports) : null;
-            return {
-              name: purchaseDate ?? "Blockland Tile",
-              purchaseDate,
-              priceSol: lamports !== null ? lamportsToSol(lamports) : null,
-              // Fallback before reverse geocoding resolves below.
-              location: `${latNum.toFixed(4)}, ${lngNum.toFixed(4)}`,
-              coordinates: [lngNum, latNum] as [number, number],
-              thumbnail: buildStaticMapUrl(lngNum, latNum),
-            };
-          });
+    const BACKEND_URL =
+      process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+    try {
+      // Fetch user landmarks using pagination (limit = 10)
+      const res = await fetch(
+        `${BACKEND_URL}/api/tiles/owner/${wallet.address}?limit=10&offset=${offsetVal}`,
+      );
+      const data = await res.json();
+      if (data.ok && Array.isArray(data.tiles)) {
+        const mapped: Landmark[] = data.tiles.map((t: any) => {
+          const latNum = parseFloat(t.lat);
+          const lngNum = parseFloat(t.lng);
+          // Format purchase date (createdAt ISO → "Jul 12, 2026")
+          const createdAt = t.createdAt ? new Date(t.createdAt) : null;
+          const purchaseDate = createdAt
+            ? createdAt.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })
+            : null;
+          // priceLamports comes back as a string from the backend
+          const lamports = t.priceLamports ? Number(t.priceLamports) : null;
+          return {
+            name: purchaseDate ?? "Blockland Tile",
+            purchaseDate,
+            priceSol: lamports !== null ? lamportsToSol(lamports) : null,
+            // Fallback before reverse geocoding resolves below.
+            location: `${latNum.toFixed(4)}, ${lngNum.toFixed(4)}`,
+            coordinates: [lngNum, latNum] as [number, number],
+            thumbnail: buildStaticMapUrl(lngNum, latNum),
+          };
+        });
 
-          // Reverse geocode each tile in parallel for a human-readable address.
-          const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-          const enriched = await Promise.all(
-            mapped.map(async (lm) => {
-              try {
-                const [lng, lat] = lm.coordinates;
-                const res = await fetch(
-                  `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${token}&country=us&limit=1`,
-                );
-                const data = await res.json();
-                const placeName = data.features?.[0]?.place_name;
-                return placeName ? { ...lm, location: placeName } : lm;
-              } catch {
-                return lm; // keep coordinate fallback on failure
-              }
-            }),
-          );
+        // Reverse geocode only the newly loaded batch (reduces load significantly)
+        const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+        const enriched = await Promise.all(
+          mapped.map(async (lm) => {
+            try {
+              const [lng, lat] = lm.coordinates;
+              const res = await fetch(
+                `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${token}&country=us&limit=1`,
+              );
+              const data = await res.json();
+              const placeName = data.features?.[0]?.place_name;
+              return placeName ? { ...lm, location: placeName } : lm;
+            } catch {
+              return lm; // keep coordinate fallback on failure
+            }
+          }),
+        );
+
+        if (replace) {
           setUserLandmarks(enriched);
         } else {
-          setUserLandmarks([]);
+          setUserLandmarks((prev) => [...prev, ...enriched]);
         }
-      } catch (err) {
-        console.error("Failed to fetch user landmarks:", err);
-        setUserLandmarks([]);
-      } finally {
-        setIsLoadingLandmarks(false);
-      }
-    };
 
-    fetchUserLandmarks();
+        const totalCount = data.total ?? data.tiles.length;
+        setTotalLandmarksCount(totalCount);
+        setHasMoreLandmarks(offsetVal + data.tiles.length < totalCount);
+        setLandmarksOffset(offsetVal + data.tiles.length);
+      } else {
+        if (replace) setUserLandmarks([]);
+        setHasMoreLandmarks(false);
+      }
+    } catch (err) {
+      console.error("Failed to fetch user landmarks:", err);
+      if (replace) setUserLandmarks([]);
+    } finally {
+      setIsLoadingLandmarks(false);
+      setIsLoadingMoreLandmarks(false);
+    }
+  };
+
+  // Reset offset and fetch first page when dialog is opened or wallet address changes
+  useEffect(() => {
+    if (isDialogOpen && wallet?.address) {
+      setUserLandmarks([]);
+      setLandmarksOffset(0);
+      setHasMoreLandmarks(true);
+      fetchUserLandmarks(0, true);
+    } else if (!isDialogOpen) {
+      setUserLandmarks([]);
+      setLandmarksOffset(0);
+      setHasMoreLandmarks(true);
+    }
   }, [wallet?.address, isDialogOpen]);
+
+  // Load more function
+  const loadMoreLandmarks = () => {
+    if (isLoadingMoreLandmarks || !hasMoreLandmarks) return;
+    fetchUserLandmarks(landmarksOffset, false);
+  };
+
+  // IntersectionObserver for infinite scrolling
+  useEffect(() => {
+    if (!isDialogOpen || !hasMoreLandmarks || isLoadingLandmarks || isLoadingMoreLandmarks) return;
+
+    const currentSentinel = sentinelRef.current;
+    if (!currentSentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMoreLandmarks();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(currentSentinel);
+    return () => {
+      observer.unobserve(currentSentinel);
+    };
+  }, [isDialogOpen, hasMoreLandmarks, landmarksOffset, isLoadingLandmarks, isLoadingMoreLandmarks]);
 
   // Fetch wallet balance when confirm dialog opens
   useEffect(() => {
@@ -1349,7 +1403,7 @@ export default function LandmarkPage() {
                           Your Landmarks
                         </DialogTitle>
                         <DialogDescription >
-                          Select a landmark <span className="text-primary">{userLandmarks.length ?? 0}</span> to fly directly to its location on
+                          Select a landmark <span className="text-primary">{totalLandmarksCount}</span> to fly directly to its location on
                           the map.
                         </DialogDescription>
                       </DialogHeader>
@@ -1422,7 +1476,7 @@ export default function LandmarkPage() {
                                         <div className="font-medium text-white group-hover/item:text-primary truncate">
                                           {landmark.name}
                                         </div>
-                                        <div className="text-sm text-zinc-500 truncate">
+                                        <div className="text-sm text-zinc-550 truncate">
                                           {landmark.location}
                                         </div>
                                       </div>
@@ -1439,6 +1493,13 @@ export default function LandmarkPage() {
                                         )}
                                     </button>
                                   ))}
+                                  {hasMoreLandmarks && (
+                                    <div ref={sentinelRef} className="h-4 flex items-center justify-center">
+                                      {isLoadingMoreLandmarks && (
+                                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               </ScrollArea>
                             )}
@@ -1790,7 +1851,7 @@ export default function LandmarkPage() {
                     "#302325",
                   ]}
                   variant="pixel"
-                  className="h-[80px] w-[80px]"
+                  size={80}
                   square
                 />
               </div>
