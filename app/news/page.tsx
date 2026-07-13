@@ -56,7 +56,7 @@ export default function NewsPage() {
                 alt={featuredNews.title}
                 className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-700"
               />
-              <div className="absolute inset-0 bg-gradient-to-t lg:bg-gradient-to-r from-zinc-955 via-zinc-955/20 to-transparent opacity-90" />
+              <div className="absolute inset-0 bg-linear-to-t lg:bg-linear-to-r from-zinc-955 via-zinc-955/20 to-transparent opacity-90" />
             </div>
 
             {/* Content Details */}
@@ -142,7 +142,7 @@ export default function NewsPage() {
                     alt={item.title}
                     className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent opacity-60" />
+                  <div className="absolute inset-0 bg-linear-to-t from-zinc-950 to-transparent opacity-60" />
                   <span className={`absolute top-4 left-4 text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getCategoryBadgeColor(item.category)}`}>
                     {item.category}
                   </span>

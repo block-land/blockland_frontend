@@ -200,7 +200,7 @@ export default function Marketplace() {
                         alt={tile.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent opacity-60" />
+                      <div className="absolute inset-0 bg-linear-to-t from-zinc-950 to-transparent opacity-60" />
                       <span className={`absolute top-4 left-4 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}>
                         {tile.rarity}
                       </span>

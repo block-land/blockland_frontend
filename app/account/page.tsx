@@ -47,6 +47,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const ButtonCustom = withCustomButton("button");
 
@@ -118,12 +119,15 @@ export default function AccountPage() {
   const [searchQuery, setSearchQuery] = React.useState("");
 
   // Local dialog detail state
-  const [selectedDetailTile, setSelectedDetailTile] = React.useState<OwnedTile | null>(null);
+  const [selectedDetailTile, setSelectedDetailTile] =
+    React.useState<OwnedTile | null>(null);
 
   // Local dialog sell state
   const [sellingTile, setSellingTile] = React.useState<OwnedTile | null>(null);
   const [sellPriceInput, setSellPriceInput] = React.useState("");
-  const [sellStatus, setSellStatus] = React.useState<"idle" | "confirm" | "success">("idle");
+  const [sellStatus, setSellStatus] = React.useState<
+    "idle" | "confirm" | "success"
+  >("idle");
 
   // Pagination states
   const [currentPage, setCurrentPage] = React.useState(1);
@@ -376,7 +380,7 @@ export default function AccountPage() {
                     </div>
                   )
                 ) : (
-                  <User className="h-10 w-10 text-zinc-555" />
+                  <User className="h-10 w-10 text-zinc-500 text-sm" />
                 )}
               </div>
               <span
@@ -399,7 +403,7 @@ export default function AccountPage() {
                 {wallet && (
                   <button
                     onClick={handleCopy}
-                    className="text-zinc-555 hover:text-white transition-colors cursor-pointer"
+                    className="text-zinc-500 text-sm hover:text-white transition-colors cursor-pointer"
                   >
                     {copied ? (
                       <Check className="h-4 w-4 text-emerald-500" />
@@ -451,7 +455,7 @@ export default function AccountPage() {
             <span className="text-xs text-zinc-500 uppercase tracking-wider font-mono">
               SOL Balance
             </span>
-            <div className="text-3xl font-extrabold text-zinc-300 font-mono">
+            <div className="text-3xl font-extrabold font-mono">
               {solBalance !== null
                 ? `${solBalance.toFixed(4)} SOL`
                 : "Loading..."}
@@ -480,7 +484,7 @@ export default function AccountPage() {
                   <button
                     type="button"
                     onClick={() => setSearchQuery("")}
-                    className="text-zinc-555 hover:text-white transition-colors cursor-pointer"
+                    className="text-zinc-500 text-sm hover:text-white transition-colors cursor-pointer"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -503,7 +507,7 @@ export default function AccountPage() {
                 No matching tiles found for "{searchQuery}".
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-24 text-zinc-555 border border-dashed border-zinc-800 rounded-2xl">
+              <div className="flex flex-col items-center justify-center py-24 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-2xl">
                 <Grid className="h-10 w-10 mb-4 text-zinc-700" />
                 <p className="text-sm">You don't own any tiles yet.</p>
                 <Link
@@ -529,13 +533,13 @@ export default function AccountPage() {
                         alt={tile.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-zinc-955 to-transparent opacity-60" />
+                      <div className="absolute inset-0 bg-linear-to-t from-zinc-955 to-transparent opacity-60" />
                       <span
                         className={`absolute top-4 left-4 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
                       >
                         {tile.rarity}
                       </span>
-                      <div className="absolute bottom-4 left-4 flex gap-1 items-center text-zinc-300 text-xs font-mono">
+                      <div className="absolute bottom-4 left-4 flex gap-1 items-center text-xs font-mono">
                         <Grid className="h-3.5 w-3.5 text-primary" />
                         <span>{tile.coordinates}</span>
                       </div>
@@ -558,7 +562,7 @@ export default function AccountPage() {
                           <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
                             Buy Price
                           </div>
-                          <div className="text-base font-semibold text-zinc-300">
+                          <div className="text-base font-semibold">
                             {tile.purchasePrice.toFixed(5)} SOL
                           </div>
                         </div>
@@ -576,7 +580,7 @@ export default function AccountPage() {
                       <div className="flex gap-2 w-full pt-2">
                         <button
                           onClick={() => handleShowDetail(tile)}
-                          className="flex-1 flex items-center justify-center gap-1.5 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 py-2.5 rounded-xl transition-all cursor-pointer font-semibold text-xs text-zinc-300"
+                          className="flex-1 flex items-center justify-center gap-1.5 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 py-2.5 rounded-xl transition-all cursor-pointer font-semibold text-xs"
                         >
                           Detail
                         </button>
@@ -652,74 +656,79 @@ export default function AccountPage() {
           if (!open) setSelectedDetailTile(null);
         }}
       >
-        <DialogContent className="max-w-xl text-zinc-300">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle className="text-white">Tile Details</DialogTitle>
           </DialogHeader>
 
           {selectedDetailTile && (
-            <div className="space-y-6 mt-4">
-              <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-zinc-800">
-                <img
-                  src={selectedDetailTile.imageUrl}
-                  alt={selectedDetailTile.name}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-zinc-955 to-transparent opacity-60" />
-                <span
-                  className={`absolute top-3 left-3 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(selectedDetailTile.rarity)}`}
-                >
-                  {selectedDetailTile.rarity}
-                </span>
-                <div className="absolute bottom-3 left-3 flex gap-1 items-center text-zinc-300 text-xs font-mono">
-                  <Grid className="h-3.5 w-3.5 text-primary" />
-                  <span>{selectedDetailTile.coordinates}</span>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-xl font-semibold text-white">{selectedDetailTile.name}</h3>
-                  <p className="text-sm text-zinc-400 flex items-center gap-1 mt-1">
-                    <MapPin className="h-4 w-4 text-zinc-550 shrink-0" />
-                    {selectedDetailTile.location}
-                  </p>
+            <ScrollArea className="max-h-[80vh] pr-4">
+              <div className="space-y-6 mt-4">
+                <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-zinc-800">
+                  <img
+                    src={selectedDetailTile.imageUrl}
+                    alt={selectedDetailTile.name}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-linear-to-t from-zinc-955 to-transparent opacity-60" />
+                  {/* <span
+                    className={`absolute top-3 left-3 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(selectedDetailTile.rarity)}`}
+                  >
+                    {selectedDetailTile.rarity}
+                  </span>
+                  <div className="absolute bottom-3 left-3 flex gap-1 items-center text-xs font-mono">
+                    <Grid className="h-3.5 w-3.5 text-primary" />
+                    <span>{selectedDetailTile.coordinates}</span>
+                  </div> */}
                 </div>
 
-                <div className="h-px bg-zinc-800/80" />
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-xl font-semibold text-white">
+                      {selectedDetailTile.name}
+                    </h3>
+                    <p className="text-sm text-zinc-400 flex items-center gap-1 mt-1">
+                      <MapPin className="h-4 w-4 text-zinc-550 shrink-0" />
+                      {selectedDetailTile.location}
+                    </p>
+                  </div>
 
-                <div className="grid grid-cols-2 gap-4 text-sm font-mono">
-                  <div className="space-y-1">
-                    <span className="text-zinc-555">TILE ID</span>
-                    <p className="text-zinc-350 font-semibold truncate" title={selectedDetailTile.id}>
-                      {selectedDetailTile.id}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-zinc-555">PURCHASE PRICE</span>
-                    <p className="text-primary font-semibold">
-                      {selectedDetailTile.purchasePrice.toFixed(5)} SOL
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-zinc-555">ACQUIRED DATE</span>
-                    <p className="text-zinc-350 font-semibold">
-                      {selectedDetailTile.purchasedDate}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-zinc-555">BLOCKCHAIN</span>
-                    <p className="text-zinc-350 font-semibold">{NETWORK_LABEL}</p>
+                  <div className="h-px bg-zinc-800/80" />
+
+                  <div className="flex flex-col gap-4 font-mono text-sm divide-y">
+                    <div className="space-y-1 pb-4">
+                      <span className="text-zinc-500 text-xs">TILE ID</span>
+                      <h4
+                        className="truncate text-white text-normal"
+                        title={selectedDetailTile.id}
+                      >
+                        {/* {selectedDetailTile.id} */}
+                        {selectedDetailTile.coordinates}
+                      </h4>
+                    </div>
+                    <div className="space-y-1 pb-4">
+                      <span className="text-zinc-500 text-xs">PURCHASE PRICE</span>
+                      <h4 className="text-white">
+                        {selectedDetailTile.purchasePrice.toFixed(5)} SOL
+                      </h4>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-zinc-500 text-xs">ACQUIRED DATE</span>
+                      <h4 className="text-white">{selectedDetailTile.purchasedDate}</h4>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex gap-3">
-                <ButtonCustom onClick={() => setSelectedDetailTile(null)} className="w-full justify-center">
-                  Close
-                </ButtonCustom>
+                <div className="flex gap-3">
+                  <ButtonCustom
+                    onClick={() => setSelectedDetailTile(null)}
+                    className="w-full justify-center"
+                  >
+                    Close
+                  </ButtonCustom>
+                </div>
               </div>
-            </div>
+            </ScrollArea>
           )}
         </DialogContent>
       </Dialog>
@@ -731,7 +740,7 @@ export default function AccountPage() {
           if (!open) setSellingTile(null);
         }}
       >
-        <DialogContent className="max-w-xl text-zinc-300">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle className="text-white">
               {sellStatus === "idle" && "List Tile for Sale"}
@@ -755,7 +764,9 @@ export default function AccountPage() {
                   >
                     {sellingTile.rarity}
                   </span>
-                  <h4 className="font-semibold text-white mt-1">{sellingTile.name}</h4>
+                  <h4 className="font-semibold text-white mt-1">
+                    {sellingTile.name}
+                  </h4>
                   <p className="text-xs text-zinc-400 flex items-center gap-1">
                     <MapPin className="h-3.5 w-3.5" /> {sellingTile.location}
                   </p>
@@ -774,7 +785,7 @@ export default function AccountPage() {
                   className="space-y-6"
                 >
                   <div className="space-y-2">
-                    <label className="text-xs text-zinc-555 uppercase tracking-wider font-mono">
+                    <label className="text-xs text-zinc-500 uppercase tracking-wider font-mono">
                       Set Listing Price
                     </label>
                     <div className="relative bg-black flex gap-2 h-[48px] items-center px-4 rounded-xl border border-zinc-800 focus-within:border-zinc-700">
@@ -857,8 +868,8 @@ export default function AccountPage() {
                       Tile Listed!
                     </h4>
                     <p className="text-sm text-zinc-400 mt-1">
-                      <strong>{sellingTile.name}</strong> is now listed for sale at{" "}
-                      <strong>{sellPriceInput} SOL</strong>.
+                      <strong>{sellingTile.name}</strong> is now listed for sale
+                      at <strong>{sellPriceInput} SOL</strong>.
                     </p>
                   </div>
                   <div className="text-xs font-mono bg-black p-3 rounded-lg border border-zinc-800 text-zinc-550 text-left overflow-x-auto">
