@@ -40,6 +40,14 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import WalletButton from "@/components/wallet-button";
+import { RiArrowRightUpLine } from "react-icons/ri";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const ButtonCustom = withCustomButton("button");
 
@@ -112,6 +120,9 @@ export default function AccountPage() {
 
   // Search state
   const [searchQuery, setSearchQuery] = React.useState("");
+
+  // Local dialog detail state
+  const [selectedDetailTile, setSelectedDetailTile] = React.useState<OwnedTile | null>(null);
 
   // Pagination states
   const [currentPage, setCurrentPage] = React.useState(1);
@@ -198,78 +209,89 @@ export default function AccountPage() {
     fetchBalances();
   }, [wallet?.address]);
 
-  const loadTiles = React.useCallback(async (page: number, searchVal: string) => {
-    if (!wallet?.address) return;
-    setLoading(true);
-    try {
-      const BACKEND_URL =
-        process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
-      
-      const offset = (page - 1) * ITEMS_PER_PAGE;
-      const searchParam = searchVal.trim() ? `&search=${encodeURIComponent(searchVal.trim())}` : "";
-      
-      const res = await fetch(
-        `${BACKEND_URL}/api/tiles/owner/${wallet.address}?limit=${ITEMS_PER_PAGE}&offset=${offset}${searchParam}`
-      );
-      const data = await res.json();
-      
-      if (data.ok && Array.isArray(data.tiles)) {
-        const mapped = data.tiles.map((t: any) => {
-          const lat = parseFloat(t.lat);
-          const lng = parseFloat(t.lng);
-          const lamports = t.priceLamports ? Number(t.priceLamports) : 0;
-          const createdAt = t.createdAt ? new Date(t.createdAt) : new Date();
+  const loadTiles = React.useCallback(
+    async (page: number, searchVal: string) => {
+      if (!wallet?.address) return;
+      setLoading(true);
+      try {
+        const BACKEND_URL =
+          process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
 
-          return {
-            id: t.assetId,
-            name: `BLT ${lat.toFixed(3)},${lng.toFixed(3)}`,
-            location: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
-            coordinates: `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`,
-            rarity: (t.rarity as OwnedTile["rarity"]) || "Common",
-            imageUrl: buildStaticMapUrl(lng, lat),
-            purchasePrice: lamportsToSol(lamports),
-            purchasedDate: createdAt.toLocaleDateString("en-US", {
-              month: "short",
-              day: "2-digit",
-              year: "numeric",
-            }),
-            rawLat: lat,
-            rawLng: lng,
-          };
-        });
+        const offset = (page - 1) * ITEMS_PER_PAGE;
+        const searchParam = searchVal.trim()
+          ? `&search=${encodeURIComponent(searchVal.trim())}`
+          : "";
 
-        // Enrich the tiles with place names using reverse geocoding from Mapbox Places
-        const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-        const enriched = await Promise.all(
-          mapped.map(async (tile: any) => {
-            try {
-              const res = await fetch(
-                `https://api.mapbox.com/geocoding/v5/mapbox.places/${tile.rawLng},${tile.rawLat}.json?access_token=${token}&country=us&limit=1`
-              );
-              const geoData = await res.json();
-              const placeName = geoData.features?.[0]?.place_name;
-              return placeName ? { ...tile, location: placeName, name: placeName.split(",")[0] } : tile;
-            } catch (err) {
-              console.error("Geocoding failed for tile:", tile.id, err);
-              return tile;
-            }
-          })
+        const res = await fetch(
+          `${BACKEND_URL}/api/tiles/owner/${wallet.address}?limit=${ITEMS_PER_PAGE}&offset=${offset}${searchParam}`,
         );
+        const data = await res.json();
 
-        setOwnedTiles(enriched);
-        setTotalTilesCount(data.total ?? enriched.length);
-      } else {
+        if (data.ok && Array.isArray(data.tiles)) {
+          const mapped = data.tiles.map((t: any) => {
+            const lat = parseFloat(t.lat);
+            const lng = parseFloat(t.lng);
+            const lamports = t.priceLamports ? Number(t.priceLamports) : 0;
+            const createdAt = t.createdAt ? new Date(t.createdAt) : new Date();
+
+            return {
+              id: t.assetId,
+              name: `BLT ${lat.toFixed(3)},${lng.toFixed(3)}`,
+              location: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+              coordinates: `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`,
+              rarity: (t.rarity as OwnedTile["rarity"]) || "Common",
+              imageUrl: buildStaticMapUrl(lng, lat),
+              purchasePrice: lamportsToSol(lamports),
+              purchasedDate: createdAt.toLocaleDateString("en-US", {
+                month: "short",
+                day: "2-digit",
+                year: "numeric",
+              }),
+              rawLat: lat,
+              rawLng: lng,
+            };
+          });
+
+          // Enrich the tiles with place names using reverse geocoding from Mapbox Places
+          const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+          const enriched = await Promise.all(
+            mapped.map(async (tile: any) => {
+              try {
+                const res = await fetch(
+                  `https://api.mapbox.com/geocoding/v5/mapbox.places/${tile.rawLng},${tile.rawLat}.json?access_token=${token}&country=us&limit=1`,
+                );
+                const geoData = await res.json();
+                const placeName = geoData.features?.[0]?.place_name;
+                return placeName
+                  ? {
+                      ...tile,
+                      location: placeName,
+                      name: placeName.split(",")[0],
+                    }
+                  : tile;
+              } catch (err) {
+                console.error("Geocoding failed for tile:", tile.id, err);
+                return tile;
+              }
+            }),
+          );
+
+          setOwnedTiles(enriched);
+          setTotalTilesCount(data.total ?? enriched.length);
+        } else {
+          setOwnedTiles([]);
+          setTotalTilesCount(0);
+        }
+      } catch (err) {
+        console.error("Failed to load tiles:", err);
         setOwnedTiles([]);
         setTotalTilesCount(0);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Failed to load tiles:", err);
-      setOwnedTiles([]);
-      setTotalTilesCount(0);
-    } finally {
-      setLoading(false);
-    }
-  }, [wallet?.address]);
+    },
+    [wallet?.address],
+  );
 
   React.useEffect(() => {
     if (wallet?.address) {
@@ -291,69 +313,7 @@ export default function AccountPage() {
   };
 
   const handleShowDetail = (tile: OwnedTile) => {
-    openDialog(
-      "Tile Details",
-      <div className="space-y-6 text-zinc-300">
-        <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-zinc-800">
-          <img
-            src={tile.imageUrl}
-            alt={tile.name}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-zinc-955 to-transparent opacity-60" />
-          <span
-            className={`absolute top-3 left-3 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
-          >
-            {tile.rarity}
-          </span>
-          <div className="absolute bottom-3 left-3 flex gap-1 items-center text-zinc-300 text-xs font-mono">
-            <Grid className="h-3.5 w-3.5 text-primary" />
-            <span>{tile.coordinates}</span>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-xl font-semibold text-white">{tile.name}</h3>
-            <p className="text-sm text-zinc-400 flex items-center gap-1 mt-1">
-              <MapPin className="h-4 w-4 text-zinc-550 shrink-0" />
-              {tile.location}
-            </p>
-          </div>
-
-          <div className="h-px bg-zinc-800/80" />
-
-          <div className="grid grid-cols-2 gap-4 text-sm font-mono">
-            <div className="space-y-1">
-              <span className="text-zinc-555">TILE ID</span>
-              <p className="text-zinc-350 font-semibold">{tile.id}</p>
-            </div>
-            <div className="space-y-1">
-              <span className="text-zinc-555">PURCHASE PRICE</span>
-              <p className="text-primary font-semibold">
-                {tile.purchasePrice.toFixed(5)} SOL
-              </p>
-            </div>
-            <div className="space-y-1">
-              <span className="text-zinc-555">ACQUIRED DATE</span>
-              <p className="text-zinc-350 font-semibold">
-                {tile.purchasedDate}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <span className="text-zinc-555">BLOCKCHAIN</span>
-              <p className="text-zinc-350 font-semibold">{NETWORK_LABEL}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex gap-3">
-          <ButtonCustom onClick={closeDialog} className="w-full justify-center">
-            Close
-          </ButtonCustom>
-        </div>
-      </div>,
-    );
+    setSelectedDetailTile(tile);
   };
 
   const handleSellTile = (tile: OwnedTile) => {
@@ -513,9 +473,12 @@ export default function AccountPage() {
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-6 font-sans">
         <div className="flex flex-col items-center text-center space-y-4 max-w-sm px-6">
           <User className="h-16 w-16 text-zinc-700" />
-          <h1 className="text-3xl font-extrabold tracking-tight">Connect Your Wallet</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight">
+            Connect Your Wallet
+          </h1>
           <p className="text-zinc-550 text-sm leading-relaxed">
-            Please connect your Solana wallet to view and manage your coordinate units.
+            Please connect your Solana wallet to view and manage your coordinate
+            units.
           </p>
           <div className="pt-2">
             <WalletButton />
@@ -570,7 +533,6 @@ export default function AccountPage() {
                 <h1 className="text-2xl font-semibold text-white">
                   {profileData?.username || "Coordinate Owner"}
                 </h1>
-                <Shield className="h-4.5 w-4.5 text-primary shrink-0" />
               </div>
               <div className="flex items-center gap-2 text-zinc-400 text-sm font-mono">
                 <span>
@@ -596,14 +558,15 @@ export default function AccountPage() {
 
           <div className="flex flex-wrap gap-4 items-center">
             {wallet && (
-              <a
-                href={`https://solscan.io/account/${wallet.address}${SOLSCAN_CLUSTER_PARAM}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/40 text-xs font-semibold px-4 py-2.5 rounded-xl transition-all"
-              >
-                View Solscan <ExternalLink className="h-3.5 w-3.5" />
-              </a>
+              <Button asChild>
+                <a
+                  href={`https://solscan.io/account/${wallet.address}${SOLSCAN_CLUSTER_PARAM}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  View Solscan <RiArrowRightUpLine className="h-3.5 w-3.5" />
+                </a>
+              </Button>
             )}
           </div>
         </div>
@@ -646,7 +609,7 @@ export default function AccountPage() {
             <h2 className="text-2xl font-semibold flex items-center gap-2">
               <Grid className="h-5 w-5 text-primary" /> Owned Coordinate Units
             </h2>
-            
+
             <div className="flex items-center gap-4 flex-1 max-w-sm w-full">
               <div className="relative bg-zinc-950 flex gap-2.5 h-[40px] items-center px-3 rounded-xl border border-zinc-800 focus-within:border-zinc-700 flex-1">
                 <Search className="h-4 w-4 text-zinc-550 shrink-0" />
@@ -779,7 +742,9 @@ export default function AccountPage() {
                     <PaginationContent>
                       <PaginationItem>
                         <button
-                          onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                          onClick={() =>
+                            setCurrentPage((prev) => Math.max(1, prev - 1))
+                          }
                           disabled={currentPage === 1}
                           className="flex items-center gap-1 pl-2.5 pr-3 py-2 text-sm font-semibold border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
                         >
@@ -804,7 +769,11 @@ export default function AccountPage() {
 
                       <PaginationItem>
                         <button
-                          onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                          onClick={() =>
+                            setCurrentPage((prev) =>
+                              Math.min(totalPages, prev + 1),
+                            )
+                          }
                           disabled={currentPage === totalPages}
                           className="flex items-center gap-1 pl-3 pr-2.5 py-2 text-sm font-semibold border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
                         >
@@ -819,6 +788,85 @@ export default function AccountPage() {
           )}
         </div>
       </div>
+
+      {/* Local Tile Details Dialog */}
+      <Dialog
+        open={selectedDetailTile !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedDetailTile(null);
+        }}
+      >
+        <DialogContent className="max-w-xl text-zinc-300">
+          <DialogHeader>
+            <DialogTitle className="text-white">Tile Details</DialogTitle>
+          </DialogHeader>
+
+          {selectedDetailTile && (
+            <div className="space-y-6 mt-4">
+              <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-zinc-800">
+                <img
+                  src={selectedDetailTile.imageUrl}
+                  alt={selectedDetailTile.name}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-zinc-955 to-transparent opacity-60" />
+                <span
+                  className={`absolute top-3 left-3 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(selectedDetailTile.rarity)}`}
+                >
+                  {selectedDetailTile.rarity}
+                </span>
+                <div className="absolute bottom-3 left-3 flex gap-1 items-center text-zinc-300 text-xs font-mono">
+                  <Grid className="h-3.5 w-3.5 text-primary" />
+                  <span>{selectedDetailTile.coordinates}</span>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-xl font-semibold text-white">{selectedDetailTile.name}</h3>
+                  <p className="text-sm text-zinc-400 flex items-center gap-1 mt-1">
+                    <MapPin className="h-4 w-4 text-zinc-550 shrink-0" />
+                    {selectedDetailTile.location}
+                  </p>
+                </div>
+
+                <div className="h-px bg-zinc-800/80" />
+
+                <div className="grid grid-cols-2 gap-4 text-sm font-mono">
+                  <div className="space-y-1">
+                    <span className="text-zinc-555">TILE ID</span>
+                    <p className="text-zinc-350 font-semibold truncate" title={selectedDetailTile.id}>
+                      {selectedDetailTile.id}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-zinc-555">PURCHASE PRICE</span>
+                    <p className="text-primary font-semibold">
+                      {selectedDetailTile.purchasePrice.toFixed(5)} SOL
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-zinc-555">ACQUIRED DATE</span>
+                    <p className="text-zinc-350 font-semibold">
+                      {selectedDetailTile.purchasedDate}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-zinc-555">BLOCKCHAIN</span>
+                    <p className="text-zinc-350 font-semibold">{NETWORK_LABEL}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <ButtonCustom onClick={() => setSelectedDetailTile(null)} className="w-full justify-center">
+                  Close
+                </ButtonCustom>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
