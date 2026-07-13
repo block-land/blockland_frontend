@@ -14,6 +14,8 @@ import {
   Info,
   Tag,
   Loader2,
+  Search,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { getRarityBadgeColor } from "@/lib/tiles";
@@ -98,18 +100,32 @@ export default function AccountPage() {
   const openDialog = useDialogStore((state) => state.openDialog);
   const closeDialog = useDialogStore((state) => state.closeDialog);
 
+  // Search state
+  const [searchQuery, setSearchQuery] = React.useState("");
+
   // Pagination states
   const [currentPage, setCurrentPage] = React.useState(1);
   const ITEMS_PER_PAGE = 6;
 
-  // Reset page when tiles length changes
+  // Filter owned tiles based on query
+  const filteredTiles = ownedTiles.filter((tile) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      tile.name.toLowerCase().includes(query) ||
+      tile.location.toLowerCase().includes(query) ||
+      tile.coordinates.toLowerCase().includes(query)
+    );
+  });
+
+  // Reset page when tiles length or search query changes
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [ownedTiles.length]);
+  }, [searchQuery, ownedTiles.length]);
 
-  const totalPages = Math.ceil(ownedTiles.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredTiles.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedTiles = ownedTiles.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const paginatedTiles = filteredTiles.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   // Check/fetch profile when wallet connected
   React.useEffect(() => {
@@ -451,7 +467,7 @@ export default function AccountPage() {
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs text-zinc-550 uppercase tracking-wider font-mono">
+          <label className="text-xs text-zinc-555 uppercase tracking-wider font-mono">
             Set Listing Price
           </label>
           <div className="relative bg-black flex gap-2 h-[48px] items-center px-4 rounded-xl border border-zinc-800 focus-within:border-zinc-700">
@@ -607,13 +623,35 @@ export default function AccountPage() {
 
         {/* Owned Tiles Inventory Section */}
         <div className="space-y-6">
-          <div className="flex items-center justify-between border-b border-zinc-900 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
             <h2 className="text-2xl font-bold flex items-center gap-2">
               <Grid className="h-5 w-5 text-primary" /> Owned Coordinate Units
             </h2>
-            <span className="text-xs text-zinc-550 font-mono">
-              Showing {ownedTiles.length} units
-            </span>
+            
+            <div className="flex items-center gap-4 flex-1 max-w-sm w-full">
+              <div className="relative bg-zinc-950 flex gap-2.5 h-[40px] items-center px-3 rounded-xl border border-zinc-800 focus-within:border-zinc-700 flex-1">
+                <Search className="h-4 w-4 text-zinc-500 shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Search by name, location..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none p-0 text-sm text-white placeholder-zinc-600"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="text-zinc-550 hover:text-white transition-colors cursor-pointer"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <span className="text-xs text-zinc-550 font-mono shrink-0">
+                Showing {filteredTiles.length} of {ownedTiles.length} units
+              </span>
+            </div>
           </div>
 
           {loading ? (
@@ -634,81 +672,87 @@ export default function AccountPage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {paginatedTiles.map((tile) => (
-                  <div
-                    key={tile.id}
-                    className="bg-zinc-950 border border-zinc-900 rounded-2xl overflow-hidden hover:border-zinc-800 transition-all hover:scale-[1.01] flex flex-col group"
-                  >
-                    {/* Photo & Rarity */}
-                    <div className="relative aspect-video overflow-hidden">
-                      <img
-                        src={tile.imageUrl}
-                        alt={tile.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-zinc-955 to-transparent opacity-60" />
-                      <span
-                        className={`absolute top-4 left-4 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
-                      >
-                        {tile.rarity}
-                      </span>
-                      <div className="absolute bottom-4 left-4 flex gap-1 items-center text-zinc-300 text-xs font-mono">
-                        <Grid className="h-3.5 w-3.5 text-primary" />
-                        <span>{tile.coordinates}</span>
-                      </div>
-                    </div>
-
-                    {/* Details */}
-                    <div className="p-6 flex-1 flex flex-col justify-between space-y-6">
-                      <div className="space-y-2">
-                        <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors">
-                          {tile.name}
-                        </h3>
-                        <p className="text-sm text-zinc-400 flex items-center gap-1.5">
-                          <MapPin className="h-4 w-4 text-zinc-550" />
-                          {tile.location}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-4 border-t border-zinc-900 font-mono">
-                        <div className="space-y-0.5">
-                          <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
-                            Buy Price
-                          </div>
-                          <div className="text-base font-bold text-zinc-300">
-                            {tile.purchasePrice.toFixed(5)} SOL
-                          </div>
-                        </div>
-
-                        <div className="text-right space-y-0.5">
-                          <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
-                            Acquired
-                          </div>
-                          <div className="text-xs font-semibold text-zinc-450">
-                            {tile.purchasedDate}
-                          </div>
+              {filteredTiles.length === 0 ? (
+                <div className="text-center py-20 text-zinc-500 border border-dashed border-zinc-850 rounded-2xl">
+                  No matching tiles found for "{searchQuery}".
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {paginatedTiles.map((tile) => (
+                    <div
+                      key={tile.id}
+                      className="bg-zinc-950 border border-zinc-900 rounded-2xl overflow-hidden hover:border-zinc-800 transition-all hover:scale-[1.01] flex flex-col group"
+                    >
+                      {/* Photo & Rarity */}
+                      <div className="relative aspect-video overflow-hidden">
+                        <img
+                          src={tile.imageUrl}
+                          alt={tile.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-zinc-955 to-transparent opacity-60" />
+                        <span
+                          className={`absolute top-4 left-4 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
+                        >
+                          {tile.rarity}
+                        </span>
+                        <div className="absolute bottom-4 left-4 flex gap-1 items-center text-zinc-300 text-xs font-mono">
+                          <Grid className="h-3.5 w-3.5 text-primary" />
+                          <span>{tile.coordinates}</span>
                         </div>
                       </div>
 
-                      <div className="flex gap-2 w-full pt-2">
-                        <button
-                          onClick={() => handleShowDetail(tile)}
-                          className="flex-1 flex items-center justify-center gap-1.5 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 py-2.5 rounded-xl transition-all cursor-pointer font-semibold text-xs text-zinc-300"
-                        >
-                          <Info className="h-3.5 w-3.5" /> Detail
-                        </button>
-                        <button
-                          onClick={() => handleSellTile(tile)}
-                          className="flex-1 flex items-center justify-center gap-1.5 bg-primary hover:bg-primary/95 text-black py-2.5 rounded-xl transition-all cursor-pointer font-semibold text-xs"
-                        >
-                          <Tag className="h-3.5 w-3.5" /> Sell
-                        </button>
+                      {/* Details */}
+                      <div className="p-6 flex-1 flex flex-col justify-between space-y-6">
+                        <div className="space-y-2">
+                          <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors">
+                            {tile.name}
+                          </h3>
+                          <p className="text-sm text-zinc-400 flex items-center gap-1.5">
+                            <MapPin className="h-4 w-4 text-zinc-550" />
+                            {tile.location}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-4 border-t border-zinc-900 font-mono">
+                          <div className="space-y-0.5">
+                            <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
+                              Buy Price
+                            </div>
+                            <div className="text-base font-bold text-zinc-300">
+                              {tile.purchasePrice.toFixed(5)} SOL
+                            </div>
+                          </div>
+
+                          <div className="text-right space-y-0.5">
+                            <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
+                              Acquired
+                            </div>
+                            <div className="text-xs font-semibold text-zinc-450">
+                              {tile.purchasedDate}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 w-full pt-2">
+                          <button
+                            onClick={() => handleShowDetail(tile)}
+                            className="flex-1 flex items-center justify-center gap-1.5 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 py-2.5 rounded-xl transition-all cursor-pointer font-semibold text-xs text-zinc-300"
+                          >
+                            <Info className="h-3.5 w-3.5" /> Detail
+                          </button>
+                          <button
+                            onClick={() => handleSellTile(tile)}
+                            className="flex-1 flex items-center justify-center gap-1.5 bg-primary hover:bg-primary/95 text-black py-2.5 rounded-xl transition-all cursor-pointer font-semibold text-xs"
+                          >
+                            <Tag className="h-3.5 w-3.5" /> Sell
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
               {/* Pagination controls below the grid */}
               {totalPages > 1 && (
                 <div className="pt-8 border-t border-zinc-900">
