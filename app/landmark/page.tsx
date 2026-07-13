@@ -86,12 +86,11 @@ interface Landmark {
 
 /**
  * Build a Mapbox Static Images URL for a thumbnail map of a coordinate.
- * Returns a small streets-v12 image centered on the tile — used in the
- * "Your Landmark" list as a preview photo.
+ * Uses dark-v11 to match the Blockland dark theme of the main map.
  */
 function buildStaticMapUrl(lng: number, lat: number): string {
   const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-  return `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${lng},${lat},14,0,0/80x80@2x?access_token=${token}`;
+  return `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/${lng},${lat},14,0,0/80x80@2x?access_token=${token}`;
 }
 
 const LANDMARKS: Landmark[] = [
@@ -144,6 +143,24 @@ export default function LandmarkPage() {
   // User owned landmarks from backend
   const [userLandmarks, setUserLandmarks] = useState<Landmark[]>([]);
   const [isLoadingLandmarks, setIsLoadingLandmarks] = useState(false);
+  const [userLandmarksSearchQuery, setUserLandmarksSearchQuery] = useState("");
+
+  // Clear search query when dialog is closed
+  useEffect(() => {
+    if (!isDialogOpen) {
+      setUserLandmarksSearchQuery("");
+    }
+  }, [isDialogOpen]);
+
+  // Filter landmarks based on search query
+  const filteredUserLandmarks = userLandmarks.filter((landmark) => {
+    if (!userLandmarksSearchQuery.trim()) return true;
+    const query = userLandmarksSearchQuery.toLowerCase();
+    return (
+      landmark.name.toLowerCase().includes(query) ||
+      landmark.location.toLowerCase().includes(query)
+    );
+  });
 
   // Tile multi-select state — array of selected H3 cell IDs available to buy
   const [selectedCells, setSelectedCells] = useState<string[]>([]);
@@ -1328,11 +1345,11 @@ export default function LandmarkPage() {
                     </DialogTrigger>
                     <DialogContent className="min-w-2xl">
                       <DialogHeader>
-                        <DialogTitle className="text-xl font-semibold text-white">
+                        <DialogTitle className="text-center">
                           Your Landmarks
                         </DialogTitle>
-                        <DialogDescription className="text-zinc-400">
-                          Select a landmark to fly directly to its location on
+                        <DialogDescription className="text-center">
+                          Select a landmark <span className="text-primary">{userLandmarks.length ?? 0}</span> to fly directly to its location on
                           the map.
                         </DialogDescription>
                       </DialogHeader>
@@ -1352,47 +1369,80 @@ export default function LandmarkPage() {
                             on the map to purchase!
                           </div>
                         ) : (
-                          <ScrollArea className="max-h-[300px] pr-2">
-                            <div className="flex flex-col gap-2">
-                              {userLandmarks.map((landmark, idx) => (
+                          <>
+                            <div className="relative bg-zinc-950 flex gap-[12px] h-[40px] items-center px-3 mb-2 rounded-xl border border-zinc-800 focus-within:border-zinc-700">
+                              <RiSearchLine className="h-4 w-4 shrink-0 text-zinc-500" />
+                              <Input
+                                type="text"
+                                value={userLandmarksSearchQuery}
+                                onChange={(e) => setUserLandmarksSearchQuery(e.target.value)}
+                                placeholder="Search landmarks..."
+                                className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none p-0 text-sm font-normal text-white placeholder-zinc-500 h-full"
+                                style={{
+                                  border: "0",
+                                  borderWidth: "0",
+                                  outline: "none",
+                                  boxShadow: "none",
+                                }}
+                              />
+                              {userLandmarksSearchQuery && (
                                 <button
-                                  key={idx}
-                                  onClick={() => flyToLandmark(landmark)}
-                                  className="flex items-center gap-3 p-3 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 transition-all text-left cursor-pointer group/item w-full"
+                                  type="button"
+                                  onClick={() => setUserLandmarksSearchQuery("")}
+                                  className="text-zinc-500 hover:text-white transition-colors"
                                 >
-                                  {landmark.thumbnail ? (
-                                    <img
-                                      src={landmark.thumbnail}
-                                      alt=""
-                                      loading="lazy"
-                                      className="size-12 rounded-lg object-cover border border-zinc-800 shrink-0"
-                                    />
-                                  ) : (
-                                    <div className="size-12 rounded-lg border border-zinc-800 shrink-0 bg-zinc-900" />
-                                  )}
-                                  <div className="min-w-0 flex-1">
-                                    <div className="font-medium text-white group-hover/item:text-primary truncate">
-                                      {landmark.name}
-                                    </div>
-                                    <div className="text-sm text-zinc-500 truncate">
-                                      {landmark.location}
-                                    </div>
-                                  </div>
-                                  {landmark.priceSol !== null &&
-                                    landmark.priceSol !== undefined && (
-                                      <div className="text-right shrink-0">
-                                        <div className="text-sm font-semibold text-primary">
-                                          {landmark.priceSol.toFixed(5)} SOL
+                                  <X className="h-4 w-4" />
+                                </button>
+                              )}
+                            </div>
+                            {filteredUserLandmarks.length === 0 ? (
+                              <div className="text-center py-8 text-zinc-500 text-sm">
+                                No matching landmarks found.
+                              </div>
+                            ) : (
+                              <ScrollArea className="max-h-[300px] pr-2">
+                                <div className="flex flex-col gap-2">
+                                  {filteredUserLandmarks.map((landmark, idx) => (
+                                    <button
+                                      key={idx}
+                                      onClick={() => flyToLandmark(landmark)}
+                                      className="flex items-center gap-3 p-3 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 transition-all text-left cursor-pointer group/item w-full"
+                                    >
+                                      {landmark.thumbnail ? (
+                                        <img
+                                          src={landmark.thumbnail}
+                                          alt=""
+                                          loading="lazy"
+                                          className="size-12 rounded-lg object-cover border border-zinc-800 shrink-0"
+                                        />
+                                      ) : (
+                                        <div className="size-12 rounded-lg border border-zinc-800 shrink-0 bg-zinc-900" />
+                                      )}
+                                      <div className="min-w-0 flex-1">
+                                        <div className="font-medium text-white group-hover/item:text-primary truncate">
+                                          {landmark.name}
                                         </div>
-                                        <div className="text-[10px] text-zinc-600 uppercase tracking-wide">
-                                          purchase
+                                        <div className="text-sm text-zinc-500 truncate">
+                                          {landmark.location}
                                         </div>
                                       </div>
-                                    )}
-                                </button>
-                              ))}
-                            </div>
-                          </ScrollArea>
+                                      {landmark.priceSol !== null &&
+                                        landmark.priceSol !== undefined && (
+                                          <div className="text-right shrink-0">
+                                            <div className="text-sm font-semibold text-primary">
+                                              {landmark.priceSol.toFixed(5)} SOL
+                                            </div>
+                                            <div className="text-[10px] text-zinc-600 uppercase tracking-wide">
+                                              purchase
+                                            </div>
+                                          </div>
+                                        )}
+                                    </button>
+                                  ))}
+                                </div>
+                              </ScrollArea>
+                            )}
+                          </>
                         )}
                       </div>
                     </DialogContent>
@@ -1595,7 +1645,7 @@ export default function LandmarkPage() {
             {mintStatus !== "success" ? (
               <>
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-zinc-400">Selected Tiles:</span>
+                  <span className="text-zinc-450">Selected Tiles:</span>
                   <span className="font-semibold text-white">
                     {selectedCells.length}
                   </span>
@@ -1616,14 +1666,14 @@ export default function LandmarkPage() {
                   <RiCheckDoubleLine className="text-4xl text-primary" />
                 </div>
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-zinc-400">Tiles Purchased:</span>
+                  <span className="text-zinc-450">Tiles Purchased:</span>
                   <span className="font-semibold text-primary">
                     {successCount}
                   </span>
                 </div>
 
                 <div className="flex justify-between items-center text-sm pt-4 border-t">
-                  <span className="text-zinc-400">Amount Paid:</span>
+                  <span className="text-zinc-450">Amount Paid:</span>
                   <span className="font-semibold text-primary">
                     {successPriceSol.toFixed(5)} SOL
                   </span>
@@ -1633,7 +1683,7 @@ export default function LandmarkPage() {
 
             {mintStatus === "idle" && (
               <div className="flex justify-between items-center text-sm pt-2 border-t">
-                <span className="text-zinc-400">Your Balance:</span>
+                <span className="text-zinc-450">Your Balance:</span>
                 <span className="font-semibold text-white">
                   {isLoadingBalance ? (
                     <Loader2 className="h-4 w-4 animate-spin text-zinc-450" />
