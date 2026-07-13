@@ -1345,10 +1345,10 @@ export default function LandmarkPage() {
                     </DialogTrigger>
                     <DialogContent className="min-w-2xl">
                       <DialogHeader>
-                        <DialogTitle className="text-center">
+                        <DialogTitle >
                           Your Landmarks
                         </DialogTitle>
-                        <DialogDescription className="text-center">
+                        <DialogDescription >
                           Select a landmark <span className="text-primary">{userLandmarks.length ?? 0}</span> to fly directly to its location on
                           the map.
                         </DialogDescription>
@@ -1579,13 +1579,13 @@ export default function LandmarkPage() {
       >
         <DialogContent className="min-w-xl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold tracking-tight text-white">
+            <DialogTitle>
               {mintStatus === "idle" && "Confirm Purchase"}
               {mintStatus === "minting" && "Transaction in Progress"}
               {mintStatus === "success" && "Transaction Successful"}
               {mintStatus === "error" && "Transaction Failed"}
             </DialogTitle>
-            <DialogDescription className="text-zinc-400 mt-2 text-sm leading-relaxed">
+            <DialogDescription>
               {mintStatus === "idle" &&
                 "Review the details of the coordinates you are about to purchase."}
               {mintStatus === "minting" &&
@@ -1652,7 +1652,7 @@ export default function LandmarkPage() {
                 </div>
 
                 <div className="flex justify-between items-center text-sm pt-4 border-t">
-                  <span className="text-zinc-400">Total Price:</span>
+                  <span>Total Price:</span>
                   <span className="font-semibold text-primary">
                     {tilePrice
                       ? `${(tilePrice.sol * selectedCells.length).toFixed(5)} SOL`
@@ -1766,7 +1766,7 @@ export default function LandmarkPage() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Tile Owned</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogDescription>
               This coordinate has already been secured.
             </DialogDescription>
           </DialogHeader>
@@ -1811,7 +1811,7 @@ export default function LandmarkPage() {
           </div>
 
           <div className="flex justify-between items-center text-sm pt-4 border-t border-zinc-800">
-            <span className="text-zinc-400">Cell</span>
+            <span>Cell</span>
             <h4 className="font-mono text-zinc-300 text-sm">
               {soldTileInfo?.cell}
             </h4>
