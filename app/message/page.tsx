@@ -203,7 +203,7 @@ export default function MessagePage() {
         <div className="w-full md:w-[350px] shrink-0 bg-zinc-950 border border-zinc-900 rounded-3xl flex flex-col overflow-hidden">
           {/* Header & Search */}
           <div className="p-5 border-b border-zinc-900 space-y-4">
-            <h2 className="text-xl font-bold flex items-center gap-2">
+            <h2 className="text-xl font-semibold flex items-center gap-2">
               <MessageSquare className="h-5 w-5 text-primary" /> Messages
             </h2>
             <div className="relative bg-black flex gap-2.5 h-[40px] items-center px-3 rounded-xl border border-zinc-800 focus-within:border-zinc-700">
@@ -256,7 +256,7 @@ export default function MessagePage() {
                   <div className="text-right space-y-1.5 shrink-0">
                     <span className="text-[10px] text-zinc-500 font-mono">{thread.time}</span>
                     {thread.unreadCount > 0 && (
-                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[8px] font-bold text-black mx-auto">
+                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[8px] font-semibold text-black mx-auto">
                         {thread.unreadCount}
                       </span>
                     )}
@@ -285,7 +285,7 @@ export default function MessagePage() {
                     )}
                   </div>
                   <div>
-                    <h3 className="font-bold text-white text-base flex items-center gap-1.5">
+                    <h3 className="font-semibold text-white text-base flex items-center gap-1.5">
                       {activeThread.name}
                       <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
                     </h3>
@@ -374,7 +374,7 @@ export default function MessagePage() {
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center space-y-4">
               <MessageSquare className="h-12 w-12 text-zinc-700" />
-              <h3 className="font-bold text-white text-lg">No active conversation</h3>
+              <h3 className="font-semibold text-white text-lg">No active conversation</h3>
               <p className="text-zinc-500 text-sm max-w-xs">
                 Select a conversation from the sidebar to start messaging.
               </p>

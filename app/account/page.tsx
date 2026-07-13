@@ -54,6 +54,15 @@ interface OwnedTile {
   purchasedDate: string;
 }
 
+/**
+ * Build a Mapbox Static Images URL for a thumbnail map of a coordinate.
+ * Uses dark-v11 to match the Blockland dark theme of the main map.
+ */
+function buildStaticMapUrl(lng: number, lat: number): string {
+  const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+  return `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/${lng},${lat},14,0,0/400x225@2x?access_token=${token}`;
+}
+
 /** Map a compressed NFT to the UI's OwnedTile shape. */
 function nftToTile(nft: CompressedNft): OwnedTile {
   const latAttr = nft.content.metadata.attributes?.find(
@@ -74,7 +83,7 @@ function nftToTile(nft: CompressedNft): OwnedTile {
     location: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
     coordinates: `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`,
     rarity: (rarityAttr?.value as OwnedTile["rarity"]) || "Common",
-    imageUrl: nft.content.metadata.image || "",
+    imageUrl: buildStaticMapUrl(lng, lat),
     purchasePrice: 0.0025, // Fallback default price (approx $0.2 equivalent)
     purchasedDate: new Date().toLocaleDateString("en-US", {
       month: "short",
@@ -217,17 +226,38 @@ export default function AccountPage() {
             location: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
             coordinates: `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`,
             rarity: (t.rarity as OwnedTile["rarity"]) || "Common",
-            imageUrl: t.imageUri || "",
+            imageUrl: buildStaticMapUrl(lng, lat),
             purchasePrice: lamportsToSol(lamports),
             purchasedDate: createdAt.toLocaleDateString("en-US", {
               month: "short",
               day: "2-digit",
               year: "numeric",
             }),
+            rawLat: lat,
+            rawLng: lng,
           };
         });
-        setOwnedTiles(mapped);
-        setTotalTilesCount(data.total ?? mapped.length);
+
+        // Enrich the tiles with place names using reverse geocoding from Mapbox Places
+        const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+        const enriched = await Promise.all(
+          mapped.map(async (tile: any) => {
+            try {
+              const res = await fetch(
+                `https://api.mapbox.com/geocoding/v5/mapbox.places/${tile.rawLng},${tile.rawLat}.json?access_token=${token}&country=us&limit=1`
+              );
+              const geoData = await res.json();
+              const placeName = geoData.features?.[0]?.place_name;
+              return placeName ? { ...tile, location: placeName, name: placeName.split(",")[0] } : tile;
+            } catch (err) {
+              console.error("Geocoding failed for tile:", tile.id, err);
+              return tile;
+            }
+          })
+        );
+
+        setOwnedTiles(enriched);
+        setTotalTilesCount(data.total ?? enriched.length);
       } else {
         setOwnedTiles([]);
         setTotalTilesCount(0);
@@ -272,7 +302,7 @@ export default function AccountPage() {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-zinc-955 to-transparent opacity-60" />
           <span
-            className={`absolute top-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
+            className={`absolute top-3 left-3 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
           >
             {tile.rarity}
           </span>
@@ -284,7 +314,7 @@ export default function AccountPage() {
 
         <div className="space-y-4">
           <div>
-            <h3 className="text-xl font-bold text-white">{tile.name}</h3>
+            <h3 className="text-xl font-semibold text-white">{tile.name}</h3>
             <p className="text-sm text-zinc-400 flex items-center gap-1 mt-1">
               <MapPin className="h-4 w-4 text-zinc-550 shrink-0" />
               {tile.location}
@@ -344,7 +374,7 @@ export default function AccountPage() {
             />
             <div className="space-y-0.5">
               <span
-                className={`text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}
+                className={`text-[9px] uppercase font-semibold tracking-wider px-1.5 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}
               >
                 {tile.rarity}
               </span>
@@ -386,7 +416,7 @@ export default function AccountPage() {
                       ✓
                     </div>
                     <div>
-                      <h4 className="font-bold text-white text-lg">
+                      <h4 className="font-semibold text-white text-lg">
                         Tile Listed!
                       </h4>
                       <p className="text-sm text-zinc-400 mt-1">
@@ -426,7 +456,7 @@ export default function AccountPage() {
           />
           <div className="space-y-0.5">
             <span
-              className={`text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}
+              className={`text-[9px] uppercase font-semibold tracking-wider px-1.5 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}
             >
               {tile.rarity}
             </span>
@@ -537,7 +567,7 @@ export default function AccountPage() {
 
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold text-white">
+                <h1 className="text-2xl font-semibold text-white">
                   {profileData?.username || "Coordinate Owner"}
                 </h1>
                 <Shield className="h-4.5 w-4.5 text-primary shrink-0" />
@@ -613,7 +643,7 @@ export default function AccountPage() {
         {/* Owned Tiles Inventory Section */}
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
-            <h2 className="text-2xl font-bold flex items-center gap-2">
+            <h2 className="text-2xl font-semibold flex items-center gap-2">
               <Grid className="h-5 w-5 text-primary" /> Owned Coordinate Units
             </h2>
             
@@ -682,7 +712,7 @@ export default function AccountPage() {
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-zinc-955 to-transparent opacity-60" />
                       <span
-                        className={`absolute top-4 left-4 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
+                        className={`absolute top-4 left-4 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
                       >
                         {tile.rarity}
                       </span>
@@ -695,11 +725,11 @@ export default function AccountPage() {
                     {/* Details */}
                     <div className="p-6 flex-1 flex flex-col justify-between space-y-6">
                       <div className="space-y-2">
-                        <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors">
+                        <h3 className="text-xl font-semibold text-white group-hover:text-primary transition-colors">
                           {tile.name}
                         </h3>
-                        <p className="text-sm text-zinc-400 flex items-center gap-1.5">
-                          <MapPin className="h-4 w-4 text-zinc-550" />
+                        <p className="text-sm text-zinc-400 flex items-center gap-1.5 truncate">
+                          {/* <MapPin className="h-4 w-4 text-zinc-550" /> */}
                           {tile.location}
                         </p>
                       </div>
@@ -709,7 +739,7 @@ export default function AccountPage() {
                           <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
                             Buy Price
                           </div>
-                          <div className="text-base font-bold text-zinc-300">
+                          <div className="text-base font-semibold text-zinc-300">
                             {tile.purchasePrice.toFixed(5)} SOL
                           </div>
                         </div>

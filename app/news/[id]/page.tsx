@@ -20,7 +20,7 @@ export default function NewsDetailPage() {
   if (!item) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4">
-        <h2 className="text-2xl font-bold">Article not found</h2>
+        <h2 className="text-2xl font-semibold">Article not found</h2>
         <p className="text-zinc-500 font-sans">The news article you are looking for does not exist.</p>
         <Link href="/news" className="text-primary hover:underline">
           Back to Newsroom
@@ -57,7 +57,7 @@ export default function NewsDetailPage() {
         {/* Article Meta Header */}
         <div className="space-y-6">
           <div className="flex flex-wrap items-center gap-4">
-            <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-xl border ${getCategoryBadgeColor(item.category)}`}>
+            <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-xl border ${getCategoryBadgeColor(item.category)}`}>
               {item.category}
             </span>
             <div className="flex gap-4 items-center text-xs text-zinc-550 font-mono">
@@ -83,7 +83,7 @@ export default function NewsDetailPage() {
                 className="w-10 h-10 rounded-full object-cover border border-zinc-800"
               />
               <div>
-                <h5 className="font-bold text-white text-sm">{item.author.name}</h5>
+                <h5 className="font-semibold text-white text-sm">{item.author.name}</h5>
                 <p className="text-[10px] text-zinc-500 font-mono mt-0.5">{item.author.role}</p>
               </div>
             </div>
@@ -142,7 +142,7 @@ export default function NewsDetailPage() {
 
         {/* Related Articles Footer section */}
         <div className="space-y-6">
-          <h3 className="text-xl font-bold text-white flex items-center gap-2">
+          <h3 className="text-xl font-semibold text-white flex items-center gap-2">
             Related Articles
           </h3>
 
@@ -154,10 +154,10 @@ export default function NewsDetailPage() {
                 className="bg-zinc-955 border border-zinc-900 rounded-2xl p-5 block hover:border-zinc-800 transition-all hover:scale-[1.01] group space-y-4"
               >
                 <div className="space-y-2">
-                  <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${getCategoryBadgeColor(article.category)}`}>
+                  <span className={`text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border ${getCategoryBadgeColor(article.category)}`}>
                     {article.category}
                   </span>
-                  <h4 className="font-bold text-white group-hover:text-primary transition-colors text-base line-clamp-2 leading-snug">
+                  <h4 className="font-semibold text-white group-hover:text-primary transition-colors text-base line-clamp-2 leading-snug">
                     {article.title}
                   </h4>
                 </div>

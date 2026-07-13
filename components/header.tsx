@@ -50,7 +50,7 @@ export default function Header() {
           title="Messages"
         >
           <MessageSquare className="h-5 w-5" />
-          <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-black">
+          <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-semibold text-white ring-2 ring-black">
             2
           </span>
         </Link> */}

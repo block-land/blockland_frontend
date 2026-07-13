@@ -112,7 +112,7 @@ export default function TileDetailPage() {
   if (!tile) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4">
-        <h2 className="text-2xl font-bold">Tile not found</h2>
+        <h2 className="text-2xl font-semibold">Tile not found</h2>
         <p className="text-zinc-500">The coordinate unit you are looking for does not exist.</p>
         <Link href="/marketplace" className="text-primary hover:underline">
           Back to Marketplace
@@ -132,7 +132,7 @@ export default function TileDetailPage() {
             className="w-20 h-20 object-cover rounded-lg border border-zinc-800"
           />
           <div className="space-y-1">
-            <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}>
+            <span className={`text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}>
               {tile.rarity}
             </span>
             <h4 className="font-semibold text-white mt-1">{tile.name}</h4>
@@ -151,7 +151,7 @@ export default function TileDetailPage() {
             <span>Transaction Fee</span>
             <span className="text-zinc-500">0.05 USDC</span>
           </div>
-          <div className="border-t border-zinc-800 pt-3 flex justify-between font-bold text-white text-base">
+          <div className="border-t border-zinc-800 pt-3 flex justify-between font-semibold text-white text-base">
             <span>Total Cost</span>
             <span className="text-primary">{tile.price + 0.05} USDC</span>
           </div>
@@ -176,7 +176,7 @@ export default function TileDetailPage() {
                     ✓
                   </div>
                   <div>
-                    <h4 className="font-bold text-white text-lg">Tile Acquired!</h4>
+                    <h4 className="font-semibold text-white text-lg">Tile Acquired!</h4>
                     <p className="text-sm text-zinc-400 mt-1">
                       You are now the proud owner of <strong>{tile.name}</strong> coordinate unit.
                     </p>
@@ -213,7 +213,7 @@ export default function TileDetailPage() {
             className="w-20 h-20 object-cover rounded-lg border border-zinc-800"
           />
           <div className="space-y-1">
-            <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}>
+            <span className={`text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}>
               {tile.rarity}
             </span>
             <h4 className="font-semibold text-white mt-1">{tile.name}</h4>
@@ -256,7 +256,7 @@ export default function TileDetailPage() {
                     ✓
                   </div>
                   <div>
-                    <h4 className="font-bold text-white text-lg">Offer Submitted Successfully!</h4>
+                    <h4 className="font-semibold text-white text-lg">Offer Submitted Successfully!</h4>
                     <p className="text-sm text-zinc-400 mt-1">
                       Your offer of <strong>{offerPrice} USDC</strong> has been submitted to the publisher.
                     </p>
@@ -318,7 +318,7 @@ export default function TileDetailPage() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
               <div className="absolute bottom-6 left-6 right-6 flex flex-wrap gap-4 items-center justify-between">
-                <span className={`text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-xl border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}>
+                <span className={`text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-xl border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}>
                   {tile.rarity}
                 </span>
                 <div className="flex gap-2 text-sm text-white font-mono bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-zinc-800">
@@ -330,7 +330,7 @@ export default function TileDetailPage() {
 
             {/* Technical Specifications */}
             <div className="bg-zinc-950 border border-zinc-900 rounded-3xl p-6 sm:p-8 space-y-6">
-              <h3 className="text-xl font-bold text-white border-b border-zinc-900 pb-4">
+              <h3 className="text-xl font-semibold text-white border-b border-zinc-900 pb-4">
                 Technical Data Specs
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
@@ -355,7 +355,7 @@ export default function TileDetailPage() {
 
             {/* Simulated Coordinate Map Grid View */}
             <div className="bg-zinc-950 border border-zinc-900 rounded-3xl p-6 sm:p-8 space-y-4">
-              <h3 className="text-xl font-bold text-white">Coordinate Satellite Area</h3>
+              <h3 className="text-xl font-semibold text-white">Coordinate Satellite Area</h3>
               <p className="text-sm text-zinc-500">
                 This Coordinate Unit grid is secured dynamically on the Solana blockchain.
               </p>
@@ -391,7 +391,7 @@ export default function TileDetailPage() {
               <span className="text-xs text-zinc-500 uppercase tracking-wider font-mono">Current Price</span>
               <div className="flex items-baseline gap-2">
                 <span className="text-4xl font-extrabold text-primary font-mono">{tile.price}</span>
-                <span className="text-lg font-bold text-zinc-300 font-mono">USDC</span>
+                <span className="text-lg font-semibold text-zinc-300 font-mono">USDC</span>
               </div>
             </div>
 
@@ -441,7 +441,7 @@ export default function TileDetailPage() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <span className="text-xs font-bold text-primary font-mono">{off.price} USDC</span>
+                        <span className="text-xs font-semibold text-primary font-mono">{off.price} USDC</span>
                         <p className="text-[8px] text-emerald-500 font-mono">Pending</p>
                       </div>
                     </div>
@@ -461,7 +461,7 @@ export default function TileDetailPage() {
                     className="w-10 h-10 rounded-full object-cover border border-zinc-800"
                   />
                   <div>
-                    <h5 className="font-bold text-white text-sm flex items-center gap-1">
+                    <h5 className="font-semibold text-white text-sm flex items-center gap-1">
                       {tile.publisher.name}
                       <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
                     </h5>
@@ -480,7 +480,7 @@ export default function TileDetailPage() {
 
             {/* Action buttons */}
             <div className="space-y-4 pt-4 border-t border-zinc-900">
-              <ButtonCustom onClick={handleBuy} className="w-full justify-center py-4 text-base font-bold">
+              <ButtonCustom onClick={handleBuy} className="w-full justify-center py-4 text-base font-semibold">
                 Buy Coordinate Unit
               </ButtonCustom>
               <div className="flex gap-4">
@@ -516,7 +516,7 @@ export default function TileDetailPage() {
                 <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-zinc-900" />
               </div>
               <div>
-                <h4 className="font-bold text-sm text-white flex items-center gap-1">
+                <h4 className="font-semibold text-sm text-white flex items-center gap-1">
                   {tile.publisher.name}
                 </h4>
                 <p className="text-[10px] text-emerald-500">Active now</p>

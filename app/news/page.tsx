@@ -38,7 +38,7 @@ export default function NewsPage() {
           <span className="text-primary text-sm font-semibold tracking-widest uppercase">
             Blockland Newsroom
           </span>
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-white">
+          <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight text-white">
             Ecosystem <span className="text-primary">Updates</span>
           </h1>
           <p className="text-zinc-400 text-lg leading-relaxed">
@@ -62,7 +62,7 @@ export default function NewsPage() {
             {/* Content Details */}
             <div className="lg:col-span-5 p-6 sm:p-10 flex flex-col justify-between space-y-8 lg:space-y-0">
               <div className="space-y-4">
-                <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-xl border ${getCategoryBadgeColor(featuredNews.category)}`}>
+                <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-xl border ${getCategoryBadgeColor(featuredNews.category)}`}>
                   {featuredNews.category}
                 </span>
                 <h2 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight group-hover:text-primary transition-colors">
@@ -143,7 +143,7 @@ export default function NewsPage() {
                     className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent opacity-60" />
-                  <span className={`absolute top-4 left-4 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getCategoryBadgeColor(item.category)}`}>
+                  <span className={`absolute top-4 left-4 text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getCategoryBadgeColor(item.category)}`}>
                     {item.category}
                   </span>
                 </Link>
@@ -160,7 +160,7 @@ export default function NewsPage() {
                     </div>
 
                     <Link href={`/news/${item.id}`}>
-                      <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors line-clamp-2 leading-snug">
+                      <h3 className="text-xl font-semibold text-white group-hover:text-primary transition-colors line-clamp-2 leading-snug">
                         {item.title}
                       </h3>
                     </Link>
@@ -182,7 +182,7 @@ export default function NewsPage() {
 
                     <Link
                       href={`/news/${item.id}`}
-                      className="text-[11px] font-bold text-zinc-450 hover:text-white flex items-center gap-1 group/btn"
+                      className="text-[11px] font-semibold text-zinc-450 hover:text-white flex items-center gap-1 group/btn"
                     >
                       Read Now
                       <ArrowRight className="h-3.5 w-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
@@ -195,7 +195,7 @@ export default function NewsPage() {
         ) : (
           <div className="text-center py-20 border border-dashed border-zinc-850 rounded-2xl space-y-4">
             <BookOpen className="h-10 w-10 text-zinc-700 mx-auto" />
-            <h3 className="font-bold text-lg text-white">No articles found</h3>
+            <h3 className="font-semibold text-lg text-white">No articles found</h3>
             <p className="text-zinc-500 text-sm max-w-sm mx-auto">
               No matching news articles fit your search criteria. Let's try adjusting the filters.
             </p>

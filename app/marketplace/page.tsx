@@ -99,7 +99,7 @@ export default function Marketplace() {
           <span className="text-primary text-sm font-semibold tracking-widest uppercase">
             Blockland Marketplace
           </span>
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-white">
+          <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight text-white">
             Coordinate Unit <span className="text-primary">Marketplace</span>
           </h1>
           <p className="text-zinc-400 text-lg leading-relaxed">
@@ -201,7 +201,7 @@ export default function Marketplace() {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent opacity-60" />
-                      <span className={`absolute top-4 left-4 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}>
+                      <span className={`absolute top-4 left-4 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}>
                         {tile.rarity}
                       </span>
                       <div className="absolute bottom-4 left-4 flex gap-1 items-center text-zinc-300 text-xs font-mono">
@@ -214,7 +214,7 @@ export default function Marketplace() {
                     <div className="p-6 flex-1 flex flex-col justify-between space-y-6">
                       <div className="space-y-4">
                         <div className="space-y-2">
-                          <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors">
+                          <h3 className="text-xl font-semibold text-white group-hover:text-primary transition-colors">
                             {tile.name}
                           </h3>
                           <p className="text-sm text-zinc-400 flex items-center gap-1.5">
@@ -245,7 +245,7 @@ export default function Marketplace() {
                           <div className="text-xs text-zinc-500 uppercase tracking-wide font-mono">
                             Price
                           </div>
-                          <div className="text-lg font-bold text-primary font-mono">
+                          <div className="text-lg font-semibold text-primary font-mono">
                             {tile.price} USDC
                           </div>
                         </div>
@@ -282,7 +282,7 @@ export default function Marketplace() {
                       {/* Details */}
                       <div className="space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}>
+                          <span className={`text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}>
                             {tile.rarity}
                           </span>
                           <span className="text-[11px] text-zinc-555 font-mono flex items-center gap-1">
@@ -291,7 +291,7 @@ export default function Marketplace() {
                           </span>
                           <span className="text-[10px] text-zinc-555 font-mono">• {tile.date}</span>
                         </div>
-                        <h3 className="text-lg font-bold text-white group-hover:text-primary transition-colors">
+                        <h3 className="text-lg font-semibold text-white group-hover:text-primary transition-colors">
                           {tile.name}
                         </h3>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
@@ -319,7 +319,7 @@ export default function Marketplace() {
                         <div className="text-[10px] text-zinc-500 uppercase tracking-wide font-mono">
                           Price
                         </div>
-                        <div className="text-lg font-bold text-primary font-mono">
+                        <div className="text-lg font-semibold text-primary font-mono">
                           {tile.price} USDC
                         </div>
                       </div>
@@ -384,7 +384,7 @@ export default function Marketplace() {
         ) : (
           <div className="text-center py-20 border border-dashed border-zinc-800 rounded-2xl space-y-4">
             <div className="text-4xl">🗺️</div>
-            <h3 className="font-bold text-lg text-white">No tiles found</h3>
+            <h3 className="font-semibold text-lg text-white">No tiles found</h3>
             <p className="text-zinc-500 text-sm max-w-sm mx-auto">
               We couldn't find any listings matching your search or filters. Try adjusting them.
             </p>
@@ -396,7 +396,7 @@ export default function Marketplace() {
       <Dialog open={!!selectedTile} onOpenChange={(open) => !open && setSelectedTile(null)}>
         <DialogContent className="max-w-2xl bg-zinc-950 border border-zinc-800 text-white rounded-2xl p-6 shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-white tracking-tight">
+            <DialogTitle className="text-xl font-semibold text-white tracking-tight">
               {purchaseStep === "confirm" ? "Confirm Purchase" : "Transaction Success"}
             </DialogTitle>
           </DialogHeader>
@@ -410,7 +410,7 @@ export default function Marketplace() {
                   className="w-20 h-20 object-cover rounded-lg border border-zinc-805"
                 />
                 <div className="space-y-1">
-                  <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border ${getRarityBadgeColor(selectedTile.rarity)}`}>
+                  <span className={`text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 rounded border ${getRarityBadgeColor(selectedTile.rarity)}`}>
                     {selectedTile.rarity}
                   </span>
                   <h4 className="font-semibold text-white mt-1">{selectedTile.name}</h4>
@@ -444,7 +444,7 @@ export default function Marketplace() {
                   <span>Transaction Fee</span>
                   <span className="text-zinc-550">0.05 USDC</span>
                 </div>
-                <div className="border-t border-zinc-800 pt-3 flex justify-between font-bold text-white text-base">
+                <div className="border-t border-zinc-800 pt-3 flex justify-between font-semibold text-white text-base">
                   <span>Total Cost</span>
                   <span className="text-primary">{selectedTile.price + 0.05} USDC</span>
                 </div>
@@ -478,7 +478,7 @@ export default function Marketplace() {
                 ✓
               </div>
               <div>
-                <h4 className="font-bold text-white text-lg">Tile Acquired!</h4>
+                <h4 className="font-semibold text-white text-lg">Tile Acquired!</h4>
                 <p className="text-sm text-zinc-400 mt-1">
                   You are now the proud owner of <strong>{selectedTile.name}</strong> coordinate unit.
                 </p>

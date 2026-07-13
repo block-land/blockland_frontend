@@ -143,7 +143,7 @@ export default function WalletButton() {
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent className="bg-zinc-950 border border-zinc-900 text-white max-w-sm rounded-2xl p-6">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-lg font-bold text-white tracking-tight">
+            <AlertDialogTitle className="text-lg font-semibold text-white tracking-tight">
               Confirm Logout
             </AlertDialogTitle>
             <AlertDialogDescription className="text-zinc-400 text-sm mt-2 leading-relaxed">
