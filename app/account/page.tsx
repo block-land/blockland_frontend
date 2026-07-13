@@ -539,10 +539,10 @@ export default function AccountPage() {
                       >
                         {tile.rarity}
                       </span>
-                      <div className="absolute bottom-4 left-4 flex gap-1 items-center text-xs font-mono">
+                      {/* <div className="absolute bottom-4 left-4 flex gap-1 items-center text-xs font-mono">
                         <Grid className="h-3.5 w-3.5 text-primary" />
                         <span>{tile.coordinates}</span>
-                      </div>
+                      </div> */}
                     </div>
 
                     {/* Details */}
@@ -557,12 +557,25 @@ export default function AccountPage() {
                         </p>
                       </div>
 
-                      <div className="flex items-center justify-between pt-4 border-t border-zinc-900 font-mono">
+                      <div className="space-y-1">
+                        <span className="text-zinc-500 text-[10px]">
+                          TILE ID
+                        </span>
+                        <h4
+                          className="truncate text-white text-normal font-mono"
+                          title={tile.id}
+                        >
+                          {/* {tile.id} */}
+                          {tile.coordinates}
+                        </h4>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-4 border-t border-zinc-900">
                         <div className="space-y-0.5">
                           <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
                             Buy Price
                           </div>
-                          <div className="text-base font-semibold">
+                          <div className="text-base font-mono">
                             {tile.purchasePrice.toFixed(5)} SOL
                           </div>
                         </div>
@@ -571,9 +584,7 @@ export default function AccountPage() {
                           <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
                             Acquired
                           </div>
-                          <div className="text-xs font-semibold text-zinc-450">
-                            {tile.purchasedDate}
-                          </div>
+                          <div className="text-xs">{tile.purchasedDate}</div>
                         </div>
                       </div>
 
@@ -671,12 +682,12 @@ export default function AccountPage() {
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-zinc-955 to-transparent opacity-60" />
-                  {/* <span
+                  <span
                     className={`absolute top-3 left-3 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(selectedDetailTile.rarity)}`}
                   >
                     {selectedDetailTile.rarity}
                   </span>
-                  <div className="absolute bottom-3 left-3 flex gap-1 items-center text-xs font-mono">
+                  {/* <div className="absolute bottom-3 left-3 flex gap-1 items-center text-xs font-mono">
                     <Grid className="h-3.5 w-3.5 text-primary" />
                     <span>{selectedDetailTile.coordinates}</span>
                   </div> */}
@@ -695,11 +706,11 @@ export default function AccountPage() {
 
                   <div className="h-px bg-zinc-800/80" />
 
-                  <div className="flex flex-col gap-4 font-mono text-sm divide-y">
+                  <div className="flex flex-col gap-4 text-sm divide-y">
                     <div className="space-y-1 pb-4">
-                      <span className="text-zinc-500 text-xs">TILE ID</span>
+                      <span className="text-zinc-500 text-[10px]">TILE ID</span>
                       <h4
-                        className="truncate text-white text-normal"
+                        className="truncate text-white text-normal font-mono"
                         title={selectedDetailTile.id}
                       >
                         {/* {selectedDetailTile.id} */}
@@ -707,14 +718,20 @@ export default function AccountPage() {
                       </h4>
                     </div>
                     <div className="space-y-1 pb-4">
-                      <span className="text-zinc-500 text-xs">PURCHASE PRICE</span>
-                      <h4 className="text-white">
+                      <span className="text-zinc-500 text-[10px]">
+                        PURCHASE PRICE
+                      </span>
+                      <h4 className="text-white font-mono">
                         {selectedDetailTile.purchasePrice.toFixed(5)} SOL
                       </h4>
                     </div>
                     <div className="space-y-1">
-                      <span className="text-zinc-500 text-xs">ACQUIRED DATE</span>
-                      <h4 className="text-white">{selectedDetailTile.purchasedDate}</h4>
+                      <span className="text-zinc-500 text-[10px]">
+                        ACQUIRED DATE
+                      </span>
+                      <h4 className="text-white">
+                        {selectedDetailTile.purchasedDate}
+                      </h4>
                     </div>
                   </div>
                 </div>
