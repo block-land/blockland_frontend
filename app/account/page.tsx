@@ -39,6 +39,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import WalletButton from "@/components/wallet-button";
 
 const ButtonCustom = withCustomButton("button");
 
@@ -506,6 +507,24 @@ export default function AccountPage() {
     );
   };
 
+  // Redirect to Wallet Connect View if wallet is not connected
+  if (!wallet) {
+    return (
+      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-6 font-sans">
+        <div className="flex flex-col items-center text-center space-y-4 max-w-sm px-6">
+          <User className="h-16 w-16 text-zinc-700" />
+          <h1 className="text-3xl font-extrabold tracking-tight">Connect Your Wallet</h1>
+          <p className="text-zinc-550 text-sm leading-relaxed">
+            Please connect your Solana wallet to view and manage your coordinate units.
+          </p>
+          <div className="pt-2">
+            <WalletButton />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-black text-white pt-32 pb-24 font-sans">
       <div className="mx-auto max-w-[1440px] px-6 sm:px-10 lg:px-[68px] space-y-12">
@@ -538,7 +557,7 @@ export default function AccountPage() {
                     </div>
                   )
                 ) : (
-                  <User className="h-10 w-10 text-zinc-550" />
+                  <User className="h-10 w-10 text-zinc-555" />
                 )}
               </div>
               <span
@@ -562,7 +581,7 @@ export default function AccountPage() {
                 {wallet && (
                   <button
                     onClick={handleCopy}
-                    className="text-zinc-550 hover:text-white transition-colors cursor-pointer"
+                    className="text-zinc-555 hover:text-white transition-colors cursor-pointer"
                   >
                     {copied ? (
                       <Check className="h-4 w-4 text-emerald-500" />
@@ -630,7 +649,7 @@ export default function AccountPage() {
             
             <div className="flex items-center gap-4 flex-1 max-w-sm w-full">
               <div className="relative bg-zinc-950 flex gap-2.5 h-[40px] items-center px-3 rounded-xl border border-zinc-800 focus-within:border-zinc-700 flex-1">
-                <Search className="h-4 w-4 text-zinc-500 shrink-0" />
+                <Search className="h-4 w-4 text-zinc-550 shrink-0" />
                 <input
                   type="text"
                   placeholder="Search by name, location..."
@@ -642,7 +661,7 @@ export default function AccountPage() {
                   <button
                     type="button"
                     onClick={() => setSearchQuery("")}
-                    className="text-zinc-550 hover:text-white transition-colors cursor-pointer"
+                    className="text-zinc-555 hover:text-white transition-colors cursor-pointer"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -660,7 +679,7 @@ export default function AccountPage() {
               <p className="text-sm">Loading your tiles from Solana...</p>
             </div>
           ) : ownedTiles.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 text-zinc-500 border border-dashed border-zinc-800 rounded-2xl">
+            <div className="flex flex-col items-center justify-center py-24 text-zinc-550 border border-dashed border-zinc-800 rounded-2xl">
               <Grid className="h-10 w-10 mb-4 text-zinc-700" />
               <p className="text-sm">You don't own any tiles yet.</p>
               <Link
