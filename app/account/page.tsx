@@ -48,6 +48,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
+import { NumericFormat } from "react-number-format";
 
 const ButtonCustom = withCustomButton("button");
 
@@ -806,13 +808,16 @@ export default function AccountPage() {
                       Set Listing Price
                     </label>
                     <div className="relative bg-black flex gap-2 h-[48px] items-center px-4 rounded-xl border border-zinc-800 focus-within:border-zinc-700">
-                      <input
-                        type="number"
-                        step="0.0001"
+                      <NumericFormat
+                        customInput={Input}
+                        allowNegative={false}
+                        decimalScale={5}
                         placeholder="e.g. 0.05"
                         value={sellPriceInput}
-                        onChange={(e) => setSellPriceInput(e.target.value)}
-                        className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none p-0 text-[15px] font-normal text-white placeholder-zinc-650"
+                        onValueChange={(values) => {
+                          setSellPriceInput(values.value);
+                        }}
+                        className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none p-0 text-[15px] font-normal text-white placeholder-zinc-650"
                         required
                       />
                       <span className="text-xs font-mono text-zinc-500 shrink-0 select-none">
