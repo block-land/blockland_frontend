@@ -50,6 +50,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { NumericFormat } from "react-number-format";
+import { Label } from "@/components/ui/label";
 
 const ButtonCustom = withCustomButton("button");
 
@@ -804,9 +805,12 @@ export default function AccountPage() {
                   className="space-y-6"
                 >
                   <div className="space-y-2">
-                    <label className="text-xs text-zinc-500 uppercase tracking-wider font-mono">
+                    <div>
+
+                    <Label>
                       Set Listing Price
-                    </label>
+                    </Label>
+                    </div>
                     <div className="relative bg-black flex gap-2 h-[48px] items-center px-4 rounded-xl border border-zinc-800 focus-within:border-zinc-700">
                       <NumericFormat
                         customInput={Input}
