@@ -131,6 +131,8 @@ export default function AccountPage() {
   const [sellStatus, setSellStatus] = React.useState<
     "idle" | "confirm" | "success"
   >("idle");
+  const [sellLoading, setSellLoading] = React.useState(false);
+  const [sellError, setSellError] = React.useState<string | null>(null);
 
   // Pagination states
   const [currentPage, setCurrentPage] = React.useState(1);
@@ -328,6 +330,7 @@ export default function AccountPage() {
     setSellingTile(tile);
     setSellPriceInput("");
     setSellStatus("idle");
+    setSellError(null);
   };
 
   // Redirect to Wallet Connect View if wallet is not connected
@@ -851,6 +854,12 @@ export default function AccountPage() {
               {/* State: CONFIRM */}
               {sellStatus === "confirm" && (
                 <div className="space-y-6">
+                  {sellError && (
+                    <div className="text-xs text-red-500 bg-red-500/10 border border-red-500/20 p-3 rounded-lg font-mono">
+                      {sellError}
+                    </div>
+                  )}
+
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm">
                       <span>Listing Price</span>
@@ -867,17 +876,51 @@ export default function AccountPage() {
                   <div className="flex gap-3">
                     <button
                       type="button"
+                      disabled={sellLoading}
                       onClick={() => setSellStatus("idle")}
-                      className="flex-1 border border-zinc-800 hover:bg-zinc-900 font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm"
+                      className="flex-1 border border-zinc-800 hover:bg-zinc-900 font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm disabled:opacity-50"
                     >
                       Back
                     </button>
                     <button
                       type="button"
-                      onClick={() => setSellStatus("success")}
-                      className="flex-1 bg-primary hover:bg-primary/95 text-black font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm"
+                      disabled={sellLoading}
+                      onClick={async () => {
+                        setSellLoading(true);
+                        setSellError(null);
+                        try {
+                          const BACKEND_URL =
+                            process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+                          
+                          const res = await fetch(`${BACKEND_URL}/api/tiles/list`, {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              assetId: sellingTile.id,
+                              priceSol: parseFloat(sellPriceInput),
+                              seller: wallet.address,
+                            }),
+                          });
+                          
+                          const data = await res.json();
+                          if (data.ok) {
+                            setSellStatus("success");
+                            // Reload owned tiles on account page
+                            loadTiles(currentPage, debouncedSearchQuery);
+                          } else {
+                            setSellError(data.error || "Failed to list tile");
+                          }
+                        } catch (err) {
+                          console.error("Listing tile error:", err);
+                          setSellError("Network connection error");
+                        } finally {
+                          setSellLoading(false);
+                        }
+                      }}
+                      className="flex-1 bg-primary hover:bg-primary/95 text-black font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm disabled:opacity-50 flex items-center justify-center gap-1.5"
                     >
-                      Confirm Listing
+                      {sellLoading && <Loader2 className="h-4 w-full animate-spin text-black" />}
+                      {!sellLoading && "Confirm Listing"}
                     </button>
                   </div>
                 </div>
