@@ -51,6 +51,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { NumericFormat } from "react-number-format";
 import { Label } from "@/components/ui/label";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs";
 
 const ButtonCustom = withCustomButton("button");
 
@@ -121,6 +127,9 @@ export default function AccountPage() {
   // Search state
   const [searchQuery, setSearchQuery] = React.useState("");
 
+  // Tab State: "all" or "listed"
+  const [activeTab, setActiveTab] = React.useState<"all" | "listed">("all");
+
   // Local dialog detail state
   const [selectedDetailTile, setSelectedDetailTile] =
     React.useState<OwnedTile | null>(null);
@@ -147,10 +156,10 @@ export default function AccountPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Reset page when search query changes
+  // Reset page when search query or active tab changes
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearchQuery]);
+  }, [debouncedSearchQuery, activeTab]);
 
   const totalPages = Math.ceil(totalTilesCount / ITEMS_PER_PAGE);
   const paginatedTiles = ownedTiles;
@@ -220,7 +229,7 @@ export default function AccountPage() {
   }, [wallet?.address]);
 
   const loadTiles = React.useCallback(
-    async (page: number, searchVal: string) => {
+    async (page: number, searchVal: string, statusVal: string) => {
       if (!wallet?.address) return;
       setLoading(true);
       try {
@@ -231,9 +240,10 @@ export default function AccountPage() {
         const searchParam = searchVal.trim()
           ? `&search=${encodeURIComponent(searchVal.trim())}`
           : "";
+        const statusParam = `&status=${statusVal}`;
 
         const res = await fetch(
-          `${BACKEND_URL}/api/tiles/owner/${wallet.address}?limit=${ITEMS_PER_PAGE}&offset=${offset}${searchParam}`,
+          `${BACKEND_URL}/api/tiles/owner/${wallet.address}?limit=${ITEMS_PER_PAGE}&offset=${offset}${searchParam}${statusParam}`,
         );
         const data = await res.json();
 
@@ -305,9 +315,9 @@ export default function AccountPage() {
 
   React.useEffect(() => {
     if (wallet?.address) {
-      loadTiles(currentPage, debouncedSearchQuery);
+      loadTiles(currentPage, debouncedSearchQuery, activeTab);
     }
-  }, [currentPage, debouncedSearchQuery, wallet?.address, loadTiles]);
+  }, [currentPage, debouncedSearchQuery, activeTab, wallet?.address, loadTiles]);
 
   const handleCopy = () => {
     if (wallet?.address) {
@@ -471,198 +481,362 @@ export default function AccountPage() {
 
         {/* Owned Tiles Inventory Section */}
         <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
-            <h2 className="text-2xl font-semibold flex items-center gap-2">
-              <Grid className="h-5 w-5 text-primary" /> Owned Coordinate Units
-            </h2>
-
-            <div className="flex items-center gap-4 flex-1 max-w-sm w-full">
-              <div className="relative bg-zinc-950 flex gap-2.5 h-[40px] items-center px-3 rounded-xl border border-zinc-800 focus-within:border-zinc-700 flex-1">
-                <Search className="h-4 w-4 text-zinc-550 shrink-0" />
-                <input
-                  type="text"
-                  placeholder="Search by name, location..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none p-0 text-sm text-white placeholder-zinc-600"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery("")}
-                    className="text-zinc-500 text-sm hover:text-white transition-colors cursor-pointer"
+          <Tabs
+            value={activeTab}
+            onValueChange={(val) => setActiveTab(val as any)}
+            className="w-full"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
+              <div className="flex flex-wrap items-center gap-6">
+                <h2 className="text-2xl font-semibold flex items-center gap-2">
+                  <Grid className="h-5 w-5 text-primary" /> Owned Coordinate Units
+                </h2>
+                <TabsList className="bg-zinc-900 border border-zinc-800 p-1 rounded-xl h-10">
+                  <TabsTrigger
+                    value="all"
+                    className="rounded-lg text-xs font-semibold px-4 py-1.5 text-zinc-400 data-[state=active]:bg-primary data-[state=active]:text-black transition-all cursor-pointer"
                   >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-              <span className="text-xs text-zinc-550 font-mono shrink-0">
-                Showing {paginatedTiles.length} of {totalTilesCount} units
-              </span>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-24 text-zinc-500">
-              <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
-              <p className="text-sm">Loading your tiles from Solana...</p>
-            </div>
-          ) : totalTilesCount === 0 ? (
-            searchQuery.trim() ? (
-              <div className="text-center py-20 text-zinc-500 border border-dashed border-zinc-850 rounded-2xl">
-                No matching tiles found for "{searchQuery}".
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-24 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-2xl">
-                <Grid className="h-10 w-10 mb-4 text-zinc-700" />
-                <p className="text-sm">You don't own any tiles yet.</p>
-                <Link
-                  href="/landmark"
-                  className="mt-4 text-primary text-sm font-semibold hover:underline"
-                >
-                  Explore the map →
-                </Link>
-              </div>
-            )
-          ) : (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {paginatedTiles.map((tile) => (
-                  <div
-                    key={tile.id}
-                    className="bg-zinc-950 border border-zinc-900 rounded-2xl overflow-hidden hover:border-zinc-800 transition-all hover:scale-[1.01] flex flex-col group"
+                    All
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="listed"
+                    className="rounded-lg text-xs font-semibold px-4 py-1.5 text-zinc-400 data-[state=active]:bg-primary data-[state=active]:text-black transition-all cursor-pointer"
                   >
-                    {/* Photo & Rarity */}
-                    <div className="relative aspect-video overflow-hidden">
-                      <img
-                        src={tile.imageUrl}
-                        alt={tile.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 bg-linear-to-t from-zinc-955 to-transparent opacity-60" />
-                      <span
-                        className={`absolute top-4 left-4 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
-                      >
-                        {tile.rarity}
-                      </span>
-                      {/* <div className="absolute bottom-4 left-4 flex gap-1 items-center text-xs font-mono">
-                        <Grid className="h-3.5 w-3.5 text-primary" />
-                        <span>{tile.coordinates}</span>
-                      </div> */}
-                    </div>
-
-                    {/* Details */}
-                    <div className="p-6 flex-1 flex flex-col justify-between space-y-6">
-                      <div className="space-y-2">
-                        <h3 className="text-xl font-semibold text-white group-hover:text-primary transition-colors">
-                          {tile.name}
-                        </h3>
-                        <p className="text-sm text-zinc-400 flex items-center gap-1.5 truncate">
-                          {/* <MapPin className="h-4 w-4 text-zinc-550" /> */}
-                          {tile.location}
-                        </p>
-                      </div>
-
-                      <div className="space-y-1">
-                        <span className="text-zinc-500 text-[10px]">
-                          TILE ID
-                        </span>
-                        <h4
-                          className="truncate text-white text-normal font-mono"
-                          title={tile.id}
-                        >
-                          {/* {tile.id} */}
-                          {tile.coordinates}
-                        </h4>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-4 border-t border-zinc-900">
-                        <div className="space-y-0.5">
-                          <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
-                            Buy Price
-                          </div>
-                          <div className="text-base font-mono">
-                            {tile.purchasePrice.toFixed(5)} SOL
-                          </div>
-                        </div>
-
-                        <div className="text-right space-y-0.5">
-                          <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
-                            Acquired
-                          </div>
-                          <div className="text-xs">{tile.purchasedDate}</div>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2 w-full pt-2">
-                        <button
-                          onClick={() => handleShowDetail(tile)}
-                          className="flex-1 flex items-center justify-center gap-1.5 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 py-2.5 rounded-xl transition-all cursor-pointer font-semibold text-xs"
-                        >
-                          Detail
-                        </button>
-                        <button
-                          onClick={() => handleSellTile(tile)}
-                          className="flex-1 flex items-center justify-center gap-1.5 bg-primary hover:bg-primary/95 text-black py-2.5 rounded-xl transition-all cursor-pointer font-semibold text-xs"
-                        >
-                          Sell
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                    Listed for Sale
+                  </TabsTrigger>
+                </TabsList>
               </div>
-              {/* Pagination controls below the grid */}
-              {totalPages > 1 && (
-                <div className="pt-8 border-t border-zinc-900">
-                  <Pagination>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <button
-                          onClick={() =>
-                            setCurrentPage((prev) => Math.max(1, prev - 1))
-                          }
-                          disabled={currentPage === 1}
-                          className="flex items-center gap-1 pl-2.5 pr-3 py-2 text-sm font-semibold border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
-                        >
-                          <PaginationPrevious className="pointer-events-none" />
-                        </button>
-                      </PaginationItem>
 
-                      {Array.from({ length: totalPages }).map((_, idx) => (
-                        <PaginationItem key={idx}>
-                          <PaginationLink
-                            isActive={currentPage === idx + 1}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              setCurrentPage(idx + 1);
-                            }}
-                            className={`cursor-pointer ${currentPage === idx + 1 ? "!bg-primary !text-black border-0" : "border-zinc-800 text-zinc-400"}`}
-                          >
-                            {idx + 1}
-                          </PaginationLink>
-                        </PaginationItem>
-                      ))}
-
-                      <PaginationItem>
-                        <button
-                          onClick={() =>
-                            setCurrentPage((prev) =>
-                              Math.min(totalPages, prev + 1),
-                            )
-                          }
-                          disabled={currentPage === totalPages}
-                          className="flex items-center gap-1 pl-3 pr-2.5 py-2 text-sm font-semibold border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
-                        >
-                          <PaginationNext className="pointer-events-none" />
-                        </button>
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
+              <div className="flex items-center gap-4 flex-1 max-w-sm w-full">
+                <div className="relative bg-zinc-950 flex gap-2.5 h-[40px] items-center px-3 rounded-xl border border-zinc-800 focus-within:border-zinc-700 flex-1">
+                  <Search className="h-4 w-4 text-zinc-550 shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Search by name, location..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none p-0 text-sm text-white placeholder-zinc-600"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="text-zinc-500 text-sm hover:text-white transition-colors cursor-pointer"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
+                <span className="text-xs text-zinc-550 font-mono shrink-0">
+                  Showing {paginatedTiles.length} of {totalTilesCount} units
+                </span>
+              </div>
+            </div>
+
+            <TabsContent value="all" className="mt-6 border-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0">
+              {loading ? (
+                <div className="flex flex-col items-center justify-center py-24 text-zinc-500">
+                  <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
+                  <p className="text-sm">Loading your tiles from Solana...</p>
+                </div>
+              ) : totalTilesCount === 0 ? (
+                searchQuery.trim() ? (
+                  <div className="text-center py-20 text-zinc-500 border border-dashed border-zinc-850 rounded-2xl">
+                    No matching tiles found for "{searchQuery}".
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-24 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-2xl">
+                    <Grid className="h-10 w-10 mb-4 text-zinc-700" />
+                    <p className="text-sm">You don't own any tiles yet.</p>
+                    <Link
+                      href="/landmark"
+                      className="mt-4 text-primary text-sm font-semibold hover:underline"
+                    >
+                      Explore the map →
+                    </Link>
+                  </div>
+                )
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {paginatedTiles.map((tile) => (
+                      <div
+                        key={tile.id}
+                        className="bg-zinc-950 border border-zinc-900 rounded-2xl overflow-hidden hover:border-zinc-800 transition-all hover:scale-[1.01] flex flex-col group"
+                      >
+                        {/* Photo & Rarity */}
+                        <div className="relative aspect-video overflow-hidden">
+                          <img
+                            src={tile.imageUrl}
+                            alt={tile.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-linear-to-t from-zinc-955 to-transparent opacity-60" />
+                          <span
+                            className={`absolute top-4 left-4 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
+                          >
+                            {tile.rarity}
+                          </span>
+                        </div>
+
+                        {/* Details */}
+                        <div className="p-6 flex-1 flex flex-col justify-between space-y-6">
+                          <div className="space-y-2">
+                            <h3 className="text-xl font-semibold text-white group-hover:text-primary transition-colors">
+                              {tile.name}
+                            </h3>
+                            <p className="text-sm text-zinc-400 flex items-center gap-1.5 truncate">
+                              {tile.location}
+                            </p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <span className="text-zinc-500 text-[10px]">
+                              TILE ID
+                            </span>
+                            <h4
+                              className="truncate text-white text-normal font-mono"
+                              title={tile.id}
+                            >
+                              {tile.coordinates}
+                            </h4>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-4 border-t border-zinc-900">
+                            <div className="space-y-0.5">
+                              <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
+                                Buy Price
+                              </div>
+                              <div className="text-base font-mono">
+                                {tile.purchasePrice.toFixed(5)} SOL
+                              </div>
+                            </div>
+
+                            <div className="text-right space-y-0.5">
+                              <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
+                                Acquired
+                              </div>
+                              <div className="text-xs">{tile.purchasedDate}</div>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2 w-full pt-2">
+                            <button
+                              onClick={() => handleShowDetail(tile)}
+                              className="flex-1 flex items-center justify-center gap-1.5 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 py-2.5 rounded-xl transition-all cursor-pointer font-semibold text-xs"
+                            >
+                              Detail
+                            </button>
+                            <button
+                              onClick={() => handleSellTile(tile)}
+                              className="flex-1 flex items-center justify-center gap-1.5 bg-primary hover:bg-primary/95 text-black py-2.5 rounded-xl transition-all cursor-pointer font-semibold text-xs"
+                            >
+                              Sell
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Pagination controls below the grid */}
+                  {totalPages > 1 && (
+                    <div className="pt-8 border-t border-zinc-900">
+                      <Pagination>
+                        <PaginationContent>
+                          <PaginationItem>
+                            <button
+                              onClick={() =>
+                                setCurrentPage((prev) => Math.max(1, prev - 1))
+                              }
+                              disabled={currentPage === 1}
+                              className="flex items-center gap-1 pl-2.5 pr-3 py-2 text-sm font-semibold border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                            >
+                              <PaginationPrevious className="pointer-events-none" />
+                            </button>
+                          </PaginationItem>
+
+                          {Array.from({ length: totalPages }).map((_, idx) => (
+                            <PaginationItem key={idx}>
+                              <PaginationLink
+                                isActive={currentPage === idx + 1}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setCurrentPage(idx + 1);
+                                }}
+                                className={`cursor-pointer ${currentPage === idx + 1 ? "!bg-primary !text-black border-0" : "border-zinc-800 text-zinc-400"}`}
+                              >
+                                {idx + 1}
+                              </PaginationLink>
+                            </PaginationItem>
+                          ))}
+
+                          <PaginationItem>
+                            <button
+                              onClick={() =>
+                                setCurrentPage((prev) =>
+                                  Math.min(totalPages, prev + 1),
+                                )
+                              }
+                              disabled={currentPage === totalPages}
+                              className="flex items-center gap-1 pl-3 pr-2.5 py-2 text-sm font-semibold border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                            >
+                              <PaginationNext className="pointer-events-none" />
+                            </button>
+                          </PaginationItem>
+                        </PaginationContent>
+                      </Pagination>
+                    </div>
+                  )}
+                </>
               )}
-            </>
-          )}
+            </TabsContent>
+
+            <TabsContent value="listed" className="mt-6 border-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0">
+              {loading ? (
+                <div className="flex flex-col items-center justify-center py-24 text-zinc-500">
+                  <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
+                  <p className="text-sm">Loading listed tiles...</p>
+                </div>
+              ) : totalTilesCount === 0 ? (
+                searchQuery.trim() ? (
+                  <div className="text-center py-20 text-zinc-500 border border-dashed border-zinc-850 rounded-2xl">
+                    No matching listed tiles found for "{searchQuery}".
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-24 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-2xl">
+                    <Tag className="h-10 w-10 mb-4 text-zinc-700" />
+                    <p className="text-sm">You haven't listed any tiles for sale yet.</p>
+                  </div>
+                )
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {paginatedTiles.map((tile) => (
+                      <div
+                        key={tile.id}
+                        className="bg-zinc-950 border border-zinc-900 rounded-2xl overflow-hidden hover:border-zinc-800 transition-all hover:scale-[1.01] flex flex-col group"
+                      >
+                        {/* Photo & Rarity */}
+                        <div className="relative aspect-video overflow-hidden">
+                          <img
+                            src={tile.imageUrl}
+                            alt={tile.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-linear-to-t from-zinc-955 to-transparent opacity-60" />
+                          <span
+                            className={`absolute top-4 left-4 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
+                          >
+                            {tile.rarity}
+                          </span>
+                        </div>
+
+                        {/* Details */}
+                        <div className="p-6 flex-1 flex flex-col justify-between space-y-6">
+                          <div className="space-y-2">
+                            <h3 className="text-xl font-semibold text-white group-hover:text-primary transition-colors">
+                              {tile.name}
+                            </h3>
+                            <p className="text-sm text-zinc-400 flex items-center gap-1.5 truncate">
+                              {tile.location}
+                            </p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <span className="text-zinc-500 text-[10px]">
+                              TILE ID
+                            </span>
+                            <h4
+                              className="truncate text-white text-normal font-mono"
+                              title={tile.id}
+                            >
+                              {tile.coordinates}
+                            </h4>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-4 border-t border-zinc-900">
+                            <div className="space-y-0.5">
+                              <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
+                                Listed Price
+                              </div>
+                              <div className="text-base font-mono text-primary font-semibold">
+                                {tile.purchasePrice.toFixed(5)} SOL
+                              </div>
+                            </div>
+
+                            <div className="text-right space-y-0.5">
+                              <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
+                                Listed Date
+                              </div>
+                              <div className="text-xs">{tile.purchasedDate}</div>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2 w-full pt-2">
+                            <button
+                              onClick={() => handleShowDetail(tile)}
+                              className="w-full flex items-center justify-center gap-1.5 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 py-2.5 rounded-xl transition-all cursor-pointer font-semibold text-xs text-zinc-300"
+                            >
+                              Detail
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Pagination controls below the grid */}
+                  {totalPages > 1 && (
+                    <div className="pt-8 border-t border-zinc-900">
+                      <Pagination>
+                        <PaginationContent>
+                          <PaginationItem>
+                            <button
+                              onClick={() =>
+                                setCurrentPage((prev) => Math.max(1, prev - 1))
+                              }
+                              disabled={currentPage === 1}
+                              className="flex items-center gap-1 pl-2.5 pr-3 py-2 text-sm font-semibold border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                            >
+                              <PaginationPrevious className="pointer-events-none" />
+                            </button>
+                          </PaginationItem>
+
+                          {Array.from({ length: totalPages }).map((_, idx) => (
+                            <PaginationItem key={idx}>
+                              <PaginationLink
+                                isActive={currentPage === idx + 1}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setCurrentPage(idx + 1);
+                                }}
+                                className={`cursor-pointer ${currentPage === idx + 1 ? "!bg-primary !text-black border-0" : "border-zinc-800 text-zinc-400"}`}
+                              >
+                                {idx + 1}
+                              </PaginationLink>
+                            </PaginationItem>
+                          ))}
+
+                          <PaginationItem>
+                            <button
+                              onClick={() =>
+                                setCurrentPage((prev) =>
+                                  Math.min(totalPages, prev + 1),
+                                )
+                              }
+                              disabled={currentPage === totalPages}
+                              className="flex items-center gap-1 pl-3 pr-2.5 py-2 text-sm font-semibold border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                            >
+                              <PaginationNext className="pointer-events-none" />
+                            </button>
+                          </PaginationItem>
+                        </PaginationContent>
+                      </Pagination>
+                    </div>
+                  )}
+                </>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
 
@@ -906,7 +1080,7 @@ export default function AccountPage() {
                           if (data.ok) {
                             setSellStatus("success");
                             // Reload owned tiles on account page
-                            loadTiles(currentPage, debouncedSearchQuery);
+                            loadTiles(currentPage, debouncedSearchQuery, activeTab);
                           } else {
                             setSellError(data.error || "Failed to list tile");
                           }
