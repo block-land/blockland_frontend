@@ -4,10 +4,12 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, MapPin, Grid, Calendar, User, ShieldCheck, Share2, DollarSign, MessageSquare, Send, X, Minimize2, Tag } from "lucide-react";
+import { ArrowLeft, MapPin, Grid, Calendar, User, ShieldCheck, Share2, DollarSign, MessageSquare, Send, X, Minimize2, Tag, Loader2 } from "lucide-react";
 import { withCustomButton } from "@/components/custom/button_custom";
-import { DUMMY_TILES, getRarityBadgeColor } from "@/lib/tiles";
+import { getRarityBadgeColor } from "@/lib/tiles";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { lamportsToSol } from "@/lib/solana/mint";
+import Avatar from "boring-avatars";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +19,35 @@ import {
 
 const ButtonCustom = withCustomButton("button");
 
+export interface TileItemDetail {
+  id: string;
+  assetId: string;
+  h3Cell: string;
+  name: string;
+  location: string;
+  coordinates: string;
+  rarity: "Legendary" | "Epic" | "Rare" | "Common";
+  imageUrl: string;
+  price: number; // in SOL desimal
+  date: string;
+  publisher: {
+    name: string;
+    walletAddress: string;
+    avatar: string;
+  };
+  rawLat: number;
+  rawLng: number;
+}
+
+/**
+ * Build a Mapbox Static Images URL for a thumbnail map of a coordinate.
+ * Uses dark-v11 to match the Blockland dark theme of the main map.
+ */
+function buildStaticMapUrl(lng: number, lat: number): string {
+  const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+  return `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/${lng},${lat},14,0,0/400x225@2x?access_token=${token}`;
+}
+
 export default function TileDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -25,27 +56,114 @@ export default function TileDetailPage() {
   const [activeModal, setActiveModal] = React.useState<"buy" | "buy-success" | "offer" | "offer-success" | null>(null);
 
   const tileId = params?.id as string;
-  const tile = DUMMY_TILES.find((t) => t.id === tileId);
-
+  
+  const [tile, setTile] = React.useState<TileItemDetail | null>(null);
+  const [loading, setLoading] = React.useState(true);
   const [offerPrice, setOfferPrice] = React.useState("");
 
   // Offer List States
-  const [offers, setOffers] = React.useState<Array<{ id: string; bidder: string; price: number; date: string; avatar: string }>>([
-    {
-      id: "off-01",
-      bidder: "0x3a9b...e901",
-      price: Math.round((tile ? tile.price : 100) * 0.85),
-      date: "2 hours ago",
-      avatar: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=100&auto=format&fit=crop&q=60"
-    },
-    {
-      id: "off-02",
-      bidder: "0x8f3c...f12b",
-      price: Math.round((tile ? tile.price : 100) * 0.90),
-      date: "1 day ago",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=60"
+  const [offers, setOffers] = React.useState<Array<{ id: string; bidder: string; price: number; date: string; avatar: string }>>([]);
+
+  // Fetch tile detail from database on mount
+  React.useEffect(() => {
+    const fetchTileDetail = async () => {
+      setLoading(true);
+      try {
+        const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+        const res = await fetch(`${BACKEND_URL}/api/tiles/${tileId}`);
+        const data = await res.json();
+        
+        if (data.ok && data.tile) {
+          const t = data.tile;
+          const lat = parseFloat(t.lat);
+          const lng = parseFloat(t.lng);
+          const lamports = t.listingPriceLamports ? Number(t.listingPriceLamports) : 0;
+          const createdAt = t.listedAt ? new Date(t.listedAt) : new Date();
+
+          const mapped: TileItemDetail = {
+            id: t.id,
+            assetId: t.assetId,
+            h3Cell: t.h3Cell,
+            name: `BLT ${lat.toFixed(3)},${lng.toFixed(3)}`,
+            location: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+            coordinates: `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`,
+            rarity: (t.rarity as TileItemDetail["rarity"]) || "Common",
+            imageUrl: buildStaticMapUrl(lng, lat),
+            price: lamportsToSol(lamports),
+            date: createdAt.toLocaleDateString("en-US", {
+              month: "short",
+              day: "2-digit",
+              year: "numeric",
+            }),
+            publisher: {
+              name: t.publisherUsername || "Anonymous",
+              walletAddress: t.owner,
+              avatar: t.publisherPhotoUrl || "",
+            },
+            rawLat: lat,
+            rawLng: lng,
+          };
+
+          // Reverse geocode via Mapbox Places
+          const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+          try {
+            const geoRes = await fetch(
+              `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${token}&country=us&limit=1`
+            );
+            const geoData = await geoRes.json();
+            const placeName = geoData.features?.[0]?.place_name;
+            if (placeName) {
+              mapped.location = placeName;
+              mapped.name = placeName.split(",")[0];
+            }
+          } catch (err) {
+            console.error("Geocoding failed for tile detail page:", err);
+          }
+
+          setTile(mapped);
+          
+          // Fetch real offers from database
+          fetchOffers();
+        }
+      } catch (err) {
+        console.error("Failed to load tile detail:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const fetchOffers = async () => {
+      try {
+        const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+        const res = await fetch(`${BACKEND_URL}/api/tiles/${tileId}/offers`);
+        const data = await res.json();
+        if (data.ok && Array.isArray(data.offers)) {
+          const mappedOffers = data.offers.map((off: any) => {
+            const createdAt = new Date(off.createdAt);
+            const diffTime = Math.abs(new Date().getTime() - createdAt.getTime());
+            const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
+            const timeLabel = diffHours === 1 ? "1 hour ago" : diffHours < 24 ? `${diffHours} hours ago` : `${Math.floor(diffHours/24)} days ago`;
+
+            return {
+              id: off.id,
+              bidder: off.bidderUsername || `${off.bidder.slice(0, 6)}...${off.bidder.slice(-4)}`,
+              price: lamportsToSol(Number(off.priceLamports)),
+              date: timeLabel,
+              avatar: off.bidderPhotoUrl || "",
+              rawBidder: off.bidder
+            };
+          });
+          setOffers(mappedOffers);
+        }
+      } catch (err) {
+        console.error("Failed to fetch offers:", err);
+      }
+    };
+
+    if (tileId) {
+      fetchTileDetail();
     }
-  ]);
+  }, [tileId]);
 
   // Chat Messenger States
   const [isChatOpen, setIsChatOpen] = React.useState(false);
@@ -77,7 +195,7 @@ export default function TileDetailPage() {
         }
       ]);
     }
-  }, [tileId]);
+  }, [tile]);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,6 +232,15 @@ export default function TileDetailPage() {
       ]);
     }, 1500);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-zinc-500 font-sans text-sm">Loading coordinate unit details...</p>
+      </div>
+    );
+  }
 
   if (!tile) {
     return (
@@ -183,7 +310,7 @@ export default function TileDetailPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
                 <div className="space-y-1">
                   <span className="text-zinc-500 font-mono">TILE ID</span>
-                  <p className="text-zinc-200 font-mono font-medium">{tile.id}</p>
+                  <p className="text-zinc-200 font-mono font-medium truncate" title={tile.id}>{tile.id}</p>
                 </div>
                 <div className="space-y-1">
                   <span className="text-zinc-500 font-mono">COORDINATES</span>
@@ -191,7 +318,7 @@ export default function TileDetailPage() {
                 </div>
                 <div className="space-y-1">
                   <span className="text-zinc-500 font-mono">COUNTRY</span>
-                  <p className="text-zinc-200 font-medium">{tile.country}</p>
+                  <p className="text-zinc-200 font-medium">United States</p>
                 </div>
                 <div className="space-y-1">
                   <span className="text-zinc-500 font-mono">LOCATION</span>
@@ -237,8 +364,8 @@ export default function TileDetailPage() {
             <div className="bg-black/60 border border-zinc-900 rounded-2xl p-5 space-y-2">
               <span className="text-xs text-zinc-500 uppercase tracking-wider font-mono">Current Price</span>
               <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-extrabold text-primary font-mono">{tile.price}</span>
-                <span className="text-lg font-semibold text-zinc-300 font-mono">USDC</span>
+                <span className="text-4xl font-extrabold text-primary font-mono">{tile.price.toFixed(5)}</span>
+                <span className="text-lg font-semibold text-zinc-300 font-mono">SOL</span>
               </div>
             </div>
 
@@ -249,14 +376,14 @@ export default function TileDetailPage() {
                 <div className="relative flex-1 bg-black flex gap-2 h-[48px] items-center px-4 rounded-xl border border-zinc-800 focus-within:border-zinc-700">
                   <input
                     type="number"
-                    step="0.01"
-                    placeholder="Offering price in USDC"
+                    step="0.0001"
+                    placeholder="Offering price in SOL"
                     value={offerPrice}
                     onChange={(e) => setOfferPrice(e.target.value)}
                     className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none p-0 text-[15px] font-normal text-white placeholder-zinc-650"
                     required
                   />
-                  <span className="text-xs font-mono text-zinc-500 shrink-0 select-none">USDC</span>
+                  <span className="text-xs font-mono text-zinc-500 shrink-0 select-none">SOL</span>
                 </div>
                 <button
                   type="submit"
@@ -277,18 +404,28 @@ export default function TileDetailPage() {
                   {offers.sort((a, b) => b.price - a.price).map((off) => (
                     <div key={off.id} className="flex items-center justify-between p-3 bg-black/45 border border-zinc-900 rounded-xl">
                       <div className="flex items-center gap-2.5">
-                        <img
-                          src={off.avatar}
-                          alt={off.bidder}
-                          className="w-7 h-7 rounded-full object-cover border border-zinc-800"
-                        />
+                        <div className="w-7 h-7 rounded-full overflow-hidden border border-zinc-800 shrink-0">
+                          {off.avatar ? (
+                            <img
+                              src={off.avatar}
+                              alt={off.bidder}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Avatar
+                              colors={["#f5e1a4", "#d9d593", "#ee7f27", "#bc162a", "#302325"]}
+                              variant="pixel"
+                              size={28}
+                            />
+                          )}
+                        </div>
                         <div>
                           <p className="text-xs font-semibold text-zinc-300">{off.bidder}</p>
                           <span className="text-[9px] text-zinc-550 font-mono">{off.date}</span>
                         </div>
                       </div>
                       <div className="text-right">
-                        <span className="text-xs font-semibold text-primary font-mono">{off.price} USDC</span>
+                        <span className="text-xs font-semibold text-primary font-mono">{off.price.toFixed(5)} SOL</span>
                         <p className="text-[8px] text-emerald-500 font-mono">Pending</p>
                       </div>
                     </div>
@@ -302,17 +439,27 @@ export default function TileDetailPage() {
               <h4 className="text-xs text-zinc-500 uppercase tracking-wider font-mono">Listed Publisher</h4>
               <div className="flex items-center justify-between p-4 bg-black/40 border border-zinc-900 rounded-2xl">
                 <div className="flex items-center gap-3">
-                  <img
-                    src={tile.publisher.avatar}
-                    alt={tile.publisher.name}
-                    className="w-10 h-10 rounded-full object-cover border border-zinc-800"
-                  />
+                  <div className="w-10 h-10 rounded-full overflow-hidden border border-zinc-800 shrink-0">
+                    {tile.publisher.avatar ? (
+                      <img
+                        src={tile.publisher.avatar}
+                        alt={tile.publisher.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Avatar
+                        colors={["#f5e1a4", "#d9d593", "#ee7f27", "#bc162a", "#302325"]}
+                        variant="pixel"
+                        size={40}
+                      />
+                    )}
+                  </div>
                   <div>
                     <h5 className="font-semibold text-white text-sm flex items-center gap-1">
                       {tile.publisher.name}
                       <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
                     </h5>
-                    <p className="text-xs text-zinc-500 font-mono mt-0.5">{tile.publisher.walletAddress}</p>
+                    <p className="text-xs text-zinc-500 font-mono mt-0.5">{tile.publisher.walletAddress ? `${tile.publisher.walletAddress.slice(0, 6)}...${tile.publisher.walletAddress.slice(-6)}` : ""}</p>
                   </div>
                 </div>
                 <div className="text-right space-y-1 font-mono text-[11px] text-zinc-500">
@@ -474,15 +621,15 @@ export default function TileDetailPage() {
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span>Price</span>
-                  <span className="font-semibold text-primary">{tile.price} USDC</span>
+                  <span className="font-semibold text-primary">{tile.price.toFixed(5)} SOL</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Transaction Fee</span>
-                  <span className="text-zinc-500">0.05 USDC</span>
+                  <span className="text-zinc-500">0.00005 SOL</span>
                 </div>
                 <div className="border-t border-zinc-800 pt-3 flex justify-between font-semibold text-white text-base">
                   <span>Total Cost</span>
-                  <span className="text-primary">{tile.price + 0.05} USDC</span>
+                  <span className="text-primary">{(tile.price + 0.00005).toFixed(5)} SOL</span>
                 </div>
               </div>
 
@@ -563,11 +710,11 @@ export default function TileDetailPage() {
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span>Current Price</span>
-                  <span className="text-zinc-400 font-semibold">{tile.price} USDC</span>
+                  <span className="text-zinc-400 font-semibold">{tile.price.toFixed(5)} SOL</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Your Offering Price</span>
-                  <span className="font-semibold text-primary">{offerPrice} USDC</span>
+                  <span className="font-semibold text-primary">{offerPrice} SOL</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Offer Expiry</span>
@@ -585,20 +732,52 @@ export default function TileDetailPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    // Add new offer to list dynamically
-                    setOffers((prev) => [
-                      {
-                        id: `off-${Date.now()}`,
-                        bidder: "You (0xActive)",
-                        price: parseFloat(offerPrice),
-                        date: "Just now",
-                        avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60"
-                      },
-                      ...prev
-                    ]);
-                    setOfferPrice("");
-                    setActiveModal("offer-success");
+                  onClick={async () => {
+                    if (!offerPrice || parseFloat(offerPrice) <= 0) return;
+                    try {
+                      const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+                      // Find or use privy wallet address
+                      const buyerAddress = "0xActive"; // Fallback placeholder if no wallet
+                      const targetAddress = window.localStorage.getItem("privy:walletAddress") || buyerAddress;
+                      
+                      const res = await fetch(`${BACKEND_URL}/api/tiles/${tileId}/offers`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          bidder: targetAddress,
+                          priceSol: parseFloat(offerPrice),
+                        }),
+                      });
+                      const data = await res.json();
+                      if (data.ok) {
+                        setOfferPrice("");
+                        setActiveModal("offer-success");
+                        
+                        // Reload offers
+                        const offersRes = await fetch(`${BACKEND_URL}/api/tiles/${tileId}/offers`);
+                        const offersData = await offersRes.json();
+                        if (offersData.ok && Array.isArray(offersData.offers)) {
+                          const mappedOffers = offersData.offers.map((off: any) => {
+                            const createdAt = new Date(off.createdAt);
+                            const diffTime = Math.abs(new Date().getTime() - createdAt.getTime());
+                            const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
+                            const timeLabel = diffHours === 1 ? "1 hour ago" : diffHours < 24 ? `${diffHours} hours ago` : `${Math.floor(diffHours/24)} days ago`;
+
+                            return {
+                              id: off.id,
+                              bidder: off.bidderUsername || `${off.bidder.slice(0, 6)}...${off.bidder.slice(-4)}`,
+                              price: lamportsToSol(Number(off.priceLamports)),
+                              date: timeLabel,
+                              avatar: off.bidderPhotoUrl || "",
+                              rawBidder: off.bidder
+                            };
+                          });
+                          setOffers(mappedOffers);
+                        }
+                      }
+                    } catch (err) {
+                      console.error("Submit offer failed:", err);
+                    }
                   }}
                   className="flex-1 bg-primary hover:bg-primary/95 text-black font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm text-center"
                 >

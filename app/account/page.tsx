@@ -51,12 +51,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { NumericFormat } from "react-number-format";
 import { Label } from "@/components/ui/label";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const ButtonCustom = withCustomButton("button");
 
@@ -69,6 +64,7 @@ interface OwnedTile {
   imageUrl: string;
   purchasePrice: number;
   purchasedDate: string;
+  offersCount?: number;
 }
 
 /**
@@ -133,6 +129,12 @@ export default function AccountPage() {
   // Local dialog detail state
   const [selectedDetailTile, setSelectedDetailTile] =
     React.useState<OwnedTile | null>(null);
+
+  // Local dialog offers state
+  const [selectedOffersTile, setSelectedOffersTile] =
+    React.useState<OwnedTile | null>(null);
+  const [tileOffers, setTileOffers] = React.useState<any[]>([]);
+  const [loadingOffers, setLoadingOffers] = React.useState(false);
 
   // Local dialog sell state
   const [sellingTile, setSellingTile] = React.useState<OwnedTile | null>(null);
@@ -269,6 +271,7 @@ export default function AccountPage() {
               }),
               rawLat: lat,
               rawLng: lng,
+              offersCount: t.offersCount ?? 0,
             };
           });
 
@@ -317,7 +320,13 @@ export default function AccountPage() {
     if (wallet?.address) {
       loadTiles(currentPage, debouncedSearchQuery, activeTab);
     }
-  }, [currentPage, debouncedSearchQuery, activeTab, wallet?.address, loadTiles]);
+  }, [
+    currentPage,
+    debouncedSearchQuery,
+    activeTab,
+    wallet?.address,
+    loadTiles,
+  ]);
 
   const handleCopy = () => {
     if (wallet?.address) {
@@ -334,6 +343,27 @@ export default function AccountPage() {
 
   const handleShowDetail = (tile: OwnedTile) => {
     setSelectedDetailTile(tile);
+  };
+
+  const handleShowOffers = async (tile: OwnedTile) => {
+    setSelectedOffersTile(tile);
+    setLoadingOffers(true);
+    try {
+      const BACKEND_URL =
+        process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+      const res = await fetch(`${BACKEND_URL}/api/tiles/${tile.id}/offers`);
+      const data = await res.json();
+      if (data.ok && Array.isArray(data.offers)) {
+        setTileOffers(data.offers);
+      } else {
+        setTileOffers([]);
+      }
+    } catch (err) {
+      console.error("Failed to load offers:", err);
+      setTileOffers([]);
+    } finally {
+      setLoadingOffers(false);
+    }
   };
 
   const handleSellTile = (tile: OwnedTile) => {
@@ -489,7 +519,8 @@ export default function AccountPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
               <div className="flex flex-wrap items-center gap-6">
                 <h2 className="text-2xl font-semibold flex items-center gap-2">
-                  <Grid className="h-5 w-5 text-primary" /> Owned Coordinate Units
+                  <Grid className="h-5 w-5 text-primary" /> Owned Coordinate
+                  Units
                 </h2>
                 <TabsList className="bg-zinc-900 border border-zinc-800 p-1 rounded-xl h-10">
                   <TabsTrigger
@@ -533,7 +564,10 @@ export default function AccountPage() {
               </div>
             </div>
 
-            <TabsContent value="all" className="mt-6 border-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0">
+            <TabsContent
+              value="all"
+              className="mt-6 border-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+            >
               {loading ? (
                 <div className="flex flex-col items-center justify-center py-24 text-zinc-500">
                   <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
@@ -616,7 +650,9 @@ export default function AccountPage() {
                               <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
                                 Acquired
                               </div>
-                              <div className="text-xs">{tile.purchasedDate}</div>
+                              <div className="text-xs">
+                                {tile.purchasedDate}
+                              </div>
                             </div>
                           </div>
 
@@ -691,7 +727,10 @@ export default function AccountPage() {
               )}
             </TabsContent>
 
-            <TabsContent value="listed" className="mt-6 border-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0">
+            <TabsContent
+              value="listed"
+              className="mt-6 border-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+            >
               {loading ? (
                 <div className="flex flex-col items-center justify-center py-24 text-zinc-500">
                   <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
@@ -705,7 +744,9 @@ export default function AccountPage() {
                 ) : (
                   <div className="flex flex-col items-center justify-center py-24 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-2xl">
                     <Tag className="h-10 w-10 mb-4 text-zinc-700" />
-                    <p className="text-sm">You haven't listed any tiles for sale yet.</p>
+                    <p className="text-sm">
+                      You haven't listed any tiles for sale yet.
+                    </p>
                   </div>
                 )
               ) : (
@@ -768,17 +809,25 @@ export default function AccountPage() {
                               <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
                                 Listed Date
                               </div>
-                              <div className="text-xs">{tile.purchasedDate}</div>
+                              <div className="text-xs">
+                                {tile.purchasedDate}
+                              </div>
                             </div>
                           </div>
 
-                          <div className="flex gap-2 w-full pt-2">
-                            <button
+                          <div className="grid grid-cols-2 gap-2 w-full pt-2">
+                            <Button
                               onClick={() => handleShowDetail(tile)}
-                              className="w-full flex items-center justify-center gap-1.5 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 py-2.5 rounded-xl transition-all cursor-pointer font-semibold text-xs text-zinc-300"
+                              variant={"outline"}
                             >
                               Detail
-                            </button>
+                            </Button>
+                            <Button onClick={() => handleShowOffers(tile)}>
+                              Offers{" "}
+                              {tile.offersCount !== undefined &&
+                                tile.offersCount > 0 &&
+                                `(${tile.offersCount})`}
+                            </Button>
                           </div>
                         </div>
                       </div>
@@ -930,6 +979,119 @@ export default function AccountPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Local Tile Offers Dialog */}
+      <Dialog
+        open={selectedOffersTile !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedOffersTile(null);
+        }}
+      >
+        <DialogContent className="max-w-xl text-zinc-300">
+          <DialogHeader>
+            <DialogTitle className="text-white">Active Offers</DialogTitle>
+          </DialogHeader>
+
+          {selectedOffersTile && (
+            <div className="space-y-6 mt-4">
+              {/* Info Tile (Thumbnail map, Rarity badge, Lokasi) */}
+              <div className="flex gap-4 items-start border-b border-zinc-800 pb-4">
+                <img
+                  src={selectedOffersTile.imageUrl}
+                  alt={selectedOffersTile.name}
+                  className="w-16 h-16 object-cover rounded-lg border border-zinc-800 shrink-0"
+                />
+                <div className="space-y-0.5">
+                  <span
+                    className={`text-[9px] uppercase font-semibold tracking-wider px-1.5 py-0.5 rounded border ${getRarityBadgeColor(selectedOffersTile.rarity)}`}
+                  >
+                    {selectedOffersTile.rarity}
+                  </span>
+                  <h4 className="font-semibold text-white mt-1">
+                    {selectedOffersTile.name}
+                  </h4>
+                  <p className="text-xs text-zinc-400 flex items-center gap-1">
+                    <MapPin className="h-3.5 w-3.5" />{" "}
+                    {selectedOffersTile.location}
+                  </p>
+                </div>
+              </div>
+
+              {/* Daftar Penawaran Aktif */}
+              <ScrollArea className="max-h-[300px] pr-2">
+                {loadingOffers ? (
+                  <div className="flex justify-center items-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : tileOffers.length === 0 ? (
+                  <div className="text-center py-8 text-zinc-500 text-sm">
+                    No active offers on this tile.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {tileOffers.map((off) => (
+                      <div
+                        key={off.id}
+                        className="flex items-center justify-between p-3 bg-black/45 border border-zinc-900 rounded-xl"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-full overflow-hidden border border-zinc-800 shrink-0">
+                            {off.bidderPhotoUrl ? (
+                              <img
+                                src={off.bidderPhotoUrl}
+                                alt={off.bidderUsername}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <Avatar
+                                colors={[
+                                  "#f5e1a4",
+                                  "#d9d593",
+                                  "#ee7f27",
+                                  "#bc162a",
+                                  "#302325",
+                                ]}
+                                variant="pixel"
+                                size={28}
+                              />
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-zinc-300">
+                              {off.bidderUsername ||
+                                `${off.bidder.slice(0, 6)}...${off.bidder.slice(-4)}`}
+                            </p>
+                            <span className="text-[9px] text-zinc-500 font-mono">
+                              {new Date(off.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs font-semibold text-primary font-mono">
+                            {lamportsToSol(Number(off.priceLamports)).toFixed(
+                              5,
+                            )}{" "}
+                            SOL
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+
+              <div className="flex gap-3">
+                <ButtonCustom
+                  onClick={() => setSelectedOffersTile(null)}
+                  className="w-full justify-center"
+                >
+                  Close
+                </ButtonCustom>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Local Sell Tile Dialog */}
       <Dialog
         open={sellingTile !== null}
@@ -983,10 +1145,7 @@ export default function AccountPage() {
                 >
                   <div className="space-y-2">
                     <div>
-
-                    <Label>
-                      Set Listing Price
-                    </Label>
+                      <Label>Set Listing Price</Label>
                     </div>
                     <div className="relative bg-black flex gap-2 h-[48px] items-center px-4 rounded-xl border border-zinc-800 focus-within:border-zinc-700">
                       <NumericFormat
@@ -1064,23 +1223,31 @@ export default function AccountPage() {
                         setSellError(null);
                         try {
                           const BACKEND_URL =
-                            process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
-                          
-                          const res = await fetch(`${BACKEND_URL}/api/tiles/list`, {
-                            method: "PUT",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              assetId: sellingTile.id,
-                              priceSol: parseFloat(sellPriceInput),
-                              seller: wallet.address,
-                            }),
-                          });
-                          
+                            process.env.NEXT_PUBLIC_BACKEND_URL ??
+                            "http://localhost:3001";
+
+                          const res = await fetch(
+                            `${BACKEND_URL}/api/tiles/list`,
+                            {
+                              method: "PUT",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                assetId: sellingTile.id,
+                                priceSol: parseFloat(sellPriceInput),
+                                seller: wallet.address,
+                              }),
+                            },
+                          );
+
                           const data = await res.json();
                           if (data.ok) {
                             setSellStatus("success");
                             // Reload owned tiles on account page
-                            loadTiles(currentPage, debouncedSearchQuery, activeTab);
+                            loadTiles(
+                              currentPage,
+                              debouncedSearchQuery,
+                              activeTab,
+                            );
                           } else {
                             setSellError(data.error || "Failed to list tile");
                           }
@@ -1093,7 +1260,9 @@ export default function AccountPage() {
                       }}
                       className="flex-1 bg-primary hover:bg-primary/95 text-black font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm disabled:opacity-50 flex items-center justify-center gap-1.5"
                     >
-                      {sellLoading && <Loader2 className="h-4 w-full animate-spin text-black" />}
+                      {sellLoading && (
+                        <Loader2 className="h-4 w-full animate-spin text-black" />
+                      )}
                       {!sellLoading && "Confirm Listing"}
                     </button>
                   </div>
