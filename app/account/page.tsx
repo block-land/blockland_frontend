@@ -54,6 +54,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const ButtonCustom = withCustomButton("button");
+const LinkCustom = withCustomButton(Link);
 
 interface OwnedTile {
   id: string;
@@ -65,6 +66,7 @@ interface OwnedTile {
   purchasePrice: number;
   purchasedDate: string;
   offersCount?: number;
+  status?: "owned" | "listed" | "sold";
 }
 
 /**
@@ -253,7 +255,16 @@ export default function AccountPage() {
           const mapped = data.tiles.map((t: any) => {
             const lat = parseFloat(t.lat);
             const lng = parseFloat(t.lng);
-            const lamports = t.priceLamports ? Number(t.priceLamports) : 0;
+            // If the tab is listed, display the listing/selling price (listingPriceLamports),
+            // else display the primary purchase price (priceLamports).
+            const lamports =
+              statusVal === "listed"
+                ? t.listingPriceLamports
+                  ? Number(t.listingPriceLamports)
+                  : 0
+                : t.priceLamports
+                  ? Number(t.priceLamports)
+                  : 0;
             const createdAt = t.createdAt ? new Date(t.createdAt) : new Date();
 
             return {
@@ -272,6 +283,7 @@ export default function AccountPage() {
               rawLat: lat,
               rawLng: lng,
               offersCount: t.offersCount ?? 0,
+              status: t.status,
             };
           });
 
@@ -798,7 +810,7 @@ export default function AccountPage() {
                           <div className="flex items-center justify-between pt-4 border-t border-zinc-900">
                             <div className="space-y-0.5">
                               <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
-                                Listed Price
+                                Sell Price
                               </div>
                               <div className="text-base font-mono text-primary font-semibold">
                                 {tile.purchasePrice.toFixed(5)} SOL
@@ -965,13 +977,21 @@ export default function AccountPage() {
                   </div>
                 </div>
 
-                <div className="flex gap-3">
-                  <ButtonCustom
+                <div className="flex gap-3 mt-6">
+                  {selectedDetailTile.status === "listed" && (
+                    <Button asChild onClick={() => setSelectedDetailTile(null)} className="flex-1">
+                      <Link href={`/marketplace/${selectedDetailTile.id}`}>
+                        Details
+                      </Link>
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
                     onClick={() => setSelectedDetailTile(null)}
-                    className="w-full justify-center"
+                    className={selectedDetailTile.status === "listed" ? "flex-1" : "w-full"}
                   >
                     Close
-                  </ButtonCustom>
+                  </Button>
                 </div>
               </div>
             </ScrollArea>

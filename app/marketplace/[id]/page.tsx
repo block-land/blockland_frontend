@@ -60,6 +60,7 @@ export default function TileDetailPage() {
   const [tile, setTile] = React.useState<TileItemDetail | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [offerPrice, setOfferPrice] = React.useState("");
+  const [errorType, setErrorType] = React.useState<"not_found" | "not_listed" | null>(null);
 
   // Offer List States
   const [offers, setOffers] = React.useState<Array<{ id: string; bidder: string; price: number; date: string; avatar: string }>>([]);
@@ -68,6 +69,7 @@ export default function TileDetailPage() {
   React.useEffect(() => {
     const fetchTileDetail = async () => {
       setLoading(true);
+      setErrorType(null);
       try {
         const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
         const res = await fetch(`${BACKEND_URL}/api/tiles/${tileId}`);
@@ -75,6 +77,15 @@ export default function TileDetailPage() {
         
         if (data.ok && data.tile) {
           const t = data.tile;
+
+          // VALIDATION: If the tile is not listed for sale in the marketplace, prevent view
+          if (t.status !== "listed") {
+            setErrorType("not_listed");
+            setTile(null);
+            setLoading(false);
+            return;
+          }
+
           const lat = parseFloat(t.lat);
           const lng = parseFloat(t.lng);
           const lamports = t.listingPriceLamports ? Number(t.listingPriceLamports) : 0;
@@ -124,9 +135,12 @@ export default function TileDetailPage() {
           
           // Fetch real offers from database
           fetchOffers();
+        } else {
+          setErrorType("not_found");
         }
       } catch (err) {
         console.error("Failed to load tile detail:", err);
+        setErrorType("not_found");
       } finally {
         setLoading(false);
       }
@@ -242,11 +256,23 @@ export default function TileDetailPage() {
     );
   }
 
-  if (!tile) {
+  if (errorType === "not_listed") {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4">
-        <h2 className="text-2xl font-semibold">Tile not found</h2>
-        <p className="text-zinc-500">The coordinate unit you are looking for does not exist.</p>
+        <h2 className="text-2xl font-semibold">Tile Not for Sale</h2>
+        <p className="text-zinc-500">This coordinate unit is not currently listed for sale in the marketplace.</p>
+        <Link href="/marketplace" className="text-primary hover:underline">
+          Back to Marketplace
+        </Link>
+      </div>
+    );
+  }
+
+  if (errorType === "not_found" || !tile) {
+    return (
+      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4">
+        <h2 className="text-2xl font-semibold">Tile Not Found</h2>
+        <p className="text-zinc-500">The coordinate unit you are looking for does not exist or has been removed.</p>
         <Link href="/marketplace" className="text-primary hover:underline">
           Back to Marketplace
         </Link>
