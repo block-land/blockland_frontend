@@ -1,11 +1,11 @@
 "use client";
 
 import React from "react";
-import { createPortal } from "react-dom";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, MapPin, Grid, Calendar, User, ShieldCheck, Share2, DollarSign, MessageSquare, Send, X, Minimize2, Tag, Loader2 } from "lucide-react";
+import { ArrowLeft, MapPin, Grid, Calendar, User, ShieldCheck, Share2, DollarSign, MessageSquare, Tag, Loader2 } from "lucide-react";
 import { withCustomButton } from "@/components/custom/button_custom";
+import ChatSellerWidget from "@/components/chat-seller-widget";
 import { getRarityBadgeColor } from "@/lib/tiles";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { lamportsToSol } from "@/lib/solana/mint";
@@ -179,73 +179,16 @@ export default function TileDetailPage() {
     }
   }, [tileId]);
 
-  // Chat Messenger States
-  const [isChatOpen, setIsChatOpen] = React.useState(false);
-  const [mounted, setMounted] = React.useState(false);
-  const [messages, setMessages] = React.useState<Array<{ sender: "user" | "seller"; text: string; time: string }>>([]);
-  const [newMessage, setNewMessage] = React.useState("");
-  const [isTyping, setIsTyping] = React.useState(false);
-  const chatEndRef = React.useRef<HTMLDivElement>(null);
-
+  // Current connected wallet (for the "this is your tile" guard on Chat Seller).
+  const [currentWallet, setCurrentWallet] = React.useState<string | null>(null);
   React.useEffect(() => {
-    setMounted(true);
+    setCurrentWallet(window.localStorage.getItem("privy:walletAddress"));
   }, []);
 
-  // Auto-scroll chat to bottom
-  React.useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages, isTyping]);
+  // Chat Seller floating widget.
+  const [isChatOpen, setIsChatOpen] = React.useState(false);
 
-  // Initializing greeting message
-  React.useEffect(() => {
-    if (tile) {
-      setMessages([
-        {
-          sender: "seller",
-          text: `Hi! Are you interested in the "${tile.name}" coordinate unit? Feel free to negotiate or ask questions here!`,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        }
-      ]);
-    }
-  }, [tile]);
-
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim()) return;
-
-    const userMsg = {
-      sender: "user" as const,
-      text: newMessage,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
-    setNewMessage("");
-    setIsTyping(true);
-
-    // Simulated responses
-    const botResponses = [
-      "That sounds like a fair point. Please place your official offer using the make an offer box so I can accept it on-chain.",
-      "I acquired this coordinate unit during the genesis phase. It holds high strategic value, but I'm open to negotiating the price.",
-      "Could you raise your offer slightly? I have other collectors looking at this specific landmark coordinate.",
-      "Thanks for reaching out! Let me check the current bids and I'll get back to you shortly.",
-    ];
-
-    setTimeout(() => {
-      setIsTyping(false);
-      const randomReply = botResponses[Math.floor(Math.random() * botResponses.length)];
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: "seller" as const,
-          text: randomReply,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        },
-      ]);
-    }, 1500);
-  };
+  const isOwnTile = !!tile && !!currentWallet && tile.publisher.walletAddress === currentWallet;
 
   if (loading) {
     return (
@@ -505,10 +448,14 @@ export default function TileDetailPage() {
               </ButtonCustom>
               <div className="flex gap-4">
                 <button
-                  onClick={() => setIsChatOpen(true)}
-                  className="flex-1 flex items-center justify-center gap-2 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 py-3 rounded-xl transition-all cursor-pointer font-semibold text-sm text-white"
+                  onClick={() => {
+                    if (!tile || isOwnTile) return;
+                    setIsChatOpen(true);
+                  }}
+                  disabled={isOwnTile}
+                  className="flex-1 flex items-center justify-center gap-2 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 py-3 rounded-xl transition-all cursor-pointer font-semibold text-sm text-white disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <MessageSquare className="h-4 w-4" /> Chat Seller
+                  <MessageSquare className="h-4 w-4" /> {isOwnTile ? "Your Tile" : "Chat Seller"}
                 </button>
                 <button className="flex-1 flex items-center justify-center gap-2 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 py-3 rounded-xl transition-all cursor-pointer font-semibold text-sm">
                   <Share2 className="h-4 w-4" /> Share
@@ -521,95 +468,6 @@ export default function TileDetailPage() {
         </div>
 
       </div>
-      {/* Facebook Messenger Style Chat Box using React Portal to escape parent transforms */}
-      {isChatOpen && mounted && createPortal(
-        <div className="fixed bottom-6 right-6 w-[360px] h-[480px] bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl flex flex-col z-[999] overflow-hidden">
-          {/* Header */}
-          <div className="bg-zinc-900 border-b border-zinc-800 p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <img
-                  src={tile.publisher.avatar}
-                  alt={tile.publisher.name}
-                  className="w-9 h-9 rounded-full object-cover border border-zinc-700"
-                />
-                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-zinc-900" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-sm text-white flex items-center gap-1">
-                  {tile.publisher.name}
-                </h4>
-                <p className="text-[10px] text-emerald-500">Active now</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setIsChatOpen(false)}
-              className="text-zinc-400 hover:text-white transition-colors cursor-pointer p-1 rounded-lg hover:bg-zinc-800"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-          {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`flex flex-col ${
-                  msg.sender === "user" ? "items-end" : "items-start"
-                }`}
-              >
-                <div
-                  className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
-                    msg.sender === "user"
-                      ? "bg-primary text-black rounded-tr-none font-medium"
-                      : "bg-zinc-900 border border-zinc-800 text-white rounded-tl-none"
-                  }`}
-                  style={{
-                    backgroundColor: msg.sender === "user" ? "var(--color-primary)" : undefined,
-                  }}
-                >
-                  <p className="leading-relaxed break-words">{msg.text}</p>
-                </div>
-                <span className="text-[9px] text-zinc-550 mt-1 px-1 font-mono">
-                  {msg.time}
-                </span>
-              </div>
-            ))}
-
-            {/* Typing Indicator */}
-            {isTyping && (
-              <div className="flex flex-col items-start">
-                <div className="bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-2xl rounded-tl-none px-4 py-2 text-xs flex items-center gap-1.5 font-mono">
-                  <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                </div>
-              </div>
-            )}
-            <div ref={chatEndRef} />
-          </div>
-
-          {/* Send Input Footer */}
-          <form onSubmit={handleSendMessage} className="p-3 border-t border-zinc-900 bg-zinc-900/30 flex gap-2 items-center">
-            <input
-              type="text"
-              placeholder="Aa"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              className="flex-1 bg-zinc-950 border border-zinc-800 focus:border-zinc-700 rounded-full px-4 py-2 text-sm outline-none ring-0 focus:ring-0 text-white placeholder-zinc-650"
-            />
-            <button
-              type="submit"
-              disabled={!newMessage.trim()}
-              className="p-2 rounded-full bg-primary text-black disabled:opacity-30 disabled:cursor-not-allowed hover:scale-105 transition-all cursor-pointer"
-            >
-              <Send className="h-4 w-4" />
-            </button>
-          </form>
-        </div>,
-        document.body
-      )}
 
       {/* Local Buy Coordinate Dialog */}
       <Dialog
@@ -831,6 +689,20 @@ export default function TileDetailPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Chat Seller floating widget (realtime, via Redis + BullMQ + SSE) */}
+      {tile && (
+        <ChatSellerWidget
+          open={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          sellerWallet={tile.publisher.walletAddress}
+          sellerName={tile.publisher.name}
+          sellerAvatar={tile.publisher.avatar}
+          tileName={tile.name}
+          tilePriceSol={tile.price}
+          tileId={tile.id}
+        />
+      )}
     </div>
   );
 }
