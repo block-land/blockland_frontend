@@ -51,7 +51,7 @@ import {
   getTilePrice,
   lamportsToSol,
   mintTile,
-  captureMapSnapshot,
+  captureMapSnapshotsBatch,
   getWalletBalance,
   type TilePrice,
 } from "@/lib/solana/mint";
@@ -147,24 +147,7 @@ export default function LandmarkPage() {
   const [hasMoreLandmarks, setHasMoreLandmarks] = useState(true);
   const [landmarksOffset, setLandmarksOffset] = useState(0);
   const [totalLandmarksCount, setTotalLandmarksCount] = useState(0);
-  const [userLandmarksSearchQuery, setUserLandmarksSearchQuery] = useState("");
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(userLandmarksSearchQuery);
-    }, 400);
-
-    return () => clearTimeout(timer);
-  }, [userLandmarksSearchQuery]);
-
-  // Clear search query when dialog is closed
-  useEffect(() => {
-    if (!isDialogOpen) {
-      setUserLandmarksSearchQuery("");
-    }
-  }, [isDialogOpen]);
 
   // Tile multi-select state — array of selected H3 cell IDs available to buy
   const [selectedCells, setSelectedCells] = useState<string[]>([]);
@@ -330,18 +313,18 @@ export default function LandmarkPage() {
       setUserLandmarks([]);
       setLandmarksOffset(0);
       setHasMoreLandmarks(true);
-      fetchUserLandmarks(0, true, debouncedSearchQuery);
+      fetchUserLandmarks(0, true, "");
     } else if (!isDialogOpen) {
       setUserLandmarks([]);
       setLandmarksOffset(0);
       setHasMoreLandmarks(true);
     }
-  }, [wallet?.address, isDialogOpen, debouncedSearchQuery]);
+  }, [wallet?.address, isDialogOpen]);
 
   // Load more function
   const loadMoreLandmarks = () => {
     if (isLoadingMoreLandmarks || !hasMoreLandmarks) return;
-    fetchUserLandmarks(landmarksOffset, false, debouncedSearchQuery);
+    fetchUserLandmarks(landmarksOffset, false, "");
   };
 
   // IntersectionObserver for infinite scrolling
@@ -398,6 +381,7 @@ export default function LandmarkPage() {
     username: string | null;
     photoUrl: string | null;
     cell: string;
+    priceLamports: string | null;
   } | null>(null);
 
   // Mint all selected tiles inline (no global dialog)
@@ -422,19 +406,25 @@ export default function LandmarkPage() {
     setInitialToMintCount(totalToMint);
 
     try {
+      // Capture ALL tile thumbnails in parallel first (one Mapbox Static API
+      // call per tile, all concurrent). This used to be done one-at-a-time
+      // inside the mint loop with a 2s map fly each — the main cause of slow
+      // bulk purchases.
+      const centers = cellsToProcess.map((cell) => {
+        const c = getCellCenter(cell);
+        return { cell, lat: c.lat, lng: c.lng };
+      });
+      const images = await captureMapSnapshotsBatch(
+        centers.map((c) => ({ lat: c.lat, lng: c.lng })),
+      );
+
       for (let i = 0; i < totalToMint; i++) {
-        const cell = cellsToProcess[i];
-        const center = getCellCenter(cell);
-        const imageBase64 = await captureMapSnapshot(
-          mapRef.current,
-          center.lat,
-          center.lng,
-        );
+        const { cell, lat, lng } = centers[i];
         const res = await mintTile({
           buyer: wallet.address,
-          lat: center.lat,
-          lng: center.lng,
-          imageBase64,
+          lat,
+          lng,
+          imageBase64: images[i],
           rarity,
         });
         if (!res.ok) {
@@ -607,6 +597,7 @@ export default function LandmarkPage() {
             username?: string | null;
             photoUrl?: string | null;
             cell?: string;
+            priceLamports?: string | null;
           };
           setSoldTileInfo({
             owner: props.owner ?? "",
@@ -618,6 +609,7 @@ export default function LandmarkPage() {
             username: props.username ?? null,
             photoUrl: props.photoUrl ?? null,
             cell: props.cell ?? "",
+            priceLamports: props.priceLamports ?? null,
           });
           return;
         }
@@ -828,6 +820,7 @@ export default function LandmarkPage() {
                 username: f.properties.username ?? null,
                 photoUrl: f.properties.photoUrl ?? null,
                 assetId: f.properties.assetId,
+                priceLamports: f.properties.priceLamports ?? null,
               }));
               const geojson = buildSoldTilesGeoJSON(tiles);
               const soldSource = map.getSource("sold-tiles") as
@@ -998,12 +991,17 @@ export default function LandmarkPage() {
           refreshOverlay();
         });
 
-        // Ensure layer is added properly on style change (sometimes style.load fires differently depending on Mapbox load sequence)
-        map.on("styledata", () => {
-          if (map.isStyleLoaded() && !map.getSource("usa-boundary")) {
+        // "idle" fires when the map has fully settled (style + tiles + data
+        // finished rendering). It is far more reliable than the initial "load"
+        // event, whose refresh can be skipped if the style isn't fully loaded
+        // yet. Re-running refresh on idle guarantees the sold-tile polygons
+        // appear without the user having to zoom/click first.
+        map.on("idle", () => {
+          // Re-add sources/layers if a style change wiped them, then refresh.
+          if (!map.getSource("sold-tiles")) {
             setupSourcesAndLayers();
-            refreshOverlay();
           }
+          refreshOverlay();
         });
 
         let moveTimer: NodeJS.Timeout;
@@ -1212,7 +1210,7 @@ export default function LandmarkPage() {
             <div className="flex justify-between items-end gap-4">
               {selectedCells.length > 0 && (
                 <div className="">
-                  <Card className="bg-primary">
+                  <Card className="bg-primary border-0">
                     <CardContent className="p-4">
                       {/* Summary row */}
                       <div className="flex gap-10">
@@ -1239,6 +1237,10 @@ export default function LandmarkPage() {
                             size={"lg"}
                             variant="secondary"
                             onClick={() => {
+                              if (!wallet?.address) {
+                                toast.error("Connect your wallet first");
+                                return;
+                              }
                               setMintStatus("idle");
                               setMintError(null);
                               setIsConfirmDialogOpen(true);
@@ -1426,31 +1428,6 @@ export default function LandmarkPage() {
                           </div>
                         ) : (
                           <>
-                            <div className="relative bg-zinc-950 flex gap-[12px] h-[40px] items-center px-3 mb-2 rounded-xl border border-zinc-800 focus-within:border-zinc-700">
-                              <RiSearchLine className="h-4 w-4 shrink-0 text-zinc-500" />
-                              <Input
-                                type="text"
-                                value={userLandmarksSearchQuery}
-                                onChange={(e) => setUserLandmarksSearchQuery(e.target.value)}
-                                placeholder="Search landmarks..."
-                                className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none p-0 text-sm font-normal text-white placeholder-zinc-500 h-full"
-                                style={{
-                                  border: "0",
-                                  borderWidth: "0",
-                                  outline: "none",
-                                  boxShadow: "none",
-                                }}
-                              />
-                              {userLandmarksSearchQuery && (
-                                <button
-                                  type="button"
-                                  onClick={() => setUserLandmarksSearchQuery("")}
-                                  className="text-zinc-500 hover:text-white transition-colors"
-                                >
-                                  <X className="h-4 w-4" />
-                                </button>
-                              )}
-                            </div>
                             {userLandmarks.length === 0 ? (
                               <div className="text-center py-8 text-zinc-500 text-sm">
                                 No matching landmarks found.
@@ -1710,7 +1687,7 @@ export default function LandmarkPage() {
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-zinc-450">Selected Tiles:</span>
                   <span className="font-semibold text-white">
-                    {selectedCells.length}
+                    {initialToMintCount || selectedCells.length}
                   </span>
                 </div>
 
@@ -1718,7 +1695,7 @@ export default function LandmarkPage() {
                   <span>Total Price:</span>
                   <span className="font-semibold text-primary">
                     {tilePrice
-                      ? `${(tilePrice.sol * selectedCells.length).toFixed(5)} SOL`
+                      ? `${(tilePrice.sol * (initialToMintCount || selectedCells.length)).toFixed(5)} SOL`
                       : "…"}
                   </span>
                 </div>
@@ -1877,6 +1854,15 @@ export default function LandmarkPage() {
             <span>Cell</span>
             <h4 className="font-mono text-zinc-300 text-sm">
               {soldTileInfo?.cell}
+            </h4>
+          </div>
+
+          <div className="flex justify-between items-center text-sm border-t border-zinc-800 pt-4">
+            <span>Last Price</span>
+            <h4 className="font-mono text-primary text-sm">
+              {soldTileInfo?.priceLamports
+                ? `${lamportsToSol(Number(soldTileInfo.priceLamports)).toFixed(5)} SOL`
+                : "—"}
             </h4>
           </div>
 

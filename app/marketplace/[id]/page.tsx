@@ -10,6 +10,9 @@ import { getRarityBadgeColor } from "@/lib/tiles";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { lamportsToSol } from "@/lib/solana/mint";
 import Avatar from "boring-avatars";
+import { useWallets } from "@privy-io/react-auth/solana";
+import { escrowSol } from "@/lib/solana/signing";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import {
   Dialog,
   DialogContent,
@@ -51,6 +54,8 @@ function buildStaticMapUrl(lng: number, lat: number): string {
 export default function TileDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { wallets } = useWallets();
+  const wallet = wallets[0];
 
   // Local Modal States
   const [activeModal, setActiveModal] = React.useState<"buy" | "buy-success" | "offer" | "offer-success" | null>(null);
@@ -62,8 +67,13 @@ export default function TileDetailPage() {
   const [offerPrice, setOfferPrice] = React.useState("");
   const [errorType, setErrorType] = React.useState<"not_found" | "not_listed" | null>(null);
 
+  // Buy-now flow state
+  const [buying, setBuying] = React.useState(false);
+  const [buyTxSignature, setBuyTxSignature] = React.useState<string>("");
+  const [buyError, setBuyError] = React.useState<string | null>(null);
+
   // Offer List States
-  const [offers, setOffers] = React.useState<Array<{ id: string; bidder: string; price: number; date: string; avatar: string }>>([]);
+  const [offers, setOffers] = React.useState<Array<{ id: string; bidder: string; price: number; date: string; avatar: string; rawBidder: string; status: string }>>([]);
 
   // Fetch tile detail from database on mount
   React.useEffect(() => {
@@ -164,7 +174,8 @@ export default function TileDetailPage() {
               price: lamportsToSol(Number(off.priceLamports)),
               date: timeLabel,
               avatar: off.bidderPhotoUrl || "",
-              rawBidder: off.bidder
+              rawBidder: off.bidder,
+              status: off.status ?? "pending",
             };
           });
           setOffers(mappedOffers);
@@ -232,6 +243,16 @@ export default function TileDetailPage() {
     if (!offerPrice || parseFloat(offerPrice) <= 0) return;
     setActiveModal("offer");
   };
+
+  // Whether the connected wallet already has a pending offer on this tile.
+  // A bidder may only have one pending offer at a time; after cancel/decline
+  // they may offer again.
+  const userPendingOffer = wallet
+    ? offers.find(
+        (off) => off.rawBidder === wallet.address && off.status === "pending",
+      )
+    : undefined;
+  const userOwnsTile = !!tile && wallet?.address === tile.publisher.walletAddress;
 
   return (
     <div className="min-h-screen bg-black text-white pt-32 pb-24 font-sans">
@@ -341,26 +362,36 @@ export default function TileDetailPage() {
             {/* Offering Input Block */}
             <form onSubmit={handleMakeOffer} className="space-y-3 bg-zinc-900/40 p-5 rounded-2xl border border-zinc-900">
               <h4 className="text-xs text-zinc-400 uppercase tracking-wider font-mono">Make an Offer</h4>
-              <div className="flex gap-2">
-                <div className="relative flex-1 bg-black flex gap-2 h-[48px] items-center px-4 rounded-xl border border-zinc-800 focus-within:border-zinc-700">
-                  <input
-                    type="number"
-                    step="0.0001"
-                    placeholder="Offering price in SOL"
-                    value={offerPrice}
-                    onChange={(e) => setOfferPrice(e.target.value)}
-                    className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none p-0 text-[15px] font-normal text-white placeholder-zinc-650"
-                    required
-                  />
-                  <span className="text-xs font-mono text-zinc-500 shrink-0 select-none">SOL</span>
+              {userOwnsTile ? (
+                <p className="text-xs text-zinc-500 py-2">
+                  You own this tile and cannot make an offer on it.
+                </p>
+              ) : userPendingOffer ? (
+                <p className="text-xs text-zinc-500 py-2">
+                  You have an active offer on this tile. Cancel it to make a new one.
+                </p>
+              ) : (
+                <div className="flex gap-2">
+                  <div className="relative flex-1 bg-black flex gap-2 h-[48px] items-center px-4 rounded-xl border border-zinc-800 focus-within:border-zinc-700">
+                    <input
+                      type="number"
+                      step="0.0001"
+                      placeholder="Offering price in SOL"
+                      value={offerPrice}
+                      onChange={(e) => setOfferPrice(e.target.value)}
+                      className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none p-0 text-[15px] font-normal text-white placeholder-zinc-650"
+                      required
+                    />
+                    <span className="text-xs font-mono text-zinc-500 shrink-0 select-none">SOL</span>
+                  </div>
+                  <button
+                    type="submit"
+                    className="bg-transparent hover:bg-zinc-800 border border-zinc-800 text-white font-semibold px-4 rounded-xl transition-all cursor-pointer text-sm shrink-0"
+                  >
+                    Offer
+                  </button>
                 </div>
-                <button
-                  type="submit"
-                  className="bg-transparent hover:bg-zinc-800 border border-zinc-800 text-white font-semibold px-4 rounded-xl transition-all cursor-pointer text-sm shrink-0"
-                >
-                  Offer
-                </button>
-              </div>
+              )}
             </form>
 
             {/* Offer List Block using ScrollArea */}
@@ -517,20 +548,93 @@ export default function TileDetailPage() {
                 </div>
               </div>
 
+              {buyError && (
+                <div className="text-xs text-red-500 bg-red-500/10 border border-red-500/20 p-3 rounded-lg font-mono">
+                  {buyError}
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <button
                   type="button"
-                  onClick={() => setActiveModal(null)}
-                  className="flex-1 border border-zinc-800 hover:bg-zinc-900 font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm text-center"
+                  disabled={buying}
+                  onClick={() => {
+                    setActiveModal(null);
+                    setBuyError(null);
+                  }}
+                  className="flex-1 border border-zinc-800 hover:bg-zinc-900 font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm text-center disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveModal("buy-success")}
-                  className="flex-1 bg-primary hover:bg-primary/95 text-black font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm text-center"
+                  disabled={buying}
+                  onClick={async () => {
+                    if (!wallet) {
+                      setBuyError("Please connect your wallet to buy.");
+                      return;
+                    }
+                    if (!tile) return;
+                    setBuying(true);
+                    setBuyError(null);
+                    try {
+                      const BACKEND_URL =
+                        process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+
+                      // 1. Fetch the custodian (escrow) address.
+                      const escrowAddrRes = await fetch(
+                        `${BACKEND_URL}/api/tiles/${tileId}/escrow-address`,
+                      );
+                      const escrowAddrData = await escrowAddrRes.json();
+                      if (!escrowAddrData.ok) {
+                        throw new Error(
+                          escrowAddrData.error || "Failed to prepare purchase",
+                        );
+                      }
+
+                      // 2. Buyer pays the listing price into the custodian on-chain.
+                      const lamports = BigInt(
+                        Math.round(tile.price * LAMPORTS_PER_SOL),
+                      );
+                      const signature = await escrowSol(
+                        escrowAddrData.escrowAddress,
+                        lamports,
+                        wallet,
+                      );
+
+                      // 3. Settle: backend transfers the tile + pays the seller.
+                      const res = await fetch(`${BACKEND_URL}/api/tiles/${tileId}/buy`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ buyer: wallet.address, signature }),
+                      });
+                      const data = await res.json();
+                      if (!data.ok) {
+                        throw new Error(data.error || "Failed to buy tile");
+                      }
+
+                      setBuyTxSignature(signature);
+                      setBuyError(null);
+                      setActiveModal("buy-success");
+                    } catch (err) {
+                      console.error("Buy tile failed:", err);
+                      const msg =
+                        err instanceof Error ? err.message : "Failed to buy tile";
+                      // Surface wallet rejections with a clear message instead of
+                      // the raw "User rejected the request" string.
+                      setBuyError(
+                        /reject|denied|cancel/i.test(msg)
+                          ? "Transaction was rejected in your wallet."
+                          : msg,
+                      );
+                    } finally {
+                      setBuying(false);
+                    }
+                  }}
+                  className="flex-1 bg-primary hover:bg-primary/95 text-black font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm text-center disabled:opacity-50 flex items-center justify-center gap-1.5"
                 >
-                  Confirm Buy
+                  {buying && <Loader2 className="h-4 w-4 animate-spin text-black" />}
+                  {buying ? "Processing..." : "Confirm Buy"}
                 </button>
               </div>
             </div>
@@ -548,7 +652,7 @@ export default function TileDetailPage() {
                 </p>
               </div>
               <div className="text-xs font-mono bg-black p-3 rounded-lg border border-zinc-800 text-zinc-500 text-left overflow-x-auto">
-                Tx: 4v7yJ...H98t1x
+                Tx: {buyTxSignature.slice(0, 8)}...{buyTxSignature.slice(-8)}
               </div>
               <ButtonCustom onClick={() => setActiveModal(null)} className="w-full justify-center">
                 Close
@@ -618,25 +722,45 @@ export default function TileDetailPage() {
                   type="button"
                   onClick={async () => {
                     if (!offerPrice || parseFloat(offerPrice) <= 0) return;
+                    if (!wallet) {
+                      alert("Please connect your wallet to make an offer.");
+                      return;
+                    }
                     try {
                       const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
-                      // Find or use privy wallet address
-                      const buyerAddress = "0xActive"; // Fallback placeholder if no wallet
-                      const targetAddress = window.localStorage.getItem("privy:walletAddress") || buyerAddress;
-                      
+
+                      // 1. Fetch the custodian (escrow) address.
+                      const escrowAddrRes = await fetch(`${BACKEND_URL}/api/tiles/${tileId}/escrow-address`);
+                      const escrowAddrData = await escrowAddrRes.json();
+                      if (!escrowAddrData.ok) {
+                        throw new Error(escrowAddrData.error || "Failed to prepare escrow");
+                      }
+
+                      // 2. Bidder locks the offer SOL into the custodian on-chain.
+                      const lamports = BigInt(
+                        Math.round(parseFloat(offerPrice) * LAMPORTS_PER_SOL)
+                      );
+                      const escrowTx = await escrowSol(
+                        escrowAddrData.escrowAddress,
+                        lamports,
+                        wallet
+                      );
+
+                      // 3. Record the offer with the escrow signature.
                       const res = await fetch(`${BACKEND_URL}/api/tiles/${tileId}/offers`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
-                          bidder: targetAddress,
+                          bidder: wallet.address,
                           priceSol: parseFloat(offerPrice),
+                          escrowTx,
                         }),
                       });
                       const data = await res.json();
                       if (data.ok) {
                         setOfferPrice("");
                         setActiveModal("offer-success");
-                        
+
                         // Reload offers
                         const offersRes = await fetch(`${BACKEND_URL}/api/tiles/${tileId}/offers`);
                         const offersData = await offersRes.json();
@@ -653,14 +777,22 @@ export default function TileDetailPage() {
                               price: lamportsToSol(Number(off.priceLamports)),
                               date: timeLabel,
                               avatar: off.bidderPhotoUrl || "",
-                              rawBidder: off.bidder
+                              rawBidder: off.bidder,
+                              status: off.status ?? "pending",
                             };
                           });
                           setOffers(mappedOffers);
                         }
+                      } else {
+                        alert(data.error || "Failed to submit offer");
                       }
                     } catch (err) {
                       console.error("Submit offer failed:", err);
+                      alert(
+                        err instanceof Error
+                          ? err.message
+                          : "Failed to submit offer"
+                      );
                     }
                   }}
                   className="flex-1 bg-primary hover:bg-primary/95 text-black font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm text-center"

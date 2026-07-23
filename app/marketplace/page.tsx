@@ -15,14 +15,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
-const ButtonCustom = withCustomButton("button");
 const LinkCustom = withCustomButton(Link);
 
 export interface TileItem {
@@ -64,11 +57,6 @@ export default function Marketplace() {
   const [loading, setLoading] = useState(false);
   const [totalTilesCount, setTotalTilesCount] = useState(0);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
-
-  // Local purchase dialog states
-  const [selectedTile, setSelectedTile] = useState<TileItem | null>(null);
-  const [purchaseStep, setPurchaseStep] = useState<"confirm" | "success">("confirm");
-  const [txHash, setTxHash] = useState("");
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -185,12 +173,6 @@ export default function Marketplace() {
 
   const totalPages = Math.ceil(totalTilesCount / ITEMS_PER_PAGE);
   const paginatedTiles = tiles;
-
-  const handleBuy = (tile: TileItem) => {
-    setSelectedTile(tile);
-    setPurchaseStep("confirm");
-    setTxHash("");
-  };
 
   return (
     <div className="min-h-screen bg-black text-white pt-32 pb-24 font-sans">
@@ -371,9 +353,6 @@ export default function Marketplace() {
                           <LinkCustom href={`/marketplace/${tile.id}`} variant="outline">
                             Detail
                           </LinkCustom>
-                          <ButtonCustom onClick={() => handleBuy(tile)}>
-                            Buy Tile
-                          </ButtonCustom>
                         </div>
                       </div>
                     </div>
@@ -454,9 +433,6 @@ export default function Marketplace() {
                         <LinkCustom href={`/marketplace/${tile.id}`} variant="outline">
                           Detail
                         </LinkCustom>
-                        <ButtonCustom onClick={() => handleBuy(tile)}>
-                          Buy Tile
-                        </ButtonCustom>
                       </div>
                     </div>
                   </div>
@@ -519,117 +495,7 @@ export default function Marketplace() {
         )}
       </div>
 
-      {/* Local Purchase Dialog */}
-      <Dialog open={!!selectedTile} onOpenChange={(open) => !open && setSelectedTile(null)}>
-        <DialogContent className="max-w-2xl bg-zinc-950 border border-zinc-800 text-white rounded-2xl p-6 shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-white tracking-tight">
-              {purchaseStep === "confirm" ? "Confirm Purchase" : "Transaction Success"}
-            </DialogTitle>
-          </DialogHeader>
-
-          {selectedTile && purchaseStep === "confirm" && (
-            <div className="space-y-6 text-zinc-300 mt-4">
-              <div className="flex gap-4 items-start border-b border-zinc-800 pb-4">
-                <img
-                  src={selectedTile.imageUrl}
-                  alt={selectedTile.name}
-                  className="w-20 h-20 object-cover rounded-lg border border-zinc-805"
-                />
-                <div className="space-y-1">
-                  <span className={`text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 rounded border ${getRarityBadgeColor(selectedTile.rarity)}`}>
-                    {selectedTile.rarity}
-                  </span>
-                  <h4 className="font-semibold text-white mt-1">{selectedTile.name}</h4>
-                  <p className="text-xs text-zinc-400 flex items-center gap-1">
-                    <MapPin className="h-3 w-3" /> {selectedTile.location}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span>Publisher</span>
-                  <span className="font-semibold text-white flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-full overflow-hidden border border-zinc-700 shrink-0">
-                      {selectedTile.publisher.avatar ? (
-                        <img
-                          src={selectedTile.publisher.avatar}
-                          alt={selectedTile.publisher.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Avatar
-                          colors={["#f5e1a4", "#d9d593", "#ee7f27", "#bc162a", "#302325"]}
-                          variant="pixel"
-                          size={20}
-                        />
-                      )}
-                    </div>
-                    {selectedTile.publisher.name} ({selectedTile.publisher.walletAddress ? `${selectedTile.publisher.walletAddress.slice(0, 4)}...${selectedTile.publisher.walletAddress.slice(-4)}` : ""})
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Listed Date</span>
-                  <span className="font-semibold text-zinc-300">{selectedTile.date}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Price</span>
-                  <span className="font-semibold text-primary">{selectedTile.price.toFixed(5)} SOL</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Transaction Fee</span>
-                  <span className="text-zinc-550">0.00005 SOL</span>
-                </div>
-                <div className="border-t border-zinc-800 pt-3 flex justify-between font-semibold text-white text-base">
-                  <span>Total Cost</span>
-                  <span className="text-primary">{(selectedTile.price + 0.00005).toFixed(5)} SOL</span>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSelectedTile(null)}
-                  className="flex-1 border border-zinc-800 hover:bg-zinc-900 font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPurchaseStep("success");
-                    setTxHash("4v7yJ" + Math.random().toString(36).substring(2, 10) + "H98t1x");
-                  }}
-                  className="flex-1 bg-primary hover:bg-primary/95 text-black font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm"
-                >
-                  Confirm Buy
-                </button>
-              </div>
-            </div>
-          )}
-
-          {selectedTile && purchaseStep === "success" && (
-            <div className="text-center space-y-4 py-4 mt-4">
-              <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto text-xl border border-emerald-500/20">
-                ✓
-              </div>
-              <div>
-                <h4 className="font-semibold text-white text-lg">Tile Acquired!</h4>
-                <p className="text-sm text-zinc-400 mt-1">
-                  You are now the proud owner of <strong>{selectedTile.name}</strong> coordinate unit.
-                </p>
-              </div>
-              <div className="text-xs font-mono bg-black p-3 rounded-lg border border-zinc-800 text-zinc-500 text-left overflow-x-auto">
-                Tx: {txHash}
-              </div>
-              <ButtonCustom onClick={() => setSelectedTile(null)} className="w-full justify-center">
-                Close
-              </ButtonCustom>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Purchases happen on the detail page (app/marketplace/[id]/page.tsx). */}
     </div>
   );
 }

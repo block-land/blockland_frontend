@@ -62,20 +62,39 @@ export function lamportsToSol(lamports: number): number {
 }
 
 /**
- * Capture a snapshot of a Mapbox map canvas as a PNG base64 string.
+ * Capture a tile thumbnail via the Mapbox Static Images API.
+ *
+ * This replaces the old approach (fly the live map + wait 2s) which was the
+ * main cause of slow bulk purchases (~2s per tile, sequential). The Static
+ * Images API returns the rendered map tile instantly, with no map movement.
+ *
+ * Returns a base64 PNG (no data-url prefix).
  */
 export async function captureMapSnapshot(
-  map: mapboxgl.Map,
   lat: number,
   lng: number
 ): Promise<string> {
-  // Fly to the coordinate first, then capture after render settles.
-  map.flyTo({ center: [lng, lat], zoom: 14, duration: 1500 });
-  await new Promise((resolve) => setTimeout(resolve, 2000));
+  const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+  const url = `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/${lng},${lat},14,0,0/400x400@2x?access_token=${token}`;
+  const res = await fetch(url);
+  const blob = await res.blob();
+  const arrayBuffer = await blob.arrayBuffer();
+  return Buffer.from(arrayBuffer).toString("base64");
+}
 
-  const canvas = map.getCanvas();
-  const dataUrl = canvas.toDataURL("image/png");
-  return dataUrl.split(",")[1] ?? "";
+/**
+ * Capture thumbnails for many tiles in parallel.
+ *
+ * `getCells` are resolved to {lat,lng} centers before fetching. Each thumbnail
+ * is an independent Mapbox Static API call, so they all run concurrently —
+ * 7 tiles take roughly the same time as 1.
+ */
+export async function captureMapSnapshotsBatch(
+  tiles: Array<{ lat: number; lng: number }>
+): Promise<string[]> {
+  return Promise.all(
+    tiles.map((t) => captureMapSnapshot(t.lat, t.lng))
+  );
 }
 
 /**

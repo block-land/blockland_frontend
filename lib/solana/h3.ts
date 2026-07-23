@@ -66,6 +66,7 @@ export function buildSoldTilesGeoJSON(
     assetId: string;
     username?: string | null;
     photoUrl?: string | null;
+    priceLamports?: string | null;
   }>
 ): FeatureCollection {
   const ownerShort = (owner: string) =>
@@ -88,6 +89,7 @@ export function buildSoldTilesGeoJSON(
           ownerShort: ownerShort(tile.owner),
           username: tile.username ?? null,
           photoUrl: tile.photoUrl ?? null,
+          priceLamports: tile.priceLamports ?? null,
           label,
           lat: center.lat,
           lng: center.lng,

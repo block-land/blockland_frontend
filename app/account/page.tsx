@@ -22,6 +22,7 @@ import { getRarityBadgeColor } from "@/lib/tiles";
 import { withCustomButton } from "@/components/custom/button_custom";
 import { getOwnerTiles, type CompressedNft } from "@/lib/solana/helius";
 import { lamportsToSol, getWalletBalance } from "@/lib/solana/mint";
+import { signAndSendBase64Tx } from "@/lib/solana/signing";
 import {
   NETWORK_LABEL,
   SOLSCAN_CLUSTER_PARAM,
@@ -48,6 +49,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/ui/accordion";
 import { Input } from "@/components/ui/input";
 import { NumericFormat } from "react-number-format";
 import { Label } from "@/components/ui/label";
@@ -67,6 +74,26 @@ interface OwnedTile {
   purchasedDate: string;
   offersCount?: number;
   status?: "owned" | "listed" | "sold";
+}
+
+/** A tile the connected user has made an offer on (bidder view). */
+interface MyOfferTile {
+  tileId: string;
+  assetId: string;
+  offerId: string;
+  name: string;
+  location: string;
+  coordinates: string;
+  rarity: "Legendary" | "Epic" | "Rare" | "Common";
+  imageUrl: string;
+  offerPriceSol: number;
+  offerStatus: "pending" | "accepted" | "declined" | "cancelled";
+  offerDate: string;
+  tileStatus: string;
+  seller?: string;
+  sellerUsername?: string;
+  rawLat: number;
+  rawLng: number;
 }
 
 /**
@@ -125,8 +152,10 @@ export default function AccountPage() {
   // Search state
   const [searchQuery, setSearchQuery] = React.useState("");
 
-  // Tab State: "all" or "listed"
-  const [activeTab, setActiveTab] = React.useState<"all" | "listed">("all");
+  // Tab State: "all" or "listed" or "myoffers"
+  const [activeTab, setActiveTab] = React.useState<
+    "all" | "listed" | "myoffers"
+  >("all");
 
   // Local dialog detail state
   const [selectedDetailTile, setSelectedDetailTile] =
@@ -137,6 +166,16 @@ export default function AccountPage() {
     React.useState<OwnedTile | null>(null);
   const [tileOffers, setTileOffers] = React.useState<any[]>([]);
   const [loadingOffers, setLoadingOffers] = React.useState(false);
+  const [updatingOfferId, setUpdatingOfferId] = React.useState<string | null>(
+    null
+  );
+
+  // My Offers tab state (tiles the connected user has bid on)
+  const [myOffers, setMyOffers] = React.useState<MyOfferTile[]>([]);
+  const [loadingMyOffers, setLoadingMyOffers] = React.useState(false);
+  const [cancellingOfferId, setCancellingOfferId] = React.useState<
+    string | null
+  >(null);
 
   // Local dialog sell state
   const [sellingTile, setSellingTile] = React.useState<OwnedTile | null>(null);
@@ -256,7 +295,8 @@ export default function AccountPage() {
             const lat = parseFloat(t.lat);
             const lng = parseFloat(t.lng);
             // If the tab is listed, display the listing/selling price (listingPriceLamports),
-            // else display the primary purchase price (priceLamports).
+            // else display the last purchase price (priceLamports), which the
+            // approve flow updates to the price actually paid by the buyer.
             const lamports =
               statusVal === "listed"
                 ? t.listingPriceLamports
@@ -265,7 +305,13 @@ export default function AccountPage() {
                 : t.priceLamports
                   ? Number(t.priceLamports)
                   : 0;
-            const createdAt = t.createdAt ? new Date(t.createdAt) : new Date();
+            // Purchase date = when the current owner acquired the tile (soldAt),
+            // falling back to the mint/creation date for primary-owned tiles.
+            const purchaseDate = t.soldAt
+              ? new Date(t.soldAt)
+              : t.createdAt
+                ? new Date(t.createdAt)
+                : new Date();
 
             return {
               id: t.assetId,
@@ -275,7 +321,7 @@ export default function AccountPage() {
               rarity: (t.rarity as OwnedTile["rarity"]) || "Common",
               imageUrl: buildStaticMapUrl(lng, lat),
               purchasePrice: lamportsToSol(lamports),
-              purchasedDate: createdAt.toLocaleDateString("en-US", {
+              purchasedDate: purchaseDate.toLocaleDateString("en-US", {
                 month: "short",
                 day: "2-digit",
                 year: "numeric",
@@ -377,6 +423,176 @@ export default function AccountPage() {
       setLoadingOffers(false);
     }
   };
+
+  // Approve (-> "accepted") or Decline (-> "declined") an offer on the
+  // currently-open offers tile. Updates the offer's status optimistically and
+  // reverts on failure.
+  const handleUpdateOfferStatus = async (
+    offerId: string,
+    status: "accepted" | "declined"
+  ) => {
+    if (!selectedOffersTile || !wallet || updatingOfferId) return;
+
+    const prevOffers = tileOffers;
+    setTileOffers((curr) =>
+      curr.map((off) => (off.id === offerId ? { ...off, status } : off))
+    );
+    setUpdatingOfferId(offerId);
+
+    try {
+      const BACKEND_URL =
+        process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+      // Settlement (tile transfer + SOL payout + refunding other offers) is
+      // performed on-chain by the custodian, so the seller only needs to
+      // authorize the action via the dedicated endpoint.
+      const endpoint =
+        status === "accepted" ? "approve" : "decline";
+      const res = await fetch(
+        `${BACKEND_URL}/api/tiles/${selectedOffersTile.id}/offers/${offerId}/${endpoint}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ seller: wallet.address }),
+        }
+      );
+      const data = await res.json();
+      if (!data.ok) {
+        throw new Error(data.error || "Failed to update offer");
+      }
+      // On approve, the listing is settled (sold) so other pending offers are
+      // auto-refunded/declined — refresh the visible list to reflect that.
+      if (status === "accepted") {
+        setTileOffers((curr) =>
+          curr.map((off) =>
+            off.id === offerId
+              ? { ...off, status: "accepted" }
+              : off.status === "pending"
+                ? { ...off, status: "declined" }
+                : off
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Failed to update offer:", err);
+      setTileOffers(prevOffers);
+    } finally {
+      setUpdatingOfferId(null);
+    }
+  };
+
+  // Load tiles the connected user has made offers on (bidder view).
+  const loadMyOffers = React.useCallback(async () => {
+    if (!wallet?.address) return;
+    setLoadingMyOffers(true);
+    try {
+      const BACKEND_URL =
+        process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+      const res = await fetch(
+        `${BACKEND_URL}/api/tiles/offers-by-bidder/${wallet.address}`,
+      );
+      const data = await res.json();
+      if (data.ok && Array.isArray(data.offers)) {
+        const mapped: MyOfferTile[] = data.offers.map((o: any) => {
+          const lat = parseFloat(o.lat);
+          const lng = parseFloat(o.lng);
+          const createdAt = o.offerCreatedAt
+            ? new Date(o.offerCreatedAt)
+            : new Date();
+          return {
+            tileId: o.tileId,
+            assetId: o.assetId,
+            offerId: o.offerId,
+            name: `BLT ${lat.toFixed(3)},${lng.toFixed(3)}`,
+            location: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+            coordinates: `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`,
+            rarity: (o.rarity as MyOfferTile["rarity"]) || "Common",
+            imageUrl: buildStaticMapUrl(lng, lat),
+            offerPriceSol: lamportsToSol(Number(o.offerPriceLamports)),
+            offerStatus: (o.offerStatus as MyOfferTile["offerStatus"]) ?? "pending",
+            offerDate: createdAt.toLocaleDateString("en-US", {
+              month: "short",
+              day: "2-digit",
+              year: "numeric",
+            }),
+            tileStatus: o.tileStatus,
+            seller: o.seller,
+            sellerUsername: o.sellerUsername,
+            rawLat: lat,
+            rawLng: lng,
+          };
+        });
+
+        // Enrich place names via Mapbox reverse geocoding (like loadTiles).
+        const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+        const enriched = await Promise.all(
+          mapped.map(async (tile) => {
+            try {
+              const geoRes = await fetch(
+                `https://api.mapbox.com/geocoding/v5/mapbox.places/${tile.rawLng},${tile.rawLat}.json?access_token=${token}&country=us&limit=1`,
+              );
+              const geoData = await geoRes.json();
+              const placeName = geoData.features?.[0]?.place_name;
+              return placeName
+                ? {
+                    ...tile,
+                    location: placeName,
+                    name: placeName.split(",")[0],
+                  }
+                : tile;
+            } catch {
+              return tile;
+            }
+          }),
+        );
+        setMyOffers(enriched);
+      } else {
+        setMyOffers([]);
+      }
+    } catch (err) {
+      console.error("Failed to load my offers:", err);
+      setMyOffers([]);
+    } finally {
+      setLoadingMyOffers(false);
+    }
+  }, [wallet?.address]);
+
+  // Decline (cancel) one of the user's own offers — refunds their escrowed SOL.
+  const handleCancelMyOffer = async (tile: MyOfferTile) => {
+    if (cancellingOfferId) return;
+    setCancellingOfferId(tile.offerId);
+    try {
+      const BACKEND_URL =
+        process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+      const res = await fetch(
+        `${BACKEND_URL}/api/tiles/${tile.tileId}/offers/${tile.offerId}/cancel`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bidder: wallet?.address }),
+        },
+      );
+      const data = await res.json();
+      if (!data.ok) {
+        throw new Error(data.error || "Failed to cancel offer");
+      }
+      // Remove the cancelled offer from the list.
+      setMyOffers((curr) => curr.filter((o) => o.offerId !== tile.offerId));
+    } catch (err) {
+      console.error("Cancel my offer failed:", err);
+      alert(
+        err instanceof Error ? err.message : "Failed to cancel offer",
+      );
+    } finally {
+      setCancellingOfferId(null);
+    }
+  };
+
+  // Load "My Offers" only when that tab is active.
+  React.useEffect(() => {
+    if (activeTab === "myoffers" && wallet?.address) {
+      loadMyOffers();
+    }
+  }, [activeTab, wallet?.address, loadMyOffers]);
 
   const handleSellTile = (tile: OwnedTile) => {
     setSellingTile(tile);
@@ -546,6 +762,12 @@ export default function AccountPage() {
                     className="rounded-lg text-xs font-semibold px-4 py-1.5 text-zinc-400 data-[state=active]:bg-primary data-[state=active]:text-black transition-all cursor-pointer"
                   >
                     Listed for Sale
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="myoffers"
+                    className="rounded-lg text-xs font-semibold px-4 py-1.5 text-zinc-400 data-[state=active]:bg-primary data-[state=active]:text-black transition-all cursor-pointer"
+                  >
+                    My Offers
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -897,6 +1119,135 @@ export default function AccountPage() {
                 </>
               )}
             </TabsContent>
+
+            {/* My Offers Tab */}
+            <TabsContent
+              value="myoffers"
+              className="mt-6 border-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+            >
+              {loadingMyOffers ? (
+                <div className="flex flex-col items-center justify-center py-24 text-zinc-500">
+                  <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
+                  <p className="text-sm">Loading your offers...</p>
+                </div>
+              ) : myOffers.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-24 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-2xl">
+                  <Tag className="h-10 w-10 mb-4 text-zinc-700" />
+                  <p className="text-sm">
+                    You haven&apos;t made any offers yet.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {myOffers.map((tile) => {
+                    const isPending = tile.offerStatus === "pending";
+                    const isCancelling = cancellingOfferId === tile.offerId;
+                    return (
+                      <div
+                        key={tile.offerId}
+                        className="bg-zinc-950 border border-zinc-900 rounded-2xl overflow-hidden hover:border-zinc-800 transition-all hover:scale-[1.01] flex flex-col group"
+                      >
+                        <div className="relative aspect-video overflow-hidden">
+                          <img
+                            src={tile.imageUrl}
+                            alt={tile.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-linear-to-t from-zinc-950 to-transparent opacity-60" />
+                          <span
+                            className={`absolute top-4 left-4 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(
+                              tile.rarity,
+                            )}`}
+                          >
+                            {tile.rarity}
+                          </span>
+                          <div className="absolute bottom-4 left-4 flex gap-1 items-center text-zinc-300 text-xs font-mono">
+                            <Grid className="h-3.5 w-3.5 text-primary" />
+                            <span>{tile.coordinates}</span>
+                          </div>
+                        </div>
+
+                        <div className="p-6 flex-1 flex flex-col justify-between space-y-6">
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <h3 className="text-xl font-semibold text-white group-hover:text-primary transition-colors">
+                                {tile.name}
+                              </h3>
+                              <p className="text-sm text-zinc-400 flex items-center gap-1.5">
+                                <MapPin className="h-4 w-4 text-zinc-550" />
+                                {tile.location}
+                              </p>
+                            </div>
+
+                            <div className="flex items-center justify-between text-xs border-t border-b border-zinc-900/50 py-3">
+                              <div className="space-y-0.5">
+                                <div className="text-[10px] text-zinc-500 uppercase tracking-wide font-mono">
+                                  Your Offer
+                                </div>
+                                <div className="text-lg font-semibold text-primary font-mono">
+                                  {tile.offerPriceSol.toFixed(5)} SOL
+                                </div>
+                              </div>
+                              <div className="text-right space-y-0.5">
+                                <div className="text-[10px] text-zinc-500 uppercase tracking-wide font-mono">
+                                  Status
+                                </div>
+                                <span
+                                  className={`inline-block text-[9px] uppercase font-semibold tracking-wider px-1.5 py-0.5 rounded border ${
+                                    tile.offerStatus === "accepted"
+                                      ? "border-emerald-700/60 text-emerald-400"
+                                      : tile.offerStatus === "declined" ||
+                                          tile.offerStatus === "cancelled"
+                                        ? "border-zinc-700 text-zinc-500"
+                                        : "border-amber-700/60 text-amber-400"
+                                  }`}
+                                >
+                                  {tile.offerStatus}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex justify-between text-[11px] text-zinc-500">
+                              <span>
+                                Seller:{" "}
+                                <span className="text-zinc-400 font-mono">
+                                  {tile.seller
+                                    ? `${tile.seller.slice(0, 6)}...${tile.seller.slice(-4)}`
+                                    : "—"}
+                                </span>
+                              </span>
+                              <span>{tile.offerDate}</span>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 w-full pt-2">
+                            <Button variant={"outline"} disabled>
+                              Detail
+                            </Button>
+                            {isPending ? (
+                              <Button
+                                disabled={isCancelling}
+                                onClick={() => handleCancelMyOffer(tile)}
+                                className="gap-1.5"
+                              >
+                                {isCancelling && (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                )}
+                                Decline
+                              </Button>
+                            ) : (
+                              <Button disabled variant={"outline"}>
+                                {tile.offerStatus}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
           </Tabs>
         </div>
       </div>
@@ -1047,55 +1398,119 @@ export default function AccountPage() {
                     No active offers on this tile.
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {tileOffers.map((off) => (
-                      <div
-                        key={off.id}
-                        className="flex items-center justify-between p-3 bg-black/45 border border-zinc-900 rounded-xl"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-full overflow-hidden border border-zinc-800 shrink-0">
-                            {off.bidderPhotoUrl ? (
-                              <img
-                                src={off.bidderPhotoUrl}
-                                alt={off.bidderUsername}
-                                className="w-full h-full object-cover"
-                              />
+                  <Accordion type="single" collapsible className="w-full">
+                    {tileOffers.map((off) => {
+                      const offerStatus: string = off.status ?? "pending";
+                      const isPending = offerStatus === "pending";
+                      const isUpdating = updatingOfferId === off.id;
+                      return (
+                        <AccordionItem
+                          key={off.id}
+                          value={off.id}
+                          className="bg-black/45 border border-zinc-900 rounded-xl px-3 mb-3"
+                        >
+                          <AccordionTrigger className="hover:no-underline">
+                            <div className="flex items-center justify-between gap-2.5 w-full pr-2">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-7 h-7 rounded-full overflow-hidden border border-zinc-800 shrink-0">
+                                  {off.bidderPhotoUrl ? (
+                                    <img
+                                      src={off.bidderPhotoUrl}
+                                      alt={off.bidderUsername}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <Avatar
+                                      colors={[
+                                        "#f5e1a4",
+                                        "#d9d593",
+                                        "#ee7f27",
+                                        "#bc162a",
+                                        "#302325",
+                                      ]}
+                                      variant="pixel"
+                                      size={28}
+                                    />
+                                  )}
+                                </div>
+                                <div className="min-w-0 text-left">
+                                  <p className="text-xs font-semibold text-zinc-300 truncate">
+                                    {off.bidderUsername ||
+                                      `${off.bidder.slice(0, 6)}...${off.bidder.slice(-4)}`}
+                                  </p>
+                                  <span className="text-[9px] text-zinc-500 font-mono">
+                                    {new Date(off.createdAt).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span
+                                  className={`text-[9px] uppercase font-semibold tracking-wider px-1.5 py-0.5 rounded border ${
+                                    offerStatus === "accepted"
+                                      ? "border-emerald-700/60 text-emerald-400"
+                                      : offerStatus === "declined"
+                                        ? "border-zinc-700 text-zinc-500"
+                                        : "border-amber-700/60 text-amber-400"
+                                  }`}
+                                >
+                                  {offerStatus}
+                                </span>
+                                <span className="text-xs font-semibold text-primary font-mono">
+                                  {lamportsToSol(
+                                    Number(off.priceLamports),
+                                  ).toFixed(5)}{" "}
+                                  SOL
+                                </span>
+                              </div>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            {isPending ? (
+                              <div className="flex items-center gap-2 pt-2">
+                                <ButtonCustom
+                                  disabled={isUpdating}
+                                  onClick={() =>
+                                    handleUpdateOfferStatus(off.id, "accepted")
+                                  }
+                                  className="flex-1 justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500"
+                                >
+                                  {isUpdating ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <Check className="h-3.5 w-3.5" />
+                                  )}
+                                  Approve
+                                </ButtonCustom>
+                                <Button
+                                  disabled={isUpdating}
+                                  variant="outline"
+                                  onClick={() =>
+                                    handleUpdateOfferStatus(off.id, "declined")
+                                  }
+                                  className="flex-1 justify-center gap-1.5"
+                                >
+                                  {isUpdating ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <X className="h-3.5 w-3.5" />
+                                  )}
+                                  Decline
+                                </Button>
+                              </div>
                             ) : (
-                              <Avatar
-                                colors={[
-                                  "#f5e1a4",
-                                  "#d9d593",
-                                  "#ee7f27",
-                                  "#bc162a",
-                                  "#302325",
-                                ]}
-                                variant="pixel"
-                                size={28}
-                              />
+                              <p className="text-[11px] text-zinc-500 pt-2">
+                                This offer has been{" "}
+                                <span className="font-semibold">
+                                  {offerStatus}
+                                </span>
+                                .
+                              </p>
                             )}
-                          </div>
-                          <div>
-                            <p className="text-xs font-semibold text-zinc-300">
-                              {off.bidderUsername ||
-                                `${off.bidder.slice(0, 6)}...${off.bidder.slice(-4)}`}
-                            </p>
-                            <span className="text-[9px] text-zinc-500 font-mono">
-                              {new Date(off.createdAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-xs font-semibold text-primary font-mono">
-                            {lamportsToSol(Number(off.priceLamports)).toFixed(
-                              5,
-                            )}{" "}
-                            SOL
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      );
+                    })}
+                  </Accordion>
                 )}
               </ScrollArea>
 
@@ -1246,7 +1661,8 @@ export default function AccountPage() {
                             process.env.NEXT_PUBLIC_BACKEND_URL ??
                             "http://localhost:3001";
 
-                          const res = await fetch(
+                          // 1. Ask the backend to build the custody transfer tx.
+                          const prepareRes = await fetch(
                             `${BACKEND_URL}/api/tiles/list`,
                             {
                               method: "PUT",
@@ -1258,9 +1674,35 @@ export default function AccountPage() {
                               }),
                             },
                           );
+                          const prepareData = await prepareRes.json();
+                          if (!prepareData.ok) {
+                            throw new Error(
+                              prepareData.error || "Failed to list tile",
+                            );
+                          }
 
-                          const data = await res.json();
-                          if (data.ok) {
+                          // 2. Seller signs + submits the custody transfer.
+                          const signature = await signAndSendBase64Tx(
+                            prepareData.tx,
+                            wallet,
+                          );
+
+                          // 3. Confirm the listing with the on-chain signature.
+                          const confirmRes = await fetch(
+                            `${BACKEND_URL}/api/tiles/list/confirm`,
+                            {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                assetId: sellingTile.id,
+                                priceSol: parseFloat(sellPriceInput),
+                                seller: wallet.address,
+                                signature,
+                              }),
+                            },
+                          );
+                          const confirmData = await confirmRes.json();
+                          if (confirmData.ok) {
                             setSellStatus("success");
                             // Reload owned tiles on account page
                             loadTiles(
@@ -1269,11 +1711,17 @@ export default function AccountPage() {
                               activeTab,
                             );
                           } else {
-                            setSellError(data.error || "Failed to list tile");
+                            setSellError(
+                              confirmData.error || "Failed to confirm listing",
+                            );
                           }
                         } catch (err) {
                           console.error("Listing tile error:", err);
-                          setSellError("Network connection error");
+                          setSellError(
+                            err instanceof Error
+                              ? err.message
+                              : "Network connection error",
+                          );
                         } finally {
                           setSellLoading(false);
                         }
