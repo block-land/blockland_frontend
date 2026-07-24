@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Manrope } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
 import LayoutsClient from "@/components/layouts_client";
 import { Toaster } from "@/components/ui/sonner";
 
-const inter = Inter({
+const manrope = Manrope({
   subsets: ["latin"],
-  variable: "--font-sans",
+  variable: "--font-manrope",
 });
 
 export const metadata: Metadata = {
@@ -21,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased dark`} suppressHydrationWarning>
+    <html lang="en" className={`${manrope.variable} h-full antialiased dark`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col">
         <NextTopLoader color="#F1C67C" showSpinner={false} />
         <LayoutsClient>{children}</LayoutsClient>

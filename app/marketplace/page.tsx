@@ -334,11 +334,11 @@ export default function Marketplace() {
                       />
                       <div className="absolute inset-0 bg-linear-to-t from-zinc-950 to-transparent opacity-60" />
                       <span
-                        className={`absolute top-4 left-4 text-[10px]  uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
+                        className={`absolute top-4 left-4 text-xs  uppercase tracking-wider px-3 py-1 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
                       >
                         {tile.rarity}
                       </span>
-                      <div className="absolute bottom-4 left-4 flex gap-1 items-center text-zinc-300 text-xs font-mono">
+                      <div className="absolute bottom-4 left-4 flex gap-1 items-center text-xs uppercase tracking-wider px-3 py-1 rounded border backdrop-blur-md">
                         <Grid className="h-3.5 w-3.5 text-primary" />
                         <span>{tile.coordinates}</span>
                       </div>
@@ -351,8 +351,7 @@ export default function Marketplace() {
                           <h3 className="text-xl text-white group-hover:text-primary transition-colors">
                             {tile.name}
                           </h3>
-                          <p className="text-sm text-zinc-400 flex items-center gap-1.5">
-                            <MapPin className="h-4 w-4 text-zinc-550" />
+                          <p className="text-sm">
                             {tile.location}
                           </p>
                         </div>
@@ -441,7 +440,7 @@ export default function Marketplace() {
                       <div className="space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
                           <span
-                            className={`text-[9px]  uppercase tracking-wider px-2 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}
+                            className={`text-xs  uppercase tracking-wider px-3 py-1 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
                           >
                             {tile.rarity}
                           </span>
@@ -486,8 +485,7 @@ export default function Marketplace() {
                               </span>
                             </span>
                           </div>
-                          <p className="text-xs text-zinc-400 flex items-center gap-1">
-                            <MapPin className="h-3.5 w-3.5 text-zinc-550" />
+                          <p className="text-xs">
                             {tile.location}
                           </p>
                         </div>

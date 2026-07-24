@@ -57,7 +57,7 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-manrope);
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 
   --color-background: var(--background);
@@ -140,4 +140,8 @@ a {
 
 h1, h2, h3 {
   @apply text-white;
+}
+
+p {
+  @apply !text-zinc-400;
 }

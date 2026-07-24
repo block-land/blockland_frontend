@@ -239,12 +239,6 @@ export default function TileDetailPage() {
     setActiveModal("buy");
   };
 
-  const handleMakeOffer = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!offerPrice || parseFloat(offerPrice) <= 0) return;
-    setActiveModal("offer");
-  };
-
   // Whether the connected wallet already has a pending offer on this tile.
   // A bidder may only have one pending offer at a time; after cancel/decline
   // they may offer again.
@@ -254,6 +248,15 @@ export default function TileDetailPage() {
       )
     : undefined;
   const userOwnsTile = !!tile && wallet?.address === tile.publisher.walletAddress;
+  const isOfferFormDisabled = userOwnsTile || Boolean(userPendingOffer);
+
+  const handleMakeOffer = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isOfferFormDisabled || !offerPrice || parseFloat(offerPrice) <= 0) {
+      return;
+    }
+    setActiveModal("offer");
+  };
 
   return (
     <div className="min-h-screen bg-black text-white pt-32 pb-24 font-sans">
@@ -263,9 +266,8 @@ export default function TileDetailPage() {
         <div>
           <Link
             href="/marketplace"
-            className="inline-flex items-center gap-2 text-primary transition-colors group text-sm font-medium"
+            className="text-sm text-primary"
           >
-            <RiArrowLeftSFill className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
             Back to Marketplace
           </Link>
         </div>
@@ -283,10 +285,10 @@ export default function TileDetailPage() {
               />
               <div className="absolute inset-0 bg-linear-to-t from-black via-black/20 to-transparent" />
               <div className="absolute bottom-6 left-6 right-6 flex flex-wrap gap-4 items-center justify-between">
-                <span className={`text-xs  uppercase tracking-wider px-3 py-1 rounded-xl border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}>
+                <span className={`text-xs  uppercase tracking-wider px-3 py-1 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}>
                   {tile.rarity}
                 </span>
-                <div className="flex gap-2 text-sm text-white font-mono bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-zinc-800">
+                <div className="flex gap-2 text-sm text-white font-mono backdrop-blur-md px-3 py-1.5 rounded border border-zinc-800">
                   <Grid className="h-4 w-4 text-primary shrink-0" />
                   <span>{tile.coordinates}</span>
                 </div>
@@ -339,11 +341,11 @@ export default function TileDetailPage() {
               <div className="flex flex-col gap-6 text-sm">
                 <div className="space-y-1">
                   <span className="text-zinc-500 font-mono">TILE ID</span>
-                  <p className="text-zinc-200 font-mono font-medium truncate" title={tile.id}>{tile.id}</p>
+                  <p className="text-zinc-200 font-mono  truncate" title={tile.id}>{tile.id}</p>
                 </div>
                 <div className="space-y-1">
                   <span className="text-zinc-500 font-mono">COORDINATES</span>
-                  <p className="text-zinc-200 font-mono font-medium">{tile.coordinates}</p>
+                  <p className="text-zinc-200 font-mono ">{tile.coordinates}</p>
                 </div>
               </div>
             </div>
@@ -376,36 +378,33 @@ export default function TileDetailPage() {
             {/* Offering Input Block */}
             <form onSubmit={handleMakeOffer} className="space-y-3 bg-zinc-900/40 p-5 rounded-2xl border border-zinc-900">
               <h4 className="text-xs text-zinc-400 uppercase tracking-wider font-mono">Make an Offer</h4>
-              {userOwnsTile ? (
-                <p className="text-xs text-zinc-500 py-2">
-                  You own this tile and cannot make an offer on it.
-                </p>
-              ) : userPendingOffer ? (
+              {userPendingOffer && (
                 <p className="text-xs text-zinc-500 py-2">
                   You have an active offer on this tile. Cancel it to make a new one.
                 </p>
-              ) : (
-                <div className="flex gap-2">
-                  <div className="relative flex-1 bg-black flex gap-2 h-[48px] items-center px-4 rounded-xl border border-zinc-800 focus-within:border-zinc-700">
-                    <input
-                      type="number"
-                      step="0.0001"
-                      placeholder="Offering price in SOL"
-                      value={offerPrice}
-                      onChange={(e) => setOfferPrice(e.target.value)}
-                      className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none p-0 text-[15px] font-normal text-white placeholder-zinc-650"
-                      required
-                    />
-                    <span className="text-xs font-mono text-zinc-500 shrink-0 select-none">SOL</span>
-                  </div>
-                  <button
-                    type="submit"
-                    className="bg-transparent hover:bg-zinc-800 border border-zinc-800 text-white  px-4 rounded-xl transition-all cursor-pointer text-sm shrink-0"
-                  >
-                    Offer
-                  </button>
-                </div>
               )}
+              <div className="flex gap-2">
+                <div className="relative flex-1 bg-black flex gap-2 h-[48px] items-center px-4 rounded-xl border border-zinc-800 focus-within:border-zinc-700 has-[:disabled]:opacity-50">
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Offering price in SOL"
+                    value={offerPrice}
+                    onChange={(e) => setOfferPrice(e.target.value)}
+                    disabled={isOfferFormDisabled}
+                    className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none p-0 text-[15px] font-normal text-white placeholder-zinc-650 disabled:cursor-not-allowed"
+                    required
+                  />
+                  <span className="text-xs font-mono text-zinc-500 shrink-0 select-none">SOL</span>
+                </div>
+                <button
+                  type="submit"
+                  disabled={isOfferFormDisabled}
+                  className="bg-transparent hover:bg-zinc-800 border border-zinc-800 text-white px-4 rounded-xl transition-all cursor-pointer text-sm shrink-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+                >
+                  Offer
+                </button>
+              </div>
             </form>
 
             {/* Offer List Block using ScrollArea */}
@@ -413,7 +412,7 @@ export default function TileDetailPage() {
               <h4 className="text-xs text-zinc-400 uppercase tracking-wider font-mono flex items-center gap-1.5">
                 <Tag className="h-3.5 w-3.5 text-primary" /> Active Offers ({offers.length})
               </h4>
-              <ScrollArea className="h-[140px] pr-2">
+              <ScrollArea className="h-[135px] pr-2">
                 <div className="space-y-3">
                   {offers.sort((a, b) => b.price - a.price).map((off) => (
                     <div key={off.id} className="flex items-center justify-between p-3 bg-black/45 border border-zinc-900 rounded-xl">
