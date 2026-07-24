@@ -607,7 +607,7 @@ export default function AccountPage() {
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-6 font-sans">
         <div className="flex flex-col items-center text-center space-y-4 max-w-sm px-6">
           <User className="h-16 w-16 text-zinc-700" />
-          <h1 className="text-3xl font-extrabold tracking-tight">
+          <h1 className="text-3xl tracking-tight">
             Connect Your Wallet
           </h1>
           <p className="text-zinc-550 text-sm leading-relaxed">
@@ -664,7 +664,7 @@ export default function AccountPage() {
 
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-semibold text-white">
+                <h1 className="text-2xl  text-white">
                   {profileData?.username || "Coordinate Owner"}
                 </h1>
               </div>
@@ -711,7 +711,7 @@ export default function AccountPage() {
             <span className="text-xs text-zinc-500 uppercase tracking-wider font-mono">
               Owned Tiles
             </span>
-            <div className="text-3xl font-extrabold text-white font-mono">
+            <div className="text-3xl text-white font-mono">
               {totalTilesCount} Units
             </div>
           </div>
@@ -719,7 +719,7 @@ export default function AccountPage() {
             <span className="text-xs text-zinc-500 uppercase tracking-wider font-mono">
               Blockland Balance
             </span>
-            <div className="text-3xl font-extrabold text-primary font-mono">
+            <div className="text-3xl text-primary font-mono">
               {usdcBalance !== null
                 ? `${usdcBalance.toFixed(2)} USDC`
                 : "Loading..."}
@@ -729,7 +729,7 @@ export default function AccountPage() {
             <span className="text-xs text-zinc-500 uppercase tracking-wider font-mono">
               SOL Balance
             </span>
-            <div className="text-3xl font-extrabold font-mono">
+            <div className="text-3xl font-mono">
               {solBalance !== null
                 ? `${solBalance.toFixed(4)} SOL`
                 : "Loading..."}
@@ -746,26 +746,26 @@ export default function AccountPage() {
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
               <div className="flex flex-wrap items-center gap-6">
-                <h2 className="text-2xl font-semibold flex items-center gap-2">
+                <h2 className="text-2xl  flex items-center gap-2">
                   <Grid className="h-5 w-5 text-primary" /> Owned Coordinate
                   Units
                 </h2>
                 <TabsList className="bg-zinc-900 border border-zinc-800 p-1 rounded-xl h-10">
                   <TabsTrigger
                     value="all"
-                    className="rounded-lg text-xs font-semibold px-4 py-1.5 text-zinc-400 data-[state=active]:bg-primary data-[state=active]:text-black transition-all cursor-pointer"
+                    className="rounded-lg text-xs  px-4 py-1.5 text-zinc-400 data-[state=active]:bg-primary data-[state=active]:text-black transition-all cursor-pointer"
                   >
                     All
                   </TabsTrigger>
                   <TabsTrigger
                     value="listed"
-                    className="rounded-lg text-xs font-semibold px-4 py-1.5 text-zinc-400 data-[state=active]:bg-primary data-[state=active]:text-black transition-all cursor-pointer"
+                    className="rounded-lg text-xs  px-4 py-1.5 text-zinc-400 data-[state=active]:bg-primary data-[state=active]:text-black transition-all cursor-pointer"
                   >
                     Listed for Sale
                   </TabsTrigger>
                   <TabsTrigger
                     value="myoffers"
-                    className="rounded-lg text-xs font-semibold px-4 py-1.5 text-zinc-400 data-[state=active]:bg-primary data-[state=active]:text-black transition-all cursor-pointer"
+                    className="rounded-lg text-xs  px-4 py-1.5 text-zinc-400 data-[state=active]:bg-primary data-[state=active]:text-black transition-all cursor-pointer"
                   >
                     My Offers
                   </TabsTrigger>
@@ -818,7 +818,7 @@ export default function AccountPage() {
                     <p className="text-sm">You don't own any tiles yet.</p>
                     <Link
                       href="/landmark"
-                      className="mt-4 text-primary text-sm font-semibold hover:underline"
+                      className="mt-4 text-primary text-sm  hover:underline"
                     >
                       Explore the map →
                     </Link>
@@ -841,7 +841,7 @@ export default function AccountPage() {
                           />
                           <div className="absolute inset-0 bg-linear-to-t from-zinc-955 to-transparent opacity-60" />
                           <span
-                            className={`absolute top-4 left-4 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
+                            className={`absolute top-4 left-4 text-[10px]  uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
                           >
                             {tile.rarity}
                           </span>
@@ -850,7 +850,7 @@ export default function AccountPage() {
                         {/* Details */}
                         <div className="p-6 flex-1 flex flex-col justify-between space-y-6">
                           <div className="space-y-2">
-                            <h3 className="text-xl font-semibold text-white group-hover:text-primary transition-colors">
+                            <h3 className="text-xl  text-white group-hover:text-primary transition-colors">
                               {tile.name}
                             </h3>
                             <p className="text-sm text-zinc-400 flex items-center gap-1.5 truncate">
@@ -893,13 +893,13 @@ export default function AccountPage() {
                           <div className="flex gap-2 w-full pt-2">
                             <button
                               onClick={() => handleShowDetail(tile)}
-                              className="flex-1 flex items-center justify-center gap-1.5 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 py-2.5 rounded-xl transition-all cursor-pointer font-semibold text-xs"
+                              className="flex-1 flex items-center justify-center gap-1.5 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 py-2.5 rounded-xl transition-all cursor-pointer  text-xs"
                             >
                               Detail
                             </button>
                             <button
                               onClick={() => handleSellTile(tile)}
-                              className="flex-1 flex items-center justify-center gap-1.5 bg-primary hover:bg-primary/95 text-black py-2.5 rounded-xl transition-all cursor-pointer font-semibold text-xs"
+                              className="flex-1 flex items-center justify-center gap-1.5 bg-primary hover:bg-primary/95 text-black py-2.5 rounded-xl transition-all cursor-pointer  text-xs"
                             >
                               Sell
                             </button>
@@ -919,7 +919,7 @@ export default function AccountPage() {
                                 setCurrentPage((prev) => Math.max(1, prev - 1))
                               }
                               disabled={currentPage === 1}
-                              className="flex items-center gap-1 pl-2.5 pr-3 py-2 text-sm font-semibold border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                              className="flex items-center gap-1 pl-2.5 pr-3 py-2 text-sm  border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
                             >
                               <PaginationPrevious className="pointer-events-none" />
                             </button>
@@ -948,7 +948,7 @@ export default function AccountPage() {
                                 )
                               }
                               disabled={currentPage === totalPages}
-                              className="flex items-center gap-1 pl-3 pr-2.5 py-2 text-sm font-semibold border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                              className="flex items-center gap-1 pl-3 pr-2.5 py-2 text-sm  border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
                             >
                               <PaginationNext className="pointer-events-none" />
                             </button>
@@ -1000,7 +1000,7 @@ export default function AccountPage() {
                           />
                           <div className="absolute inset-0 bg-linear-to-t from-zinc-955 to-transparent opacity-60" />
                           <span
-                            className={`absolute top-4 left-4 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
+                            className={`absolute top-4 left-4 text-[10px]  uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
                           >
                             {tile.rarity}
                           </span>
@@ -1009,7 +1009,7 @@ export default function AccountPage() {
                         {/* Details */}
                         <div className="p-6 flex-1 flex flex-col justify-between space-y-6">
                           <div className="space-y-2">
-                            <h3 className="text-xl font-semibold text-white group-hover:text-primary transition-colors">
+                            <h3 className="text-xl  text-white group-hover:text-primary transition-colors">
                               {tile.name}
                             </h3>
                             <p className="text-sm text-zinc-400 flex items-center gap-1.5 truncate">
@@ -1034,7 +1034,7 @@ export default function AccountPage() {
                               <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
                                 Sell Price
                               </div>
-                              <div className="text-base font-mono text-primary font-semibold">
+                              <div className="text-base font-mono text-primary ">
                                 {tile.purchasePrice.toFixed(5)} SOL
                               </div>
                             </div>
@@ -1078,7 +1078,7 @@ export default function AccountPage() {
                                 setCurrentPage((prev) => Math.max(1, prev - 1))
                               }
                               disabled={currentPage === 1}
-                              className="flex items-center gap-1 pl-2.5 pr-3 py-2 text-sm font-semibold border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                              className="flex items-center gap-1 pl-2.5 pr-3 py-2 text-sm  border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
                             >
                               <PaginationPrevious className="pointer-events-none" />
                             </button>
@@ -1107,7 +1107,7 @@ export default function AccountPage() {
                                 )
                               }
                               disabled={currentPage === totalPages}
-                              className="flex items-center gap-1 pl-3 pr-2.5 py-2 text-sm font-semibold border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                              className="flex items-center gap-1 pl-3 pr-2.5 py-2 text-sm  border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
                             >
                               <PaginationNext className="pointer-events-none" />
                             </button>
@@ -1160,7 +1160,7 @@ export default function AccountPage() {
                           <div className="space-y-2">
                             <div className="flex flex-wrap items-center gap-2">
                               <span
-                                className={`text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border ${getRarityBadgeColor(
+                                className={`text-[9px]  uppercase tracking-wider px-2 py-0.5 rounded border ${getRarityBadgeColor(
                                   tile.rarity,
                                 )}`}
                               >
@@ -1174,7 +1174,7 @@ export default function AccountPage() {
                                 • {tile.offerDate}
                               </span>
                             </div>
-                            <h3 className="text-lg font-semibold text-white group-hover:text-primary transition-colors">
+                            <h3 className="text-lg  text-white group-hover:text-primary transition-colors">
                               {tile.name}
                             </h3>
                             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
@@ -1200,11 +1200,11 @@ export default function AccountPage() {
                             <div className="text-[10px] text-zinc-500 uppercase tracking-wide font-mono">
                               Your Offer
                             </div>
-                            <div className="text-lg font-semibold text-primary font-mono">
+                            <div className="text-lg  text-primary font-mono">
                               {tile.offerPriceSol.toFixed(5)} SOL
                             </div>
                             <span
-                              className={`inline-block text-[9px] uppercase font-semibold tracking-wider px-1.5 py-0.5 rounded border ${
+                              className={`inline-block text-[9px] uppercase  tracking-wider px-1.5 py-0.5 rounded border ${
                                 tile.offerStatus === "accepted"
                                   ? "border-emerald-700/60 text-emerald-400"
                                   : tile.offerStatus === "declined" ||
@@ -1266,7 +1266,7 @@ export default function AccountPage() {
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-zinc-955 to-transparent opacity-60" />
                   <span
-                    className={`absolute top-3 left-3 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(selectedDetailTile.rarity)}`}
+                    className={`absolute top-3 left-3 text-[10px]  uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(selectedDetailTile.rarity)}`}
                   >
                     {selectedDetailTile.rarity}
                   </span>
@@ -1278,7 +1278,7 @@ export default function AccountPage() {
 
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-xl font-semibold text-white">
+                    <h3 className="text-xl  text-white">
                       {selectedDetailTile.name}
                     </h3>
                     <p className="text-sm text-zinc-400 flex items-center gap-1 mt-1">
@@ -1364,11 +1364,11 @@ export default function AccountPage() {
                 />
                 <div className="space-y-0.5">
                   <span
-                    className={`text-[9px] uppercase font-semibold tracking-wider px-1.5 py-0.5 rounded border ${getRarityBadgeColor(selectedOffersTile.rarity)}`}
+                    className={`text-[9px] uppercase  tracking-wider px-1.5 py-0.5 rounded border ${getRarityBadgeColor(selectedOffersTile.rarity)}`}
                   >
                     {selectedOffersTile.rarity}
                   </span>
-                  <h4 className="font-semibold text-white mt-1">
+                  <h4 className=" text-white mt-1">
                     {selectedOffersTile.name}
                   </h4>
                   <p className="text-xs text-zinc-400 flex items-center gap-1">
@@ -1425,7 +1425,7 @@ export default function AccountPage() {
                                   )}
                                 </div>
                                 <div className="min-w-0 text-left">
-                                  <p className="text-xs font-semibold text-zinc-300 truncate">
+                                  <p className="text-xs  text-zinc-300 truncate">
                                     {off.bidderUsername ||
                                       `${off.bidder.slice(0, 6)}...${off.bidder.slice(-4)}`}
                                   </p>
@@ -1436,7 +1436,7 @@ export default function AccountPage() {
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
                                 <span
-                                  className={`text-[9px] uppercase font-semibold tracking-wider px-1.5 py-0.5 rounded border ${
+                                  className={`text-[9px] uppercase  tracking-wider px-1.5 py-0.5 rounded border ${
                                     offerStatus === "accepted"
                                       ? "border-emerald-700/60 text-emerald-400"
                                       : offerStatus === "declined"
@@ -1446,7 +1446,7 @@ export default function AccountPage() {
                                 >
                                   {offerStatus}
                                 </span>
-                                <span className="text-xs font-semibold text-primary font-mono">
+                                <span className="text-xs  text-primary font-mono">
                                   {lamportsToSol(
                                     Number(off.priceLamports),
                                   ).toFixed(5)}{" "}
@@ -1491,7 +1491,7 @@ export default function AccountPage() {
                             ) : (
                               <p className="text-[11px] text-zinc-500 pt-2">
                                 This offer has been{" "}
-                                <span className="font-semibold">
+                                <span className="">
                                   {offerStatus}
                                 </span>
                                 .
@@ -1545,11 +1545,11 @@ export default function AccountPage() {
                 />
                 <div className="space-y-0.5">
                   <span
-                    className={`text-[9px] uppercase font-semibold tracking-wider px-1.5 py-0.5 rounded border ${getRarityBadgeColor(sellingTile.rarity)}`}
+                    className={`text-[9px] uppercase  tracking-wider px-1.5 py-0.5 rounded border ${getRarityBadgeColor(sellingTile.rarity)}`}
                   >
                     {sellingTile.rarity}
                   </span>
-                  <h4 className="font-semibold text-white mt-1">
+                  <h4 className=" text-white mt-1">
                     {sellingTile.name}
                   </h4>
                   <p className="text-xs text-zinc-400 flex items-center gap-1">
@@ -1596,13 +1596,13 @@ export default function AccountPage() {
                     <button
                       type="button"
                       onClick={() => setSellingTile(null)}
-                      className="flex-1 border border-zinc-800 hover:bg-zinc-900 font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm"
+                      className="flex-1 border border-zinc-800 hover:bg-zinc-900  py-3 rounded-xl transition-all cursor-pointer text-sm"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      className="flex-1 bg-primary hover:bg-primary/95 text-black font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm"
+                      className="flex-1 bg-primary hover:bg-primary/95 text-black  py-3 rounded-xl transition-all cursor-pointer text-sm"
                     >
                       List Item
                     </button>
@@ -1622,7 +1622,7 @@ export default function AccountPage() {
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm">
                       <span>Listing Price</span>
-                      <span className="font-semibold text-primary">
+                      <span className=" text-primary">
                         {sellPriceInput} SOL
                       </span>
                     </div>
@@ -1637,7 +1637,7 @@ export default function AccountPage() {
                       type="button"
                       disabled={sellLoading}
                       onClick={() => setSellStatus("idle")}
-                      className="flex-1 border border-zinc-800 hover:bg-zinc-900 font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm disabled:opacity-50"
+                      className="flex-1 border border-zinc-800 hover:bg-zinc-900  py-3 rounded-xl transition-all cursor-pointer text-sm disabled:opacity-50"
                     >
                       Back
                     </button>
@@ -1717,7 +1717,7 @@ export default function AccountPage() {
                           setSellLoading(false);
                         }
                       }}
-                      className="flex-1 bg-primary hover:bg-primary/95 text-black font-semibold py-3 rounded-xl transition-all cursor-pointer text-sm disabled:opacity-50 flex items-center justify-center gap-1.5"
+                      className="flex-1 bg-primary hover:bg-primary/95 text-black  py-3 rounded-xl transition-all cursor-pointer text-sm disabled:opacity-50 flex items-center justify-center gap-1.5"
                     >
                       {sellLoading && (
                         <Loader2 className="h-4 w-full animate-spin text-black" />
@@ -1735,7 +1735,7 @@ export default function AccountPage() {
                     ✓
                   </div>
                   <div>
-                    <h4 className="font-semibold text-white text-lg">
+                    <h4 className=" text-white text-lg">
                       Tile Listed!
                     </h4>
                     <p className="text-sm text-zinc-400 mt-1">
