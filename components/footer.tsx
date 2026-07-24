@@ -8,7 +8,7 @@ const CustomButton = withCustomButton("button");
 
 export default function Footer() {
   return (
-    <footer className="w-full bg-black border-t border-zinc-900 text-white font-sans">
+    <footer className="w-full bg-black border-t border-zinc-900 text-white font-sans px-4 md:px-0">
       <div className="mx-auto container pt-16 pb-12 flex flex-col gap-12">
         {/* Newsletter Section */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8 pb-12 border-b border-zinc-900">

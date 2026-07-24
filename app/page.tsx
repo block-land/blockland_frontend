@@ -68,9 +68,9 @@ export default function Home() {
               </ButtonCustom>
             </div>
 
-            <div className="flex flex-col md:flex-row justify-between gap-4 items-end">
+            <div className="flex flex-col md:flex-row justify-between gap-4 items-center md:items-end">
               <div className="space-y-2">
-                <p>Built On</p>
+                <p className="text-center md:text-start">Built On</p>
                 <img
                   src="/img/solana.svg"
                   className="w-[150px] grayscale-100"
@@ -87,21 +87,21 @@ export default function Home() {
           </div>
         </div>
       </section>
-      <section className="py-20 container mx-auto grid grid-cols-4 divide-x">
-        <div>
-          <h4 className="text-3xl !text-primary">1 Country</h4>
+      <section className="py-20 container mx-auto gap-4 md:gap-0 grid grid-cols-2 md:grid-cols-4 divide-x-0 md:divide-x">
+        <div className="pb-4 md:pb-0 pl-2 md:pl-0">
+          <h4 className="text-2xl md:text-3xl !text-primary">1 Country</h4>
           <p>USA Genesis</p>
         </div>
-        <div className="pl-10">
-          <h4 className="text-3xl !text-primary">1 Billion</h4>
+        <div className="pb-4 md:pb-0 pl-2 md:pl-10">
+          <h4 className="text-2xl md:text-3xl !text-primary">1 Billion</h4>
           <p>Coordinate Units, Total Supply</p>
         </div>
-        <div className="pl-10">
-          <h4 className="text-3xl !text-primary">23,751</h4>
+        <div className="pb-4 md:pb-0 pl-2 md:pl-10">
+          <h4 className="text-2xl md:text-3xl !text-primary">23,751</h4>
           <p>Owners On-chain</p>
         </div>
-        <div className="pl-10">
-          <h4 className="text-3xl !text-primary">142, 892</h4>
+        <div className="pb-4 md:pb-0 pl-2 md:pl-10">
+          <h4 className="text-2xl md:text-3xl !text-primary">142, 892</h4>
           <p>Units Sold In Usdc</p>
         </div>
       </section>
@@ -110,7 +110,7 @@ export default function Home() {
         <div className="absolute inset-0 flex justify-center items-center">
           <div className="flex flex-col items-center gap-2 text-white" onClick={handleWatchVision}>
             <div className="border p-4 rounded-full !border-white">
-              <IconPlay className="text-6xl" />
+              <IconPlay className="text-3xl md:text-6xl" />
             </div>
             <p>Play Vision</p>
           </div>
@@ -123,7 +123,7 @@ export default function Home() {
             <div className="text-primary text-sm font-semibold tracking-widest uppercase">
               Interactive Map
             </div>
-            <h2 className="text-5xl">
+            <h2 className="text-3xl md:text-5xl">
               Explore. Own.
               <br />
               Every Coordinate.
@@ -152,7 +152,7 @@ export default function Home() {
           <h4 className="text-primary text-sm font-semibold tracking-widest uppercase text-center pb-10">
             How ownership works
           </h4>
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-24">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-24">
             <div className="space-y-3">
               <div className="bg-primary/20 h-[10vh] w-[10vh] flex items-center justify-center">
                 <IconGrid className="text-4xl text-primary" />

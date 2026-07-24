@@ -133,7 +133,6 @@ a {
   position: absolute;
   height: 2px;
   width: calc(100vw - 48px);
-  /* left: 24px; */
   top: 9.4rem;
   @apply bg-linear-to-r from-primary to-primary/0;
 }
