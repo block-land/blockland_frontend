@@ -3,7 +3,6 @@ import WalletButton from "./wallet-button";
 import { MessageSquare } from "lucide-react";
 
 const navItems = [
-  { label: "About us", href: "/about" },
   { label: "Landmark", href: "/landmark" },
   { label: "Marketplace", href: "/marketplace" },
   { label: "News", href: "/news" },

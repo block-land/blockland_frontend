@@ -2,7 +2,16 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Search, MapPin, Grid, List, Tag, SlidersHorizontal, ArrowUpDown, Loader2 } from "lucide-react";
+import {
+  Search,
+  MapPin,
+  Grid,
+  List,
+  Tag,
+  SlidersHorizontal,
+  ArrowUpDown,
+  Loader2,
+} from "lucide-react";
 import { withCustomButton } from "@/components/custom/button_custom";
 import { getRarityBadgeColor } from "@/lib/tiles";
 import { lamportsToSol } from "@/lib/solana/mint";
@@ -15,6 +24,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { RiExpandUpDownFill } from "react-icons/ri";
 
 const LinkCustom = withCustomButton(Link);
 
@@ -48,7 +58,9 @@ function buildStaticMapUrl(lng: number, lat: number): string {
 export default function Marketplace() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRarity, setSelectedRarity] = useState<string>("All");
-  const [sortBy, setSortBy] = useState<"price-asc" | "price-desc">("price-desc");
+  const [sortBy, setSortBy] = useState<"price-asc" | "price-desc">(
+    "price-desc",
+  );
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 6;
@@ -70,90 +82,107 @@ export default function Marketplace() {
     setCurrentPage(1);
   }, [debouncedSearchQuery, selectedRarity, sortBy]);
 
-  const loadTiles = useCallback(async (page: number, searchVal: string, rarityVal: string, sortVal: string) => {
-    setLoading(true);
-    try {
-      const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
-      const offset = (page - 1) * ITEMS_PER_PAGE;
-      const searchParam = searchVal.trim() ? `&search=${encodeURIComponent(searchVal.trim())}` : "";
-      const rarityParam = rarityVal !== "All" ? `&rarity=${rarityVal}` : "";
-      const sortParam = `&sort=${sortVal}`;
+  const loadTiles = useCallback(
+    async (
+      page: number,
+      searchVal: string,
+      rarityVal: string,
+      sortVal: string,
+    ) => {
+      setLoading(true);
+      try {
+        const BACKEND_URL =
+          process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+        const offset = (page - 1) * ITEMS_PER_PAGE;
+        const searchParam = searchVal.trim()
+          ? `&search=${encodeURIComponent(searchVal.trim())}`
+          : "";
+        const rarityParam = rarityVal !== "All" ? `&rarity=${rarityVal}` : "";
+        const sortParam = `&sort=${sortVal}`;
 
-      const res = await fetch(
-        `${BACKEND_URL}/api/tiles?limit=${ITEMS_PER_PAGE}&offset=${offset}${searchParam}${rarityParam}${sortParam}&status=listed`
-      );
-      const data = await res.json();
-
-      if (data.ok && Array.isArray(data.tiles)) {
-        const mapped = data.tiles.map((t: any) => {
-          const lat = parseFloat(t.lat);
-          const lng = parseFloat(t.lng);
-          const lamports = t.listingPriceLamports ? Number(t.listingPriceLamports) : 0;
-          const createdAt = t.listedAt ? new Date(t.listedAt) : new Date();
-
-          return {
-            id: t.id,
-            assetId: t.assetId,
-            h3Cell: t.h3Cell,
-            name: `BLT ${lat.toFixed(3)},${lng.toFixed(3)}`,
-            location: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
-            coordinates: `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`,
-            rarity: (t.rarity as TileItem["rarity"]) || "Common",
-            imageUrl: buildStaticMapUrl(lng, lat),
-            price: lamportsToSol(lamports),
-            date: createdAt.toLocaleDateString("en-US", {
-              month: "short",
-              day: "2-digit",
-              year: "numeric",
-            }),
-            publisher: {
-              name: t.publisherUsername || "Anonymous",
-              walletAddress: t.owner,
-              avatar: t.publisherPhotoUrl || "",
-            },
-            rawLat: lat,
-            rawLng: lng,
-          };
-        });
-
-        // Enrich the tiles with place names using reverse geocoding from Mapbox Places
-        const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-        const enriched = await Promise.all(
-          mapped.map(async (tile: any) => {
-            try {
-              const geoRes = await fetch(
-                `https://api.mapbox.com/geocoding/v5/mapbox.places/${tile.rawLng},${tile.rawLat}.json?access_token=${token}&country=us&limit=1`
-              );
-              const geoData = await geoRes.json();
-              const placeName = geoData.features?.[0]?.place_name;
-              return placeName
-                ? {
-                    ...tile,
-                    location: placeName,
-                    name: placeName.split(",")[0],
-                  }
-                : tile;
-            } catch (err) {
-              console.error("Geocoding failed for marketplace tile:", tile.id, err);
-              return tile;
-            }
-          })
+        const res = await fetch(
+          `${BACKEND_URL}/api/tiles?limit=${ITEMS_PER_PAGE}&offset=${offset}${searchParam}${rarityParam}${sortParam}&status=listed`,
         );
+        const data = await res.json();
 
-        setTiles(enriched);
-        setTotalTilesCount(data.total ?? enriched.length);
-      } else {
+        if (data.ok && Array.isArray(data.tiles)) {
+          const mapped = data.tiles.map((t: any) => {
+            const lat = parseFloat(t.lat);
+            const lng = parseFloat(t.lng);
+            const lamports = t.listingPriceLamports
+              ? Number(t.listingPriceLamports)
+              : 0;
+            const createdAt = t.listedAt ? new Date(t.listedAt) : new Date();
+
+            return {
+              id: t.id,
+              assetId: t.assetId,
+              h3Cell: t.h3Cell,
+              name: `BLT ${lat.toFixed(3)},${lng.toFixed(3)}`,
+              location: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+              coordinates: `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`,
+              rarity: (t.rarity as TileItem["rarity"]) || "Common",
+              imageUrl: buildStaticMapUrl(lng, lat),
+              price: lamportsToSol(lamports),
+              date: createdAt.toLocaleDateString("en-US", {
+                month: "short",
+                day: "2-digit",
+                year: "numeric",
+              }),
+              publisher: {
+                name: t.publisherUsername || "Anonymous",
+                walletAddress: t.owner,
+                avatar: t.publisherPhotoUrl || "",
+              },
+              rawLat: lat,
+              rawLng: lng,
+            };
+          });
+
+          // Enrich the tiles with place names using reverse geocoding from Mapbox Places
+          const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+          const enriched = await Promise.all(
+            mapped.map(async (tile: any) => {
+              try {
+                const geoRes = await fetch(
+                  `https://api.mapbox.com/geocoding/v5/mapbox.places/${tile.rawLng},${tile.rawLat}.json?access_token=${token}&country=us&limit=1`,
+                );
+                const geoData = await geoRes.json();
+                const placeName = geoData.features?.[0]?.place_name;
+                return placeName
+                  ? {
+                      ...tile,
+                      location: placeName,
+                      name: placeName.split(",")[0],
+                    }
+                  : tile;
+              } catch (err) {
+                console.error(
+                  "Geocoding failed for marketplace tile:",
+                  tile.id,
+                  err,
+                );
+                return tile;
+              }
+            }),
+          );
+
+          setTiles(enriched);
+          setTotalTilesCount(data.total ?? enriched.length);
+        } else {
+          setTiles([]);
+          setTotalTilesCount(0);
+        }
+      } catch (err) {
+        console.error("Failed to load marketplace tiles:", err);
         setTiles([]);
         setTotalTilesCount(0);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Failed to load marketplace tiles:", err);
-      setTiles([]);
-      setTotalTilesCount(0);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    [],
+  );
 
   useEffect(() => {
     loadTiles(currentPage, debouncedSearchQuery, selectedRarity, sortBy);
@@ -177,17 +206,17 @@ export default function Marketplace() {
   return (
     <div className="min-h-screen bg-black text-white pt-32 pb-24 font-sans">
       <div className="mx-auto max-w-[1440px] px-6 sm:px-10 lg:px-[68px] space-y-12">
-        
         {/* Marketplace Header */}
         <div className="space-y-4 max-w-2xl">
-          <span className="text-primary text-sm font-semibold tracking-widest uppercase">
+          <div className="text-primary text-sm  tracking-widest uppercase">
             Blockland Marketplace
-          </span>
-          <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight text-white">
+          </div>
+          <h1 className="text-4xl sm:text-5xl tracking-tight text-white">
             Coordinate Unit <span className="text-primary">Marketplace</span>
           </h1>
           <p className="text-zinc-400 text-lg leading-relaxed">
-            Discover, buy, and trade unique grid coordinate tiles. Own a piece of the world economy built on Solana.
+            Discover, buy, and trade unique grid coordinate tiles. Own a piece
+            of the world economy built on Solana.
           </p>
         </div>
 
@@ -214,11 +243,21 @@ export default function Marketplace() {
                 onChange={(e) => handleRarityChange(e.target.value)}
                 className="bg-transparent border-none outline-none focus:ring-0 text-[15px] text-zinc-300 font-medium cursor-pointer py-1"
               >
-                <option value="All" className="bg-zinc-950 text-white">All Rarity</option>
-                <option value="Legendary" className="bg-zinc-950 text-white">Legendary</option>
-                <option value="Epic" className="bg-zinc-950 text-white">Epic</option>
-                <option value="Rare" className="bg-zinc-950 text-white">Rare</option>
-                <option value="Common" className="bg-zinc-950 text-white">Common</option>
+                <option value="All" className="bg-zinc-950 text-white">
+                  All Rarity
+                </option>
+                <option value="Legendary" className="bg-zinc-950 text-white">
+                  Legendary
+                </option>
+                <option value="Epic" className="bg-zinc-950 text-white">
+                  Epic
+                </option>
+                <option value="Rare" className="bg-zinc-950 text-white">
+                  Rare
+                </option>
+                <option value="Common" className="bg-zinc-950 text-white">
+                  Common
+                </option>
               </select>
             </div>
           </div>
@@ -254,14 +293,18 @@ export default function Marketplace() {
             </div>
 
             <div className="flex gap-2 items-center bg-zinc-950 px-4 h-[48px] rounded-xl border border-zinc-800">
-              <ArrowUpDown className="h-4 w-4 text-zinc-500" />
+              <RiExpandUpDownFill className="h-4 w-4 text-zinc-500" />
               <select
                 value={sortBy}
                 onChange={(e) => handleSortChange(e.target.value as any)}
                 className="bg-transparent border-none outline-none focus:ring-0 text-[15px] text-zinc-300 font-medium cursor-pointer py-1"
               >
-                <option value="price-desc" className="bg-zinc-950 text-white">Price: High to Low</option>
-                <option value="price-asc" className="bg-zinc-950 text-white">Price: Low to High</option>
+                <option value="price-desc" className="bg-zinc-950 text-white">
+                  Price: High to Low
+                </option>
+                <option value="price-asc" className="bg-zinc-950 text-white">
+                  Price: Low to High
+                </option>
               </select>
             </div>
           </div>
@@ -290,7 +333,9 @@ export default function Marketplace() {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                       <div className="absolute inset-0 bg-linear-to-t from-zinc-950 to-transparent opacity-60" />
-                      <span className={`absolute top-4 left-4 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}>
+                      <span
+                        className={`absolute top-4 left-4 text-[10px]  uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
+                      >
                         {tile.rarity}
                       </span>
                       <div className="absolute bottom-4 left-4 flex gap-1 items-center text-zinc-300 text-xs font-mono">
@@ -303,7 +348,7 @@ export default function Marketplace() {
                     <div className="p-6 flex-1 flex flex-col justify-between space-y-6">
                       <div className="space-y-4">
                         <div className="space-y-2">
-                          <h3 className="text-xl font-semibold text-white group-hover:text-primary transition-colors">
+                          <h3 className="text-xl text-white group-hover:text-primary transition-colors">
                             {tile.name}
                           </h3>
                           <p className="text-sm text-zinc-400 flex items-center gap-1.5">
@@ -324,18 +369,32 @@ export default function Marketplace() {
                                 />
                               ) : (
                                 <Avatar
-                                  colors={["#f5e1a4", "#d9d593", "#ee7f27", "#bc162a", "#302325"]}
+                                  colors={[
+                                    "#f5e1a4",
+                                    "#d9d593",
+                                    "#ee7f27",
+                                    "#bc162a",
+                                    "#302325",
+                                  ]}
                                   variant="pixel"
                                   size={24}
                                 />
                               )}
                             </div>
                             <div className="flex flex-col min-w-0">
-                              <span className="font-semibold text-zinc-300 truncate">{tile.publisher.name}</span>
-                              <span className="text-[10px] text-zinc-550 font-mono truncate">{tile.publisher.walletAddress ? `${tile.publisher.walletAddress.slice(0, 4)}...${tile.publisher.walletAddress.slice(-4)}` : ""}</span>
+                              <span className=" text-zinc-300 truncate">
+                                {tile.publisher.name}
+                              </span>
+                              <span className="text-[10px] text-zinc-550 font-mono truncate">
+                                {tile.publisher.walletAddress
+                                  ? `${tile.publisher.walletAddress.slice(0, 4)}...${tile.publisher.walletAddress.slice(-4)}`
+                                  : ""}
+                              </span>
                             </div>
                           </div>
-                          <span className="text-[10px] text-zinc-555 font-mono">{tile.date}</span>
+                          <span className="text-[10px] text-zinc-555 font-mono">
+                            {tile.date}
+                          </span>
                         </div>
                       </div>
 
@@ -344,13 +403,16 @@ export default function Marketplace() {
                           <div className="text-xs text-zinc-500 uppercase tracking-wide font-mono">
                             Price
                           </div>
-                          <div className="text-lg font-semibold text-primary font-mono">
+                          <div className="text-lg  text-primary font-mono">
                             {tile.price.toFixed(5)} SOL
                           </div>
                         </div>
 
                         <div className="flex gap-2">
-                          <LinkCustom href={`/marketplace/${tile.id}`} variant="outline">
+                          <LinkCustom
+                            href={`/marketplace/${tile.id}`}
+                            variant="outline"
+                          >
                             Detail
                           </LinkCustom>
                         </div>
@@ -378,23 +440,23 @@ export default function Marketplace() {
                       {/* Details */}
                       <div className="space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className={`text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}>
+                          <span
+                            className={`text-[9px]  uppercase tracking-wider px-2 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}
+                          >
                             {tile.rarity}
                           </span>
                           <span className="text-[11px] text-zinc-555 font-mono flex items-center gap-1">
                             <Grid className="h-3 w-3" />
                             {tile.coordinates}
                           </span>
-                          <span className="text-[10px] text-zinc-555 font-mono">• {tile.date}</span>
+                          <span className="text-[10px] text-zinc-555 font-mono">
+                            • {tile.date}
+                          </span>
                         </div>
-                        <h3 className="text-lg font-semibold text-white group-hover:text-primary transition-colors">
+                        <h3 className="text-lg text-white group-hover:text-primary transition-colors">
                           {tile.name}
                         </h3>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                          <p className="text-xs text-zinc-400 flex items-center gap-1">
-                            <MapPin className="h-3.5 w-3.5 text-zinc-550" />
-                            {tile.location}
-                          </p>
                           <div className="flex items-center gap-1.5 text-xs text-zinc-400">
                             <div className="w-4 h-4 rounded-full overflow-hidden border border-zinc-850 shrink-0">
                               {tile.publisher.avatar ? (
@@ -405,16 +467,29 @@ export default function Marketplace() {
                                 />
                               ) : (
                                 <Avatar
-                                  colors={["#f5e1a4", "#d9d593", "#ee7f27", "#bc162a", "#302325"]}
+                                  colors={[
+                                    "#f5e1a4",
+                                    "#d9d593",
+                                    "#ee7f27",
+                                    "#bc162a",
+                                    "#302325",
+                                  ]}
                                   variant="pixel"
                                   size={16}
                                 />
                               )}
                             </div>
                             <span>
-                              Publisher: <span className="font-semibold text-zinc-300">{tile.publisher.name}</span>
+                              Publisher:{" "}
+                              <span className=" text-zinc-300">
+                                {tile.publisher.name}
+                              </span>
                             </span>
                           </div>
+                          <p className="text-xs text-zinc-400 flex items-center gap-1">
+                            <MapPin className="h-3.5 w-3.5 text-zinc-550" />
+                            {tile.location}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -425,12 +500,15 @@ export default function Marketplace() {
                         <div className="text-[10px] text-zinc-500 uppercase tracking-wide font-mono">
                           Price
                         </div>
-                        <div className="text-lg font-semibold text-primary font-mono">
+                        <div className="text-lg  text-primary font-mono">
                           {tile.price.toFixed(5)} SOL
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <LinkCustom href={`/marketplace/${tile.id}`} variant="outline">
+                        <LinkCustom
+                          href={`/marketplace/${tile.id}`}
+                          variant="outline"
+                        >
                           Detail
                         </LinkCustom>
                       </div>
@@ -447,14 +525,16 @@ export default function Marketplace() {
                   <PaginationContent>
                     <PaginationItem>
                       <button
-                        onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                        onClick={() =>
+                          setCurrentPage((prev) => Math.max(1, prev - 1))
+                        }
                         disabled={currentPage === 1}
-                        className="flex items-center gap-1 pl-2.5 pr-3 py-2 text-sm font-semibold border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                        className="flex items-center gap-1 pl-2.5 pr-3 py-2 text-sm  border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
                       >
                         <PaginationPrevious className="pointer-events-none" />
                       </button>
                     </PaginationItem>
-                    
+
                     {Array.from({ length: totalPages }).map((_, idx) => (
                       <PaginationItem key={idx}>
                         <PaginationLink
@@ -472,9 +552,13 @@ export default function Marketplace() {
 
                     <PaginationItem>
                       <button
-                        onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                        onClick={() =>
+                          setCurrentPage((prev) =>
+                            Math.min(totalPages, prev + 1),
+                          )
+                        }
                         disabled={currentPage === totalPages}
-                        className="flex items-center gap-1 pl-3 pr-2.5 py-2 text-sm font-semibold border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                        className="flex items-center gap-1 pl-3 pr-2.5 py-2 text-sm  border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
                       >
                         <PaginationNext className="pointer-events-none" />
                       </button>
@@ -487,9 +571,10 @@ export default function Marketplace() {
         ) : (
           <div className="text-center py-20 border border-dashed border-zinc-800 rounded-2xl space-y-4">
             <div className="text-4xl">🗺️</div>
-            <h3 className="font-semibold text-lg text-white">No tiles found</h3>
+            <h3 className=" text-lg text-white">No tiles found</h3>
             <p className="text-zinc-500 text-sm max-w-sm mx-auto">
-              We couldn't find any listings matching your search or filters. Try adjusting them.
+              We couldn't find any listings matching your search or filters. Try
+              adjusting them.
             </p>
           </div>
         )}

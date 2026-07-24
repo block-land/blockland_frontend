@@ -1138,109 +1138,100 @@ export default function AccountPage() {
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="flex flex-col gap-4">
                   {myOffers.map((tile) => {
                     const isPending = tile.offerStatus === "pending";
                     const isCancelling = cancellingOfferId === tile.offerId;
                     return (
                       <div
                         key={tile.offerId}
-                        className="bg-zinc-950 border border-zinc-900 rounded-2xl overflow-hidden hover:border-zinc-800 transition-all hover:scale-[1.01] flex flex-col group"
+                        className="bg-zinc-950 border border-zinc-900 rounded-2xl overflow-hidden hover:border-zinc-800 transition-all p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 group"
                       >
-                        <div className="relative aspect-video overflow-hidden">
-                          <img
-                            src={tile.imageUrl}
-                            alt={tile.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-                          <div className="absolute inset-0 bg-linear-to-t from-zinc-950 to-transparent opacity-60" />
-                          <span
-                            className={`absolute top-4 left-4 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(
-                              tile.rarity,
-                            )}`}
-                          >
-                            {tile.rarity}
-                          </span>
-                          <div className="absolute bottom-4 left-4 flex gap-1 items-center text-zinc-300 text-xs font-mono">
-                            <Grid className="h-3.5 w-3.5 text-primary" />
-                            <span>{tile.coordinates}</span>
+                        <div className="flex items-center gap-4 flex-1">
+                          {/* Thumbnail */}
+                          <div className="relative w-24 h-24 rounded-xl overflow-hidden shrink-0 hidden sm:block">
+                            <img
+                              src={tile.imageUrl}
+                              alt={tile.name}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
                           </div>
-                        </div>
-
-                        <div className="p-6 flex-1 flex flex-col justify-between space-y-6">
-                          <div className="space-y-4">
-                            <div className="space-y-2">
-                              <h3 className="text-xl font-semibold text-white group-hover:text-primary transition-colors">
-                                {tile.name}
-                              </h3>
-                              <p className="text-sm text-zinc-400 flex items-center gap-1.5">
-                                <MapPin className="h-4 w-4 text-zinc-550" />
+                          {/* Details */}
+                          <div className="space-y-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span
+                                className={`text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border ${getRarityBadgeColor(
+                                  tile.rarity,
+                                )}`}
+                              >
+                                {tile.rarity}
+                              </span>
+                              <span className="text-[11px] text-zinc-555 font-mono flex items-center gap-1">
+                                <Grid className="h-3 w-3" />
+                                {tile.coordinates}
+                              </span>
+                              <span className="text-[10px] text-zinc-555 font-mono">
+                                • {tile.offerDate}
+                              </span>
+                            </div>
+                            <h3 className="text-lg font-semibold text-white group-hover:text-primary transition-colors">
+                              {tile.name}
+                            </h3>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                              <p className="text-xs text-zinc-400 flex items-center gap-1">
+                                <MapPin className="h-3.5 w-3.5 text-zinc-550" />
                                 {tile.location}
                               </p>
-                            </div>
-
-                            <div className="flex items-center justify-between text-xs border-t border-b border-zinc-900/50 py-3">
-                              <div className="space-y-0.5">
-                                <div className="text-[10px] text-zinc-500 uppercase tracking-wide font-mono">
-                                  Your Offer
-                                </div>
-                                <div className="text-lg font-semibold text-primary font-mono">
-                                  {tile.offerPriceSol.toFixed(5)} SOL
-                                </div>
-                              </div>
-                              <div className="text-right space-y-0.5">
-                                <div className="text-[10px] text-zinc-500 uppercase tracking-wide font-mono">
-                                  Status
-                                </div>
-                                <span
-                                  className={`inline-block text-[9px] uppercase font-semibold tracking-wider px-1.5 py-0.5 rounded border ${
-                                    tile.offerStatus === "accepted"
-                                      ? "border-emerald-700/60 text-emerald-400"
-                                      : tile.offerStatus === "declined" ||
-                                          tile.offerStatus === "cancelled"
-                                        ? "border-zinc-700 text-zinc-500"
-                                        : "border-amber-700/60 text-amber-400"
-                                  }`}
-                                >
-                                  {tile.offerStatus}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="flex justify-between text-[11px] text-zinc-500">
-                              <span>
+                              <span className="text-xs text-zinc-500">
                                 Seller:{" "}
-                                <span className="text-zinc-400 font-mono">
+                                <span className="font-mono text-zinc-400">
                                   {tile.seller
                                     ? `${tile.seller.slice(0, 6)}...${tile.seller.slice(-4)}`
                                     : "—"}
                                 </span>
                               </span>
-                              <span>{tile.offerDate}</span>
                             </div>
                           </div>
+                        </div>
 
-                          <div className="grid grid-cols-2 gap-2 w-full pt-2">
-                            <Button variant={"outline"} disabled>
-                              Detail
-                            </Button>
-                            {isPending ? (
-                              <Button
-                                disabled={isCancelling}
-                                onClick={() => handleCancelMyOffer(tile)}
-                                className="gap-1.5"
-                              >
-                                {isCancelling && (
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                )}
-                                Decline
-                              </Button>
-                            ) : (
-                              <Button disabled variant={"outline"}>
-                                {tile.offerStatus}
-                              </Button>
-                            )}
+                        {/* Actions */}
+                        <div className="flex items-center justify-between md:justify-end gap-6 pt-4 md:pt-0 border-t md:border-t-0 border-zinc-900">
+                          <div className="text-left md:text-right space-y-1">
+                            <div className="text-[10px] text-zinc-500 uppercase tracking-wide font-mono">
+                              Your Offer
+                            </div>
+                            <div className="text-lg font-semibold text-primary font-mono">
+                              {tile.offerPriceSol.toFixed(5)} SOL
+                            </div>
+                            <span
+                              className={`inline-block text-[9px] uppercase font-semibold tracking-wider px-1.5 py-0.5 rounded border ${
+                                tile.offerStatus === "accepted"
+                                  ? "border-emerald-700/60 text-emerald-400"
+                                  : tile.offerStatus === "declined" ||
+                                      tile.offerStatus === "cancelled"
+                                    ? "border-zinc-700 text-zinc-500"
+                                    : "border-amber-700/60 text-amber-400"
+                              }`}
+                            >
+                              {tile.offerStatus}
+                            </span>
                           </div>
+                          {isPending ? (
+                            <Button
+                              disabled={isCancelling}
+                              onClick={() => handleCancelMyOffer(tile)}
+                              className="gap-1.5"
+                            >
+                              {isCancelling && (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              )}
+                              Decline
+                            </Button>
+                          ) : (
+                            <Button disabled variant={"outline"}>
+                              {tile.offerStatus}
+                            </Button>
+                          )}
                         </div>
                       </div>
                     );

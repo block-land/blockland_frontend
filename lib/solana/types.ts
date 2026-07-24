@@ -28,6 +28,8 @@ export interface MintTileRequest {
   imageBase64: string;
   /** Rarity tier. */
   rarity: "Legendary" | "Epic" | "Rare" | "Common";
+  /** Human-readable place name (reverse-geocoded once at purchase). */
+  placeName?: string;
 }
 
 export interface MintTileResponse {

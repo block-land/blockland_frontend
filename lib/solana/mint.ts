@@ -83,8 +83,41 @@ export async function captureMapSnapshot(
 }
 
 /**
- * Capture thumbnails for many tiles in parallel.
+ * Reverse-geocode a coordinate once via the Mapbox API to get a human-readable
+ * place name. Used at mint time so the result can be stored in the DB — this
+ * avoids re-geocoding the same tile on every "Your Landmarks" view.
  *
+ * Returns the place name, or null on failure (the caller falls back to coords).
+ */
+export async function reverseGeocodePlaceName(
+  lat: number,
+  lng: number
+): Promise<string | null> {
+  const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+  try {
+    const res = await fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${token}&country=us&limit=1`,
+    );
+    const data = await res.json();
+    return data.features?.[0]?.place_name ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Reverse-geocode many coordinates in parallel.
+ */
+export async function reverseGeocodePlaceNamesBatch(
+  tiles: Array<{ lat: number; lng: number }>
+): Promise<(string | null)[]> {
+  return Promise.all(
+    tiles.map((t) => reverseGeocodePlaceName(t.lat, t.lng)),
+  );
+}
+
+/**
+ * Capture thumbnails for many tiles in parallel.
  * `getCells` are resolved to {lat,lng} centers before fetching. Each thumbnail
  * is an independent Mapbox Static API call, so they all run concurrently —
  * 7 tiles take roughly the same time as 1.

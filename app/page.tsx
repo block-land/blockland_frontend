@@ -53,7 +53,7 @@ export default function Home() {
         {/* Hero Content */}
         <div className="absolute inset-0 flex flex-col items-center justify-center px-6 z-20 top-0">
           <div className="container space-y-8">
-            <h1 className="max-w-lg text-4xl tracking-tight sm:text-6xl text-white">
+            <h1 className="max-w-xl text-4xl tracking-tight sm:text-6xl text-white">
               The world first{" "}
               <span className="text-primary">coordinate economy</span>
             </h1>

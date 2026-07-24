@@ -52,6 +52,7 @@ import {
   lamportsToSol,
   mintTile,
   captureMapSnapshotsBatch,
+  reverseGeocodePlaceNamesBatch,
   getWalletBalance,
   type TilePrice,
 } from "@/lib/solana/mint";
@@ -80,6 +81,7 @@ interface Landmark {
   location: string;
   coordinates: [number, number];
   thumbnail?: string | null;
+  fallbackThumbnail?: string | null;
   purchaseDate?: string | null;
   priceSol?: number | null;
 }
@@ -92,6 +94,52 @@ function buildStaticMapUrl(lng: number, lat: number): string {
   const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
   return `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/${lng},${lat},14,0,0/80x80@2x?access_token=${token}`;
 }
+
+/**
+ * Older Irys uploads were stored with an Arweave gateway URL even though their
+ * transaction IDs are served by Irys. Normalize those rows when they are read.
+ */
+function normalizeThumbnailUrl(imageUri: unknown): string | null {
+  if (typeof imageUri !== "string" || !imageUri.trim()) return null;
+
+  try {
+    const url = new URL(imageUri.trim());
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    if (url.hostname === "arweave.net" || url.hostname === "www.arweave.net") {
+      url.protocol = "https:";
+      url.hostname = "gateway.irys.xyz";
+      url.port = "";
+    }
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function selectedTilesGeoJSON(cells: string[]) {
+  return {
+    type: "FeatureCollection" as const,
+    features: cells.map((cell) => ({
+      type: "Feature" as const,
+      geometry: getCellBoundaryGeoJSON(cell),
+      properties: { cell, status: "selected" },
+    })),
+  };
+}
+
+function updateSelectedTilesSource(map: mapboxgl.Map, cells: string[]) {
+  if (!map.isStyleLoaded()) return;
+
+  const source = map.getSource("selected-tiles") as
+    | mapboxgl.GeoJSONSource
+    | undefined;
+  source?.setData(selectedTilesGeoJSON(cells));
+}
+
+// H3 tile outlines and purchase selection are only useful once individual
+// cells are visible. Keep this aligned with the grid and box-select threshold.
+const MIN_TILE_SELECTION_ZOOM = 9;
+const TILE_FOCUS_ZOOM = 10;
 
 const LANDMARKS: Landmark[] = [
   {
@@ -139,6 +187,9 @@ export default function LandmarkPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
   const [mapStyle, setMapStyle] = useState<"default" | "realistic">("default");
+  const [isPreparingTileSelection, setIsPreparingTileSelection] =
+    useState(false);
+  const tileSelectionPreparingRef = useRef(false);
 
   // User owned landmarks states
   const [userLandmarks, setUserLandmarks] = useState<Landmark[]>([]);
@@ -151,6 +202,9 @@ export default function LandmarkPage() {
 
   // Tile multi-select state — array of selected H3 cell IDs available to buy
   const [selectedCells, setSelectedCells] = useState<string[]>([]);
+  // The Mapbox event handlers are registered once, so keep their selection
+  // input in a ref to make click feedback immediate and avoid stale state.
+  const selectedCellsRef = useRef<string[]>([]);
 
   // Mirror of sold cell IDs fetched from backend. Used by box-select to skip
   // tiles that are already owned (the click handler uses queryRenderedFeatures
@@ -255,39 +309,32 @@ export default function LandmarkPage() {
             : null;
           // priceLamports comes back as a string from the backend
           const lamports = t.priceLamports ? Number(t.priceLamports) : null;
+          const fallbackThumbnail = buildStaticMapUrl(lngNum, latNum);
           return {
             name: purchaseDate ?? "Blockland Tile",
             purchaseDate,
             priceSol: lamports !== null ? lamportsToSol(lamports) : null,
-            // Fallback before reverse geocoding resolves below.
-            location: `${latNum.toFixed(4)}, ${lngNum.toFixed(4)}`,
+            // Place name is reverse-geocoded once at mint time and stored in
+            // the DB, so we read it directly here (no per-view Mapbox call).
+            // Fall back to coordinates for legacy tiles that haven't been
+            // backfilled yet.
+            location:
+              typeof t.placeName === "string" && t.placeName.trim()
+                ? t.placeName
+                : `${latNum.toFixed(4)}, ${lngNum.toFixed(4)}`,
             coordinates: [lngNum, latNum] as [number, number],
-            thumbnail: buildStaticMapUrl(lngNum, latNum),
+            // Use the stored Irys image (uploaded once at mint) instead of
+            // hitting Mapbox Static API for every thumbnail view. Fall back to
+            // Mapbox for legacy, invalid, expired, or unavailable images.
+            thumbnail: normalizeThumbnailUrl(t.imageUri) ?? fallbackThumbnail,
+            fallbackThumbnail,
           };
         });
 
-        // Reverse geocode only the newly loaded batch (reduces load significantly)
-        const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-        const enriched = await Promise.all(
-          mapped.map(async (lm) => {
-            try {
-              const [lng, lat] = lm.coordinates;
-              const res = await fetch(
-                `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${token}&country=us&limit=1`,
-              );
-              const data = await res.json();
-              const placeName = data.features?.[0]?.place_name;
-              return placeName ? { ...lm, location: placeName } : lm;
-            } catch {
-              return lm; // keep coordinate fallback on failure
-            }
-          }),
-        );
-
         if (replace) {
-          setUserLandmarks(enriched);
+          setUserLandmarks(mapped);
         } else {
-          setUserLandmarks((prev) => [...prev, ...enriched]);
+          setUserLandmarks((prev) => [...prev, ...mapped]);
         }
 
         const totalCount = data.total ?? data.tiles.length;
@@ -381,6 +428,7 @@ export default function LandmarkPage() {
     username: string | null;
     photoUrl: string | null;
     cell: string;
+    placeName: string | null;
     priceLamports: string | null;
   } | null>(null);
 
@@ -418,6 +466,13 @@ export default function LandmarkPage() {
         centers.map((c) => ({ lat: c.lat, lng: c.lng })),
       );
 
+      // Reverse-geocode each tile ONCE at purchase time (parallel) so the place
+      // name can be stored in the DB. This avoids re-geocoding the same tiles
+      // on every "Your Landmarks" view (saving Mapbox API quota).
+      const placeNames = await reverseGeocodePlaceNamesBatch(
+        centers.map((c) => ({ lat: c.lat, lng: c.lng })),
+      );
+
       for (let i = 0; i < totalToMint; i++) {
         const { cell, lat, lng } = centers[i];
         const res = await mintTile({
@@ -426,13 +481,21 @@ export default function LandmarkPage() {
           lng,
           imageBase64: images[i],
           rarity,
+          placeName: placeNames[i] ?? undefined,
         });
         if (!res.ok) {
           throw new Error(`Tile ${i + 1} failed: ${res.error || "unknown"}`);
         }
 
-        // Remove successfully minted tile from selectedCells state incrementally
-        setSelectedCells((prev) => prev.filter((c) => c !== cell));
+        // Remove successfully minted tile from both the UI state and map source.
+        const remainingCells = selectedCellsRef.current.filter(
+          (selectedCell) => selectedCell !== cell,
+        );
+        selectedCellsRef.current = remainingCells;
+        if (mapRef.current) {
+          updateSelectedTilesSource(mapRef.current, remainingCells);
+        }
+        setSelectedCells(remainingCells);
 
         setMintProgress(i + 1);
 
@@ -573,6 +636,15 @@ export default function LandmarkPage() {
 
       mapRef.current = map;
 
+      // A focus zoom is complete only when the H3 grid has been placed in its
+      // source, not merely when the camera animation happens to become idle.
+      const markTileSelectionReady = () => {
+        if (!tileSelectionPreparingRef.current) return;
+        tileSelectionPreparingRef.current = false;
+        setIsPreparingTileSelection(false);
+        toast.info("Tiles are ready. Click a tile to select.");
+      };
+
       // Disable double-click zoom permanently. Clicking a tile should only
       // select/deselect it — zoom must stay via the +/- buttons or scroll.
       map.doubleClickZoom.disable();
@@ -597,6 +669,7 @@ export default function LandmarkPage() {
             username?: string | null;
             photoUrl?: string | null;
             cell?: string;
+            placeName?: string | null;
             priceLamports?: string | null;
           };
           setSoldTileInfo({
@@ -609,6 +682,7 @@ export default function LandmarkPage() {
             username: props.username ?? null,
             photoUrl: props.photoUrl ?? null,
             cell: props.cell ?? "",
+            placeName: props.placeName ?? null,
             priceLamports: props.priceLamports ?? null,
           });
           return;
@@ -628,47 +702,55 @@ export default function LandmarkPage() {
           return;
         }
 
-        // Available tile — toggle in multi-select
+        // At a wide zoom, focus the clicked area first. Do not add a tile to
+        // the purchase selection until the user can see the individual grid.
+        if (map.getZoom() < MIN_TILE_SELECTION_ZOOM) {
+          tileSelectionPreparingRef.current = true;
+          setIsPreparingTileSelection(true);
+          map.easeTo({
+            center: e.lngLat,
+            zoom: TILE_FOCUS_ZOOM,
+            essential: true,
+          });
+          return;
+        }
+
+        // Avoid accepting the second click before Mapbox has rendered the
+        // refreshed H3 grid after a focus zoom.
+        if (tileSelectionPreparingRef.current) return;
+
+        // Available tile — toggle in multi-select and update Mapbox immediately
+        // instead of waiting for React to commit the state update.
         const cell = getCell(e.lngLat.lat, e.lngLat.lng);
-        setSelectedCells((prev) => {
-          if (prev.includes(cell)) {
-            // Already selected → deselect (no zoom)
-            return prev.filter((c) => c !== cell);
-          }
-          // Newly selected → zoom in close to the tile so it's clearly visible
-          if (map.getZoom() < 11) {
-            map.easeTo({
-              center: e.lngLat,
-              zoom: 12,
-              essential: true,
-            });
-          }
-          return [...prev, cell];
-        });
+        const nextCells = selectedCellsRef.current.includes(cell)
+          ? selectedCellsRef.current.filter((selectedCell) => selectedCell !== cell)
+          : [...selectedCellsRef.current, cell];
+        selectedCellsRef.current = nextCells;
+        updateSelectedTilesSource(map, nextCells);
+        setSelectedCells(nextCells);
       });
 
-      // Hover cursor: pointer on sold, pointer on selected, crosshair otherwise
+      // Hover cursor: sold tiles are unavailable; available tiles either focus
+      // the map at low zoom or can be selected once the grid is visible.
       map.on("mousemove", (e) => {
         // Guard: layers not ready until map style loads
         if (!map.getStyle() || !map.getLayer("sold-tiles-fill")) return;
 
-        // Skip if zoomed out (no layers rendered)
-        if (map.getZoom() < 9) {
-          map.getCanvas().style.cursor = "";
-          return;
-        }
-
         const sold = map.queryRenderedFeatures(e.point, {
           layers: ["sold-tiles-fill"],
-        });
-        const selected = map.queryRenderedFeatures(e.point, {
-          layers: ["selected-tiles-fill"],
         });
         if (sold.length > 0) {
           map.getCanvas().style.cursor = "not-allowed";
         } else if (!isInUsaBounds(e.lngLat.lat, e.lngLat.lng)) {
           map.getCanvas().style.cursor = "not-allowed";
+        } else if (tileSelectionPreparingRef.current) {
+          map.getCanvas().style.cursor = "progress";
+        } else if (map.getZoom() < MIN_TILE_SELECTION_ZOOM) {
+          map.getCanvas().style.cursor = "zoom-in";
         } else {
+          const selected = map.queryRenderedFeatures(e.point, {
+            layers: ["selected-tiles-fill"],
+          });
           map.getCanvas().style.cursor =
             selected.length > 0 ? "pointer" : "crosshair";
         }
@@ -683,7 +765,7 @@ export default function LandmarkPage() {
         // Only react to primary button / touch
         if (e.button !== 0 && e.pointerType === "mouse") return;
         // Skip when zoomed out (no grid/cells rendered to select)
-        if (map.getZoom() < 9) return;
+        if (map.getZoom() < MIN_TILE_SELECTION_ZOOM) return;
 
         boxStartRef.current = { x: e.clientX, y: e.clientY };
         setBoxRect({ x: e.clientX, y: e.clientY, w: 0, h: 0 });
@@ -742,19 +824,20 @@ export default function LandmarkPage() {
           maxLat: ne.lat,
         });
 
-        // Use functional update so we always dedupe against the freshest
-        // selection (avoid stale-closure bugs from the effect running once).
-        setSelectedCells((prev) => {
-          const existing = new Set(prev);
-          const additions: string[] = [];
-          for (const cell of cells) {
-            if (existing.has(cell)) continue; // already selected
-            if (soldCellsRef.current.has(cell)) continue; // owned by someone
-            const { lat, lng } = getCellCenter(cell);
-            if (isInUsaBounds(lat, lng)) additions.push(cell);
-          }
-          return additions.length > 0 ? [...prev, ...additions] : prev;
-        });
+        const existing = new Set(selectedCellsRef.current);
+        const additions: string[] = [];
+        for (const cell of cells) {
+          if (existing.has(cell)) continue; // already selected
+          if (soldCellsRef.current.has(cell)) continue; // owned by someone
+          const { lat, lng } = getCellCenter(cell);
+          if (isInUsaBounds(lat, lng)) additions.push(cell);
+        }
+        if (additions.length > 0) {
+          const nextCells = [...selectedCellsRef.current, ...additions];
+          selectedCellsRef.current = nextCells;
+          updateSelectedTilesSource(map, nextCells);
+          setSelectedCells(nextCells);
+        }
 
         // Prevent the map's click handler from also toggling a cell at the
         // release point (Mapbox fires a click right after a drag ends).
@@ -798,8 +881,12 @@ export default function LandmarkPage() {
             | mapboxgl.GeoJSONSource
             | undefined;
           if (gridSource) {
-            if (zoom >= 9) {
-              gridSource.setData(generateGridGeoJSON(b));
+            if (zoom >= MIN_TILE_SELECTION_ZOOM) {
+              const gridGeojson = generateGridGeoJSON(b);
+              gridSource.setData(gridGeojson);
+              if (gridGeojson.features.length > 0) {
+                markTileSelectionReady();
+              }
             } else {
               gridSource.setData({ type: "FeatureCollection", features: [] });
             }
@@ -820,6 +907,7 @@ export default function LandmarkPage() {
                 username: f.properties.username ?? null,
                 photoUrl: f.properties.photoUrl ?? null,
                 assetId: f.properties.assetId,
+                placeName: f.properties.placeName ?? null,
                 priceLamports: f.properties.priceLamports ?? null,
               }));
               const geojson = buildSoldTilesGeoJSON(tiles);
@@ -983,11 +1071,13 @@ export default function LandmarkPage() {
         };
 
         setupSourcesAndLayers();
+        updateSelectedTilesSource(map, selectedCellsRef.current);
         refreshOverlay();
 
         // Listen for style load events to re-apply sources/layers when style changes
         map.on("style.load", () => {
           setupSourcesAndLayers();
+          updateSelectedTilesSource(map, selectedCellsRef.current);
           refreshOverlay();
         });
 
@@ -1035,32 +1125,14 @@ export default function LandmarkPage() {
     };
   }, []);
 
-  // Update selected-tiles overlay when multi-select changes
+  // Keep React-driven changes (such as clearing the selection) synchronized
+  // with the ref and map source. Click handlers update the source earlier for
+  // instant feedback; this effect remains the consistency backstop.
   useEffect(() => {
-    if (!mapRef.current) return;
-
-    // Check if the style is fully loaded first before calling getSource
-    if (!mapRef.current.isStyleLoaded()) return;
-
-    const source = mapRef.current.getSource("selected-tiles") as
-      | mapboxgl.GeoJSONSource
-      | undefined;
-    if (!source) return;
-
-    if (selectedCells.length === 0) {
-      source.setData({ type: "FeatureCollection", features: [] });
-      return;
+    selectedCellsRef.current = selectedCells;
+    if (mapRef.current) {
+      updateSelectedTilesSource(mapRef.current, selectedCells);
     }
-
-    const features = selectedCells.map((cell) => ({
-      type: "Feature" as const,
-      geometry: getCellBoundaryGeoJSON(cell),
-      properties: { cell, status: "selected" },
-    }));
-    source.setData({
-      type: "FeatureCollection",
-      features,
-    });
   }, [selectedCells]);
 
   // Change map style dynamically
@@ -1195,6 +1267,13 @@ export default function LandmarkPage() {
         />
       )}
 
+      {isPreparingTileSelection && (
+        <div className="absolute top-28 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-zinc-700 bg-black/85 px-4 py-2 text-sm text-zinc-100 shadow-lg backdrop-blur-md pointer-events-none">
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          Preparing tiles…
+        </div>
+      )}
+
       {/* Select mode hint banner */}
       {/* {selectMode && (
         <div className="absolute top-6 left-1/2 -translate-x-1/2 z-30 px-4 py-2 rounded-full bg-black/85 backdrop-blur-md border border-zinc-800 text-sm text-zinc-200 shadow-lg pointer-events-none">
@@ -1255,6 +1334,10 @@ export default function LandmarkPage() {
                             size={"icon"}
                             variant="outline"
                             onClick={() => {
+                              selectedCellsRef.current = [];
+                              if (mapRef.current) {
+                                updateSelectedTilesSource(mapRef.current, []);
+                              }
                               setSelectedCells([]);
                               setMintError(null);
                             }}
@@ -1401,8 +1484,8 @@ export default function LandmarkPage() {
                         </span>
                       </button>
                     </DialogTrigger>
-                    <DialogContent className="min-w-2xl">
-                      <DialogHeader>
+                    <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl min-w-0 max-h-[calc(100dvh-2rem)] overflow-hidden">
+                      <DialogHeader className="min-w-0 pr-6">
                         <DialogTitle >
                           Your Landmarks
                         </DialogTitle>
@@ -1411,7 +1494,7 @@ export default function LandmarkPage() {
                           the map.
                         </DialogDescription>
                       </DialogHeader>
-                      <div className="flex flex-col gap-2 mt-4">
+                      <div className="flex min-h-0 min-w-0 flex-col gap-2 mt-4 overflow-hidden">
                         {!wallet?.address ? (
                           <div className="text-center py-8 text-zinc-500 text-sm">
                             Please connect your wallet to view your landmarks.
@@ -1433,19 +1516,28 @@ export default function LandmarkPage() {
                                 No matching landmarks found.
                               </div>
                             ) : (
-                              <ScrollArea className="max-h-[300px] pr-2">
-                                <div className="flex flex-col gap-2">
+                              <ScrollArea className="h-[min(300px,calc(100dvh-13rem))] min-h-0 w-full min-w-0 pr-3">
+                                <div className="flex min-w-0 flex-col gap-2">
                                   {userLandmarks.map((landmark, idx) => (
                                     <button
                                       key={idx}
                                       onClick={() => flyToLandmark(landmark)}
-                                      className="flex items-center gap-3 p-3 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 transition-all text-left cursor-pointer group/item w-full"
+                                      className="flex w-full min-w-0 items-center gap-3 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 p-3 text-left transition-all hover:border-zinc-700 hover:bg-zinc-800 cursor-pointer group/item"
                                     >
                                       {landmark.thumbnail ? (
                                         <img
                                           src={landmark.thumbnail}
                                           alt=""
                                           loading="lazy"
+                                          onError={(event) => {
+                                            const image = event.currentTarget;
+                                            const fallback = landmark.fallbackThumbnail;
+                                            if (fallback && image.src !== fallback) {
+                                              image.src = fallback;
+                                            } else {
+                                              image.style.visibility = "hidden";
+                                            }
+                                          }}
                                           className="size-12 rounded-lg object-cover border border-zinc-800 shrink-0"
                                         />
                                       ) : (
@@ -1864,6 +1956,13 @@ export default function LandmarkPage() {
                 ? `${lamportsToSol(Number(soldTileInfo.priceLamports)).toFixed(5)} SOL`
                 : "—"}
             </h4>
+          </div>
+
+          <div className="flex justify-between gap-4 text-sm border-t border-zinc-800 pt-4">
+            <span className="shrink-0">Address</span>
+            <p className="max-w-[220px] text-right text-zinc-300">
+              {soldTileInfo?.placeName || "—"}
+            </p>
           </div>
 
           <Button onClick={() => setSoldTileInfo(null)}>Close</Button>
