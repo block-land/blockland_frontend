@@ -46,7 +46,7 @@ export default function Home() {
     <>
       <section className="relative w-full h-screen overflow-hidden">
         <div className="absolute inset-0 w-full h-full z-0">
-          <div className="w-full h-full bg-[url(/img/hero-1.png)] grayscale-50 bg-cover bg-bottom-right" />
+          <div className="w-full h-full bg-[url(/img/hero-1_converted.avif)] grayscale-50 bg-cover bg-bottom-right" />
         </div>
         <div className="bottom-0 left-0 right-0 bg-linear-to-t from-black to-transparent absolute h-[200px] z-10" />
 
@@ -106,7 +106,7 @@ export default function Home() {
         </div>
       </section>
       <section className="relative">
-        <img src="/img/bg-vision.png" className="w-full grayscale-20" alt="" />
+        <img src="/img/bg-vision_converted.avif" className="w-full grayscale-20" alt="" />
         <div className="absolute inset-0 flex justify-center items-center">
           <div className="flex flex-col items-center gap-2 text-white" onClick={handleWatchVision}>
             <div className="border p-4 rounded-full !border-white">
@@ -138,7 +138,7 @@ export default function Home() {
           </div>
           <div className="lg:col-span-7 w-full aspect-[1920/840] max-w-2xl lg:max-w-none flex justify-center items-center">
             <img
-              src="/img/bg-explore.png"
+              src="/img/bg-explore_converted.avif"
               className="w-full h-auto object-contain"
               alt="Blockland Interactive Map"
               draggable={false}
