@@ -1479,8 +1479,11 @@ export default function LandmarkPage() {
                         <div className="flex items-center justify-center size-[36px] rounded-xl border bg-zinc-900 border-zinc-800 text-zinc-400 group-hover:text-white group-hover:border-zinc-700">
                           <MapPin className="h-5 w-5" />
                         </div>
-                        <span className="text-[16px] font-medium transition-colors text-white group-hover:text-primary">
+                        <span className="text-[16px] font-medium transition-colors text-white group-hover:text-primary hidden md:block">
                           Your Landmark
+                        </span>
+                        <span className="text-[16px] font-medium transition-colors text-white group-hover:text-primary block md:hidden">
+                          Landmark
                         </span>
                       </button>
                     </DialogTrigger>
@@ -1581,7 +1584,7 @@ export default function LandmarkPage() {
                   </Dialog>
 
                   {/* Divider Line */}
-                  <div className="h-[44px] w-px bg-zinc-800 shrink-0" />
+                  <div className="h-[44px] w-px bg-zinc-800 shrink-0 hidden md:block" />
 
                   {/* Button: Toggle Box-Select mode */}
                   <button
@@ -1591,7 +1594,7 @@ export default function LandmarkPage() {
                     }}
                     title={selectMode ? "Exit Select mode" : "Select area"}
                     className={cn(
-                      "flex items-center justify-center size-[36px] rounded-xl border focus:outline-none group cursor-pointer transition-colors me-[16px]",
+                      "hidden md:flex items-center justify-center size-[36px] rounded-xl border focus:outline-none group cursor-pointer transition-colors me-[16px]",
                       selectMode
                         ? "border-primary bg-primary/15 text-primary"
                         : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700",
@@ -1636,7 +1639,7 @@ export default function LandmarkPage() {
 
       {/* Search Location Dialog */}
       <Dialog open={isSearchDialogOpen} onOpenChange={setIsSearchDialogOpen}>
-        <DialogContent className="min-w-2xl">
+        <DialogContent className="max-w-[90vw] rounded-3xl md:min-w-2xl">
           <DialogHeader>
             <DialogTitle className="">Search Location</DialogTitle>
             <DialogDescription className="">

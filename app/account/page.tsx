@@ -623,7 +623,7 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white pt-32 pb-24 font-sans">
+    <div className="min-h-screen bg-black text-white pt-16 md:pt-32 pb-24 font-sans">
       <div className="mx-auto max-w-[1440px] px-6 sm:px-10 lg:px-[68px] space-y-12">
         {/* Profile Card Header */}
         <div className="bg-zinc-950 border border-zinc-900 rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">

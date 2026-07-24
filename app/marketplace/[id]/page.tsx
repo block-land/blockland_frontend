@@ -259,7 +259,7 @@ export default function TileDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white pt-32 pb-24 font-sans">
+    <div className="min-h-screen bg-black text-white pt-16 md:pt-32 pb-24 font-sans">
       <div className="mx-auto max-w-[1440px] px-6 sm:px-10 lg:px-[68px] space-y-8">
         
         {/* Back Link */}
