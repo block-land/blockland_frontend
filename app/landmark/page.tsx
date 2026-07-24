@@ -129,18 +129,20 @@ function selectedTilesGeoJSON(cells: string[]) {
 }
 
 function updateSelectedTilesSource(map: mapboxgl.Map, cells: string[]) {
-  if (!map.isStyleLoaded()) return;
-
+  // Only require the source to exist — not a fully loaded style. The previous
+  // isStyleLoaded() guard caused selections to be dropped when clicks happened
+  // during/after a camera jump (style briefly reported as not loaded), leaving
+  // the React state out of sync with the rendered polygons.
   const source = map.getSource("selected-tiles") as
     | mapboxgl.GeoJSONSource
     | undefined;
-  source?.setData(selectedTilesGeoJSON(cells));
+  if (!source) return;
+  source.setData(selectedTilesGeoJSON(cells));
 }
 
 // H3 tile outlines and purchase selection are only useful once individual
 // cells are visible. Keep this aligned with the grid and box-select threshold.
 const MIN_TILE_SELECTION_ZOOM = 9;
-const TILE_FOCUS_ZOOM = 10;
 
 const LANDMARKS: Landmark[] = [
   {
@@ -188,9 +190,6 @@ export default function LandmarkPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
   const [mapStyle, setMapStyle] = useState<"default" | "realistic">("default");
-  const [isPreparingTileSelection, setIsPreparingTileSelection] =
-    useState(false);
-  const tileSelectionPreparingRef = useRef(false);
 
   // User owned landmarks states
   const [userLandmarks, setUserLandmarks] = useState<Landmark[]>([]);
@@ -635,15 +634,6 @@ export default function LandmarkPage() {
 
       mapRef.current = map;
 
-      // A focus zoom is complete only when the H3 grid has been placed in its
-      // source, not merely when the camera animation happens to become idle.
-      const markTileSelectionReady = () => {
-        if (!tileSelectionPreparingRef.current) return;
-        tileSelectionPreparingRef.current = false;
-        setIsPreparingTileSelection(false);
-        toast.info("Tiles are ready. Click a tile to select.");
-      };
-
       // Disable double-click zoom permanently. Clicking a tile should only
       // select/deselect it — zoom must stay via the +/- buttons or scroll.
       map.doubleClickZoom.disable();
@@ -701,22 +691,15 @@ export default function LandmarkPage() {
           return;
         }
 
-        // At a wide zoom, focus the clicked area first. Do not add a tile to
-        // the purchase selection until the user can see the individual grid.
+        // At a wide zoom, jump (no animation) to the clicked area so the H3
+        // grid becomes visible immediately, and select the clicked tile in the
+        // same action. Animations here were perceived as a delay/error.
         if (map.getZoom() < MIN_TILE_SELECTION_ZOOM) {
-          tileSelectionPreparingRef.current = true;
-          setIsPreparingTileSelection(true);
-          map.easeTo({
+          map.jumpTo({
             center: e.lngLat,
-            zoom: TILE_FOCUS_ZOOM,
-            essential: true,
+            zoom: MIN_TILE_SELECTION_ZOOM,
           });
-          return;
         }
-
-        // Avoid accepting the second click before Mapbox has rendered the
-        // refreshed H3 grid after a focus zoom.
-        if (tileSelectionPreparingRef.current) return;
 
         // Available tile — toggle in multi-select and update Mapbox immediately
         // instead of waiting for React to commit the state update.
@@ -742,10 +725,8 @@ export default function LandmarkPage() {
           map.getCanvas().style.cursor = "not-allowed";
         } else if (!isInUsaBounds(e.lngLat.lat, e.lngLat.lng)) {
           map.getCanvas().style.cursor = "not-allowed";
-        } else if (tileSelectionPreparingRef.current) {
-          map.getCanvas().style.cursor = "progress";
         } else if (map.getZoom() < MIN_TILE_SELECTION_ZOOM) {
-          map.getCanvas().style.cursor = "zoom-in";
+          map.getCanvas().style.cursor = "crosshair";
         } else {
           const selected = map.queryRenderedFeatures(e.point, {
             layers: ["selected-tiles-fill"],
@@ -881,11 +862,7 @@ export default function LandmarkPage() {
             | undefined;
           if (gridSource) {
             if (zoom >= MIN_TILE_SELECTION_ZOOM) {
-              const gridGeojson = generateGridGeoJSON(b);
-              gridSource.setData(gridGeojson);
-              if (gridGeojson.features.length > 0) {
-                markTileSelectionReady();
-              }
+              gridSource.setData(generateGridGeoJSON(b));
             } else {
               gridSource.setData({ type: "FeatureCollection", features: [] });
             }
@@ -1264,13 +1241,6 @@ export default function LandmarkPage() {
             backgroundColor: "rgba(241, 198, 124, 0.12)",
           }}
         />
-      )}
-
-      {isPreparingTileSelection && (
-        <div className="absolute top-28 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-zinc-700 bg-black/85 px-4 py-2 text-sm text-zinc-100 shadow-lg backdrop-blur-md pointer-events-none">
-          <Loader2 className="h-4 w-4 animate-spin text-primary" />
-          Preparing tiles…
-        </div>
       )}
 
       {/* Select mode hint banner */}
