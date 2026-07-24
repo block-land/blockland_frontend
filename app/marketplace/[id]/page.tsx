@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { RiArrowLeftSFill } from "react-icons/ri";
+import { BACKEND_URL } from "@/lib/api";
 
 const ButtonCustom = withCustomButton("button");
 
@@ -82,7 +83,6 @@ export default function TileDetailPage() {
       setLoading(true);
       setErrorType(null);
       try {
-        const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
         const res = await fetch(`${BACKEND_URL}/api/tiles/${tileId}`);
         const data = await res.json();
         
@@ -159,7 +159,6 @@ export default function TileDetailPage() {
 
     const fetchOffers = async () => {
       try {
-        const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
         const res = await fetch(`${BACKEND_URL}/api/tiles/${tileId}/offers`);
         const data = await res.json();
         if (data.ok && Array.isArray(data.offers)) {
@@ -553,9 +552,6 @@ export default function TileDetailPage() {
                     setBuying(true);
                     setBuyError(null);
                     try {
-                      const BACKEND_URL =
-                        process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
-
                       // 1. Fetch the custodian (escrow) address.
                       const escrowAddrRes = await fetch(
                         `${BACKEND_URL}/api/tiles/${tileId}/escrow-address`,
@@ -702,8 +698,6 @@ export default function TileDetailPage() {
                       return;
                     }
                     try {
-                      const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
-
                       // 1. Fetch the custodian (escrow) address.
                       const escrowAddrRes = await fetch(`${BACKEND_URL}/api/tiles/${tileId}/escrow-address`);
                       const escrowAddrData = await escrowAddrRes.json();

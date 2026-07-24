@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { BACKEND_URL } from "@/lib/api";
 
 interface ClientProfile {
   id: string;
@@ -14,8 +15,6 @@ interface ProfileState {
   checkProfile: (walletAddress: string) => Promise<boolean>;
   submitProfile: (walletAddress: string, username: string, photoUrl: string) => Promise<boolean>;
 }
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
 
 export const useProfileStore = create<ProfileState>((set) => ({
   showProfileDialog: false,

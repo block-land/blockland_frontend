@@ -25,6 +25,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { RiExpandUpDownFill } from "react-icons/ri";
+import { BACKEND_URL } from "@/lib/api";
 
 const LinkCustom = withCustomButton(Link);
 
@@ -91,8 +92,6 @@ export default function Marketplace() {
     ) => {
       setLoading(true);
       try {
-        const BACKEND_URL =
-          process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
         const offset = (page - 1) * ITEMS_PER_PAGE;
         const searchParam = searchVal.trim()
           ? `&search=${encodeURIComponent(searchVal.trim())}`

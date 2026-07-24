@@ -7,9 +7,7 @@
 
 import type { MintTileRequest, MintTileResponse } from "./types";
 import { RPC_URL } from "./constants";
-
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+import { BACKEND_URL } from "@/lib/api";
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
 

@@ -59,6 +59,7 @@ import { Input } from "@/components/ui/input";
 import { NumericFormat } from "react-number-format";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { BACKEND_URL } from "@/lib/api";
 
 const ButtonCustom = withCustomButton("button");
 const LinkCustom = withCustomButton(Link);
@@ -276,9 +277,6 @@ export default function AccountPage() {
       if (!wallet?.address) return;
       setLoading(true);
       try {
-        const BACKEND_URL =
-          process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
-
         const offset = (page - 1) * ITEMS_PER_PAGE;
         const searchParam = searchVal.trim()
           ? `&search=${encodeURIComponent(searchVal.trim())}`
@@ -407,8 +405,6 @@ export default function AccountPage() {
     setSelectedOffersTile(tile);
     setLoadingOffers(true);
     try {
-      const BACKEND_URL =
-        process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
       const res = await fetch(`${BACKEND_URL}/api/tiles/${tile.id}/offers`);
       const data = await res.json();
       if (data.ok && Array.isArray(data.offers)) {
@@ -440,8 +436,6 @@ export default function AccountPage() {
     setUpdatingOfferId(offerId);
 
     try {
-      const BACKEND_URL =
-        process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
       // Settlement (tile transfer + SOL payout + refunding other offers) is
       // performed on-chain by the custodian, so the seller only needs to
       // authorize the action via the dedicated endpoint.
@@ -485,8 +479,6 @@ export default function AccountPage() {
     if (!wallet?.address) return;
     setLoadingMyOffers(true);
     try {
-      const BACKEND_URL =
-        process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
       const res = await fetch(
         `${BACKEND_URL}/api/tiles/offers-by-bidder/${wallet.address}`,
       );
@@ -561,8 +553,6 @@ export default function AccountPage() {
     if (cancellingOfferId) return;
     setCancellingOfferId(tile.offerId);
     try {
-      const BACKEND_URL =
-        process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
       const res = await fetch(
         `${BACKEND_URL}/api/tiles/${tile.tileId}/offers/${tile.offerId}/cancel`,
         {
@@ -1648,10 +1638,6 @@ export default function AccountPage() {
                         setSellLoading(true);
                         setSellError(null);
                         try {
-                          const BACKEND_URL =
-                            process.env.NEXT_PUBLIC_BACKEND_URL ??
-                            "http://localhost:3001";
-
                           // 1. Ask the backend to build the custody transfer tx.
                           const prepareRes = await fetch(
                             `${BACKEND_URL}/api/tiles/list`,

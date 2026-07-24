@@ -68,6 +68,7 @@ import {
 } from "@/components/ui/card";
 import { toast } from "sonner";
 import Avatar from "boring-avatars";
+import { BACKEND_URL } from "@/lib/api";
 
 const ButtonCustom = withCustomButton("button");
 
@@ -283,8 +284,6 @@ export default function LandmarkPage() {
       setIsLoadingMoreLandmarks(true);
     }
 
-    const BACKEND_URL =
-      process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
     try {
       // Build search query param
       const searchParam = currentSearch.trim() ? `&search=${encodeURIComponent(currentSearch.trim())}` : "";
@@ -897,7 +896,7 @@ export default function LandmarkPage() {
           // visible so users can see owned tiles even when zoomed out.
           try {
             const res = await fetch(
-              `http://localhost:3001/api/tiles/bounds?minLng=${b.minLng}&minLat=${b.minLat}&maxLng=${b.maxLng}&maxLat=${b.maxLat}`,
+              `${BACKEND_URL}/api/tiles/bounds?minLng=${b.minLng}&minLat=${b.minLat}&maxLng=${b.maxLng}&maxLat=${b.maxLat}`,
             );
             const data = await res.json();
             if (data.features) {
