@@ -147,7 +147,7 @@ export default function WalletButton() {
       </Popover>
 
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-        <AlertDialogContent className="bg-zinc-950 border border-zinc-900 text-white max-w-sm rounded-2xl p-6">
+        <AlertDialogContent className="bg-zinc-950 border border-zinc-900 text-white max-w-[90vw] md:w-sm rounded-2xl p-6">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-lg font-semibold text-white tracking-tight">
               Confirm Logout
@@ -157,7 +157,7 @@ export default function WalletButton() {
               reconnect to interact with Blockland coordinate units.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex items-center gap-3 mt-4">
+          <AlertDialogFooter className="flex flex-row items-center gap-3 mt-4">
             <AlertDialogCancel className="flex-1 bg-transparent hover:bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white py-3 rounded-xl transition-all cursor-pointer text-sm">
               Cancel
             </AlertDialogCancel>

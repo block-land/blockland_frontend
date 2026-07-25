@@ -37,7 +37,7 @@ export default function Header() {
     const ctx = gsap.context(() => {
       if (isOpen) {
         // Open: slide the panel down + fade in nav items with a stagger.
-        gsap.set(menu, { display: "flex" });
+        gsap.set(menu, { display: "flex", visibility: "visible" });
         gsap.fromTo(
           menu,
           { autoAlpha: 0, y: -16 },
@@ -61,13 +61,16 @@ export default function Header() {
           },
         );
       } else {
-        // Close: reverse the panel animation.
+        // Close: reverse the panel animation, then fully hide it so it cannot
+        // linger as a black overlay (which caused the mobile refresh black
+        // screen). Set display:none immediately to be safe.
         gsap.to(menu, {
           autoAlpha: 0,
           y: -16,
           duration: 0.25,
           ease: "power2.in",
-          onComplete: () => gsap.set(menu, { display: "none" }),
+          onComplete: () =>
+            gsap.set(menu, { display: "none", visibility: "hidden" }),
         });
       }
     }, scopeRef);
@@ -124,11 +127,14 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Mobile nav menu — full-screen overlay (GSAP animated) */}
+      {/* Mobile nav menu — full-screen overlay (GSAP animated). It is kept
+          hidden by default via inline styles so it can NEVER flash on screen
+          during a refresh / before GSAP runs. GSAP only animates open/close. */}
       <div
         ref={menuRef}
         aria-hidden={!isOpen}
-        className="lg:hidden hidden fixed inset-0 z-[200] h-screen w-screen flex-col bg-black/95 backdrop-blur-md text-white"
+        style={{ display: "none", opacity: 0, visibility: "hidden" }}
+        className="lg:hidden fixed inset-0 z-[200] h-screen w-screen flex-col bg-black/95 backdrop-blur-md text-white"
       >
         <ul ref={navListRef} className="flex flex-col gap-2 px-6 pt-28">
           {navItems.map((item) => (
