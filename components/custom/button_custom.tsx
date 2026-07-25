@@ -25,7 +25,7 @@ function renderIcon(
     return (
       <img
         src={icon}
-        className="h-[42px] w-[42px] shrink-0 rounded-xl object-cover border border-black"
+        className="h-[32px] w-[32px] sm:h-[42px] sm:w-[42px] shrink-0 rounded-lg sm:rounded-xl object-cover border border-black"
         alt="avatar"
       />
     );
@@ -34,7 +34,7 @@ function renderIcon(
   // Case 2 & 3: React Element or React Component
   return (
     <span
-      className={`relative flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl text-primary ${
+      className={`relative flex h-[32px] w-[32px] sm:h-[42px] sm:w-[42px] shrink-0 items-center justify-center rounded-lg sm:rounded-xl text-primary ${
         iconBgTransparent ? "bg-transparent" : "bg-black"
       }`}
       aria-hidden="true"
@@ -44,7 +44,7 @@ function renderIcon(
       ) : (
         // If it's a React Component type (class or function), instantiate it
         React.createElement(icon as React.ComponentType<any>, {
-          className: "h-[20px] w-[20px] stroke-[2]",
+          className: "h-[16px] w-[16px] sm:h-[20px] sm:w-[20px] stroke-[2]",
         })
       )}
     </span>
@@ -72,13 +72,13 @@ export function withCustomButton<T extends React.ElementType>(
     const mobilePadding = hideChildrenOnMobile
       ? "pl-[2px] pr-[2px] py-[2px] sm:pl-[27px] sm:pr-[2px] sm:py-[2px]"
       : icon
-        ? "pl-[27px] pr-[2px] py-[2px]"
-        : "px-[27px] py-[12px]";
+        ? "pl-[20px] pr-[2px] py-[2px] sm:pl-[27px] sm:pr-[2px] sm:py-[2px]"
+        : "px-[20px] py-[10px] sm:px-[27px] sm:py-[12px]";
 
     return (
       <Component
         ref={ref}
-        className={`flex shrink-0 items-center gap-[13px] rounded-xl text-[16px] font-semibold transition-transform hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${variantClasses} ${mobilePadding} ${className}`}
+        className={`flex shrink-0 items-center gap-[10px] sm:gap-[13px] rounded-lg sm:rounded-xl text-[13px] sm:text-[16px] font-semibold transition-transform hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${variantClasses} ${mobilePadding} ${className}`}
         {...props}
       >
         <span className={hideChildrenOnMobile ? "hidden sm:inline" : undefined}>
