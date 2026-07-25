@@ -12,7 +12,6 @@ import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
-  // AlertDialogContent,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -75,7 +74,12 @@ export default function WalletButton() {
   // Not connected yet — show "Connect" trigger button.
   if (!connected || !wallet) {
     return (
-      <CustomButton type="button" onClick={handleConnect} icon={IconUser}>
+      <CustomButton
+        type="button"
+        onClick={handleConnect}
+        icon={IconUser}
+        hideChildrenOnMobile
+      >
         Connect
       </CustomButton>
     );
@@ -89,6 +93,7 @@ export default function WalletButton() {
           <CustomButton
             type="button"
             iconBgTransparent
+            hideChildrenOnMobile
             icon={
               <div className="rounded-xl overflow-hidden isolate">
                 <Avatar

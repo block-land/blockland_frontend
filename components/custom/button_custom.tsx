@@ -4,6 +4,12 @@ export interface CustomButtonProps {
   icon?: string | React.ComponentType<any> | React.ReactNode;
   variant?: "default" | "outline";
   iconBgTransparent?: boolean;
+  /**
+   * When true, the button's children (label text) are hidden on small screens
+   * (< sm) and only the icon remains. Useful for compact icon-only buttons in
+   * mobile layouts. Default: false.
+   */
+  hideChildrenOnMobile?: boolean;
 }
 
 function renderIcon(
@@ -54,22 +60,30 @@ export function withCustomButton<T extends React.ElementType>(
       children?: React.ReactNode;
       className?: string;
     }
-  >(({ children, className = "", icon, variant = "default", iconBgTransparent, ...props }, ref) => {
+  >(({ children, className = "", icon, variant = "default", iconBgTransparent, hideChildrenOnMobile = false, ...props }, ref) => {
     const Component = WrappedComponent as React.ComponentType<any>;
     const variantClasses =
       variant === "outline"
         ? "border border-zinc-700 bg-transparent text-white hover:bg-zinc-800/60 focus-visible:ring-zinc-700"
         : "bg-primary text-black focus-visible:ring-primary";
 
+    // When only an icon is shown on mobile (hideChildrenOnMobile), collapse the
+    // button padding so it looks like a proper icon button.
+    const mobilePadding = hideChildrenOnMobile
+      ? "pl-[2px] pr-[2px] py-[2px] sm:pl-[27px] sm:pr-[2px] sm:py-[2px]"
+      : icon
+        ? "pl-[27px] pr-[2px] py-[2px]"
+        : "px-[27px] py-[12px]";
+
     return (
       <Component
         ref={ref}
-        className={`flex shrink-0 items-center gap-[13px] rounded-xl text-[16px] font-semibold transition-transform hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${variantClasses} ${
-          icon ? "pl-[27px] pr-[2px] py-[2px]" : "px-[27px] py-[12px]"
-        } ${className}`}
+        className={`flex shrink-0 items-center gap-[13px] rounded-xl text-[16px] font-semibold transition-transform hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${variantClasses} ${mobilePadding} ${className}`}
         {...props}
       >
-        <span>{children}</span>
+        <span className={hideChildrenOnMobile ? "hidden sm:inline" : undefined}>
+          {children}
+        </span>
         {icon && renderIcon(icon, iconBgTransparent)}
       </Component>
     );

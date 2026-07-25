@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import Header from "./header";
 import Footer from "./footer";
 import PrivyProviderWrapper from "./privy-provider";
-import { motion, useScroll, useSpring, useTransform, AnimatePresence } from "framer-motion";
+import { motion, useScroll, useSpring, useTransform } from "framer-motion";
 import ProfileDialogWatcher from "./profile-dialog-watcher";
 
 export default function LayoutsClient({
@@ -21,60 +21,21 @@ export default function LayoutsClient({
   // custom smooth-scroll (fixed + transformed container). Bypass smooth-scroll
   // and use native browser scroll there so pin math stays correct.
   // Also bypass smooth-scroll for the message page to ensure viewport heights and fixed flex boxes work properly.
+  // Also bypass smooth-scroll on mobile/touch devices — the fixed+transformed
+  // container fights with native touch scrolling and feels janky.
   // const useNativeScroll = pathname === "/" || pathname === "/message";
-  const useNativeScroll = pathname === "/message";
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 768px)");
+    const update = () => setIsMobile(mql.matches);
+    update();
+    mql.addEventListener("change", update);
+    return () => mql.removeEventListener("change", update);
+  }, []);
+  const useNativeScroll = pathname === "/message" || isMobile;
 
   const contentRef = useRef<HTMLDivElement>(null);
   const [contentHeight, setContentHeight] = useState(0);
-
-  const [isLoading, setIsLoading] = useState(true);
-  const [progress, setProgress] = useState(0);
-
-  // Simulated smooth loading percentage
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-
-    const updateProgress = () => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          setTimeout(() => {
-            setIsLoading(false);
-          }, 1200); // Pause at 100% for a dramatic effect (2x slower)
-          return 100;
-        }
-
-        let diff = 0;
-        let nextDelay = 0;
-
-        if (prev < 40) {
-          // Fast startup (2x slower delay)
-          diff = Math.random() * 8 + 5;
-          nextDelay = (Math.random() * 60 + 40) * 2;
-        } else if (prev < 80) {
-          // Normal speed (2x slower delay)
-          diff = Math.random() * 5 + 2;
-          nextDelay = (Math.random() * 100 + 60) * 2;
-        } else if (prev < 95) {
-          // Slowing down (2x slower delay)
-          diff = Math.random() * 3 + 1;
-          nextDelay = (Math.random() * 150 + 100) * 2;
-        } else {
-          // Creeping to the finish line (2x slower delay)
-          diff = Math.random() * 1.5 + 0.5;
-          nextDelay = (Math.random() * 200 + 150) * 2;
-        }
-
-        const next = Math.min(prev + diff, 100);
-        timer = setTimeout(updateProgress, nextDelay);
-
-        return next;
-      });
-    };
-
-    timer = setTimeout(updateProgress, 200);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -115,63 +76,6 @@ export default function LayoutsClient({
 
   return (
     <PrivyProviderWrapper>
-      {/* Modern Loader Screen */}
-      <AnimatePresence>
-        {isLoading && (
-          <motion.div
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black text-white"
-          >
-            {/* Background Grid Lines */}
-            <div className="absolute inset-0 grid grid-cols-4 divide-x divide-zinc-900 pointer-events-none z-0 w-full h-screen">
-              <div className="h-full" />
-              <div className="h-full" />
-              <div className="h-full" />
-              <div className="h-full" />
-            </div>
-
-            {/* Center Rounded Box with SVG Border Progress */}
-            <div className="relative flex items-center justify-center w-[180px] h-[180px] z-10">
-              <svg className="absolute inset-0 w-full h-full -rotate-90">
-                {/* Background Track */}
-                <circle
-                  cx="90"
-                  cy="90"
-                  r="80"
-                  className="stroke-zinc-900 fill-none"
-                  strokeWidth="1"
-                />
-                {/* Active Progress Border */}
-                <motion.circle
-                  cx="90"
-                  cy="90"
-                  r="80"
-                  className="stroke-white fill-none"
-                  strokeWidth="1"
-                  strokeLinecap="round"
-                  strokeDasharray="503" // Circumference for r=80 (2 * pi * 80 ~ 503)
-                  initial={{ strokeDashoffset: 503 }}
-                  animate={{ strokeDashoffset: 503 - (503 * progress) / 100 }}
-                  transition={{ ease: "easeOut", duration: 0.1 }}
-                />
-              </svg>
-
-              {/* Percentage & Loading text */}
-              <div className="flex flex-col items-center justify-center z-10 select-none">
-                <span className="text-3xl font-extrabold text-white">
-                  {Math.round(progress)}%
-                </span>
-                <span className="text-[10px] text-white mt-1 font-semibold uppercase tracking-[0.25em]">
-                  Loading
-                </span>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Smooth scroll container (or native-scroll wrapper on GSAP pages) */}
       <motion.div
         ref={contentRef}
@@ -181,9 +85,9 @@ export default function LayoutsClient({
           : {
               initial: { opacity: 0, filter: "blur(12px)", scale: 1.02 },
               animate: {
-                opacity: isLoading ? 0 : 1,
-                filter: isLoading ? "blur(12px)" : "blur(0px)",
-                scale: isLoading ? 1.02 : 1,
+                opacity: 1,
+                filter: "blur(0px)",
+                scale: 1,
               },
               transition: { duration: 1.2, ease: [0.16, 1, 0.3, 1] },
             })}
@@ -213,7 +117,7 @@ export default function LayoutsClient({
 
       {/* Page height placeholder for native scrollbar (smooth-scroll mode only) */}
       {!useNativeScroll && (
-        <div style={{ height: isLoading ? "100vh" : contentHeight }} className="w-full pointer-events-none" />
+        <div style={{ height: contentHeight }} className="w-full pointer-events-none" />
       )}
 
       <ProfileDialogWatcher />

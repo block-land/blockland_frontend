@@ -1,6 +1,11 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import WalletButton from "./wallet-button";
-import { MessageSquare } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import gsap from "gsap";
 
 const navItems = [
   { label: "Landmark", href: "/landmark" },
@@ -10,51 +15,134 @@ const navItems = [
 ];
 
 export default function Header() {
-  return (
-    <header
-      className="flex w-full items-center justify-between gap-8"
-      data-name="Header"
-      data-node-id="12:283"
-    >
-      <Link
-        href="/"
-        className="flex shrink-0 items-center gap-3 text-white transition-opacity hover:opacity-85"
-        aria-label="Blockland home"
-      >
-        <img src="/img/logo_white.png" className="w-[160px]" alt="" />
-      </Link>
+  const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+  const menuRef = useRef<HTMLDivElement>(null);
+  const navListRef = useRef<HTMLUListElement>(null);
+  const scopeRef = useRef<HTMLDivElement>(null);
 
-      <nav
-        aria-label="Primary"
-        // className="hidden lg:flex flex-1 justify-center"
-        className="hidden lg:flex flex-1 justify-center"
+  // Close the mobile menu whenever the route changes.
+  // Close the mobile menu whenever the route changes.
+  useEffect(() => {
+    setIsOpen(false);
+  }, [pathname]);
+
+  // GSAP animation for the mobile menu open/close.
+  useEffect(() => {
+    const scope = scopeRef.current;
+    const menu = menuRef.current;
+    const navList = navListRef.current;
+    if (!scope || !menu || !navList) return;
+
+    const ctx = gsap.context(() => {
+      if (isOpen) {
+        // Open: slide the panel down + fade in nav items with a stagger.
+        gsap.set(menu, { display: "flex" });
+        gsap.fromTo(
+          menu,
+          { autoAlpha: 0, y: -16 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.4,
+            ease: "power3.out",
+          },
+        );
+        gsap.fromTo(
+          navList.children,
+          { autoAlpha: 0, y: -12 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.35,
+            ease: "power2.out",
+            stagger: 0.06,
+            delay: 0.05,
+          },
+        );
+      } else {
+        // Close: reverse the panel animation.
+        gsap.to(menu, {
+          autoAlpha: 0,
+          y: -16,
+          duration: 0.25,
+          ease: "power2.in",
+          onComplete: () => gsap.set(menu, { display: "none" }),
+        });
+      }
+    }, scopeRef);
+
+    return () => ctx.revert();
+  }, [isOpen]);
+
+  return (
+    <div ref={scopeRef} className="w-full">
+      <header
+        className="flex w-full items-center justify-between gap-8"
+        data-name="Header"
+        data-node-id="12:283"
       >
-        <ul className="flex flex-wrap items-center justify-center gap-x-[67px] gap-y-4 text-[16px] text-white">
+        <Link
+          href="/"
+          className="flex shrink-0 items-center gap-3 text-white transition-opacity hover:opacity-85"
+          aria-label="Blockland home"
+        >
+          <img src="/img/logo_white.png" className="w-[160px]" alt="" />
+        </Link>
+
+        {/* Desktop nav */}
+        <nav
+          aria-label="Primary"
+          className="hidden lg:flex flex-1 justify-center"
+        >
+          <ul className="flex flex-wrap items-center justify-center gap-x-[67px] gap-y-4 text-[16px] text-white">
+            {navItems.map((item) => (
+              <li key={item.label}>
+                <Link
+                  href={item.href}
+                  className="transition-colors hover:text-primary focus-visible:text-primary focus-visible:outline-none"
+                >
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <div className="flex items-center gap-4 shrink-0">
+          <WalletButton />
+          {/* Hamburger toggle — only on mobile/tablet */}
+          <button
+            type="button"
+            aria-label={isOpen ? "Close menu" : "Open menu"}
+            aria-expanded={isOpen}
+            onClick={() => setIsOpen((prev) => !prev)}
+            className="lg:hidden relative z-[210] flex h-[42px] w-[42px] items-center justify-center rounded-xl bg-zinc-900 border border-zinc-800 text-white hover:border-zinc-700 hover:text-primary transition-colors"
+          >
+            {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
+      </header>
+
+      {/* Mobile nav menu — full-screen overlay (GSAP animated) */}
+      <div
+        ref={menuRef}
+        aria-hidden={!isOpen}
+        className="lg:hidden hidden fixed inset-0 z-[200] h-screen w-screen flex-col bg-black/95 backdrop-blur-md text-white"
+      >
+        <ul ref={navListRef} className="flex flex-col gap-2 px-6 pt-28">
           {navItems.map((item) => (
             <li key={item.label}>
               <Link
                 href={item.href}
-                className="transition-colors hover:text-primary focus-visible:text-primary focus-visible:outline-none"
+                className="block rounded-xl px-4 py-4 text-2xl font-semibold transition-colors hover:bg-zinc-900 hover:text-primary focus-visible:bg-zinc-900 focus-visible:text-primary focus-visible:outline-none"
               >
                 {item.label}
               </Link>
             </li>
           ))}
         </ul>
-      </nav>
-      <div className="flex items-center gap-4 shrink-0">
-        {/* <Link
-          href="/message"
-          className="relative flex items-center justify-center h-[42px] w-[42px] rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-primary hover:border-zinc-700 transition-colors"
-          title="Messages"
-        >
-          <MessageSquare className="h-5 w-5" />
-          <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-semibold text-white ring-2 ring-black">
-            2
-          </span>
-        </Link> */}
-        <WalletButton />
       </div>
-    </header>
+    </div>
   );
 }

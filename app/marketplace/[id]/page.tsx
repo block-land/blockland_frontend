@@ -247,7 +247,8 @@ export default function TileDetailPage() {
       )
     : undefined;
   const userOwnsTile = !!tile && wallet?.address === tile.publisher.walletAddress;
-  const isOfferFormDisabled = userOwnsTile || Boolean(userPendingOffer);
+  const notConnected = !wallet;
+  const isOfferFormDisabled = notConnected || userOwnsTile || Boolean(userPendingOffer);
 
   const handleMakeOffer = (e: React.FormEvent) => {
     e.preventDefault();
@@ -377,11 +378,15 @@ export default function TileDetailPage() {
             {/* Offering Input Block */}
             <form onSubmit={handleMakeOffer} className="space-y-3 bg-zinc-900/40 p-5 rounded-2xl border border-zinc-900">
               <h4 className="text-xs text-zinc-400 uppercase tracking-wider font-mono">Make an Offer</h4>
-              {userPendingOffer && (
+              {notConnected ? (
+                <p className="text-xs text-zinc-500 py-2">
+                  Connect your wallet to make an offer.
+                </p>
+              ) : userPendingOffer ? (
                 <p className="text-xs text-zinc-500 py-2">
                   You have an active offer on this tile. Cancel it to make a new one.
                 </p>
-              )}
+              ) : null}
               <div className="flex gap-2">
                 <div className="relative flex-1 bg-black flex gap-2 h-[48px] items-center px-4 rounded-xl border border-zinc-800 focus-within:border-zinc-700 has-[:disabled]:opacity-50">
                   <input
@@ -448,19 +453,24 @@ export default function TileDetailPage() {
 
             {/* Action buttons */}
             <div className="space-y-4 pt-4 border-t border-zinc-900">
-              <ButtonCustom onClick={handleBuy} className="w-full justify-center py-4 text-base ">
+              <ButtonCustom
+                onClick={handleBuy}
+                disabled={notConnected}
+                className="w-full justify-center py-4 text-base disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 Buy Coordinate Unit
               </ButtonCustom>
               <div className="flex gap-4">
                 <button
                   onClick={() => {
-                    if (!tile || isOwnTile) return;
+                    if (!tile || isOwnTile || notConnected) return;
                     setIsChatOpen(true);
                   }}
-                  disabled={isOwnTile}
+                  disabled={isOwnTile || notConnected}
                   className="flex-1 flex items-center justify-center gap-2 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 py-3 rounded-xl transition-all cursor-pointer  text-sm text-white disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <MessageSquare className="h-4 w-4" /> {isOwnTile ? "Your Tile" : "Chat Seller"}
+                  <MessageSquare className="h-4 w-4" />{" "}
+                  {isOwnTile ? "Your Tile" : notConnected ? "Connect Wallet" : "Chat Seller"}
                 </button>
                 <button className="flex-1 flex items-center justify-center gap-2 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 py-3 rounded-xl transition-all cursor-pointer  text-sm">
                   <Share2 className="h-4 w-4" /> Share
