@@ -27,6 +27,19 @@ export default function Header() {
     setIsOpen(false);
   }, [pathname]);
 
+  // Lock body scroll while the mobile menu is open so the background can't
+  // scroll (which would hide the close/hamburger button behind the overlay).
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (isOpen) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prev;
+      };
+    }
+  }, [isOpen]);
+
   // GSAP animation for the mobile menu open/close.
   useEffect(() => {
     const scope = scopeRef.current;

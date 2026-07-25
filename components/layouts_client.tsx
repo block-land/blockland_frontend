@@ -49,6 +49,15 @@ export default function LayoutsClient({
   }, []);
   const useNativeScroll = pathname === "/message" || isMobile;
 
+  // Header positioning:
+  // - Home/landmark on desktop → "absolute" (overlay on top of the hero image)
+  // - Home/landmark on mobile  → "fixed" (always pinned to the viewport top
+  //   while scrolling, stronger than sticky — needed because the hero page
+  //   uses native scroll on mobile and sticky can detach depending on layout)
+  // - Other pages              → "sticky" everywhere
+  const headerPosition: "absolute" | "fixed" | "sticky" =
+    isAbsoluteHeader ? (isMobile ? "fixed" : "absolute") : "sticky";
+
   const contentRef = useRef<HTMLDivElement>(null);
   const [contentHeight, setContentHeight] = useState(0);
 
@@ -101,8 +110,14 @@ export default function LayoutsClient({
         >
           <div className="relative min-h-screen flex flex-col">
             {/* Header container */}
-            <div className={isAbsoluteHeader ? "absolute top-0 left-0 right-0 z-50" : "sticky top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-zinc-900/50 transition-all shrink-0"}>
-              <section className={isAbsoluteHeader ? "mx-auto flex w-full max-w-[1440px] flex-col px-6 pt-[47px] sm:px-10 lg:px-[68px]" : "mx-auto flex w-full max-w-[1440px] flex-col px-6 py-4 sm:px-10 lg:px-[68px]"}>
+            <div className={
+              headerPosition === "absolute"
+                ? "absolute top-0 left-0 right-0 z-50"
+                : headerPosition === "fixed"
+                  ? "fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-zinc-900/50 transition-all shrink-0"
+                  : "sticky top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-zinc-900/50 transition-all shrink-0"
+            }>
+              <section className={headerPosition === "absolute" ? "mx-auto flex w-full max-w-[1440px] flex-col px-6 pt-[47px] sm:px-10 lg:px-[68px]" : "mx-auto flex w-full max-w-[1440px] flex-col px-6 py-4 sm:px-10 lg:px-[68px]"}>
                 <Header />
               </section>
             </div>
@@ -130,8 +145,14 @@ export default function LayoutsClient({
         >
           <div className="relative min-h-screen flex flex-col">
             {/* Header container */}
-            <div className={isAbsoluteHeader ? "absolute top-0 left-0 right-0 z-50" : "sticky top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-zinc-900/50 transition-all shrink-0"}>
-              <section className={isAbsoluteHeader ? "mx-auto flex w-full max-w-[1440px] flex-col px-6 pt-[47px] sm:px-10 lg:px-[68px]" : "mx-auto flex w-full max-w-[1440px] flex-col px-6 py-4 sm:px-10 lg:px-[68px]"}>
+            <div className={
+              headerPosition === "absolute"
+                ? "absolute top-0 left-0 right-0 z-50"
+                : headerPosition === "fixed"
+                  ? "fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-zinc-900/50 transition-all shrink-0"
+                  : "sticky top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-zinc-900/50 transition-all shrink-0"
+            }>
+              <section className={headerPosition === "absolute" ? "mx-auto flex w-full max-w-[1440px] flex-col px-6 pt-[47px] sm:px-10 lg:px-[68px]" : "mx-auto flex w-full max-w-[1440px] flex-col px-6 py-4 sm:px-10 lg:px-[68px]"}>
                 <Header />
               </section>
             </div>
