@@ -36,8 +36,8 @@ export default function Home() {
     fluid: true,
     sources: [
       {
-        src: "https://pub-435ea7c908ea4035b5643ba33e5eef48.r2.dev/blockland/vision.webm",
-        type: "video/webm",
+        src: "https://res.cloudinary.com/dvi2n1ghg/video/upload/f_auto:video/telegram-cloud-document-5-6201892054839074967_yuygw2?_s=vp",
+        type: "video/mp4",
       },
     ],
   };
