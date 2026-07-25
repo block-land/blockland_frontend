@@ -95,7 +95,7 @@ export default function WalletButton() {
             iconBgTransparent
             hideChildrenOnMobile
             icon={
-              <div className="rounded-xl overflow-hidden isolate">
+              <div className="w-full h-full rounded-lg sm:rounded-xl overflow-hidden isolate [&>svg]:w-full [&>svg]:h-full">
                 <Avatar
                   colors={[
                     "#f5e1a4",
