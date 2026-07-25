@@ -204,9 +204,12 @@ function MessagePageInner() {
     });
   };
 
-  const filteredThreads = conversations.filter((t) =>
-    t.other.username.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredThreads = conversations.filter((t) => {
+    const query = searchQuery.toLowerCase().trim();
+    const username = t.other.username?.toLowerCase() || "";
+    const wallet = t.other.walletAddress?.toLowerCase() || "";
+    return username.includes(query) || wallet.includes(query);
+  });
 
   // A staged recipient from the search dialog creates a synthetic "active"
   // conversation view before the first message is sent (no DB row yet).
