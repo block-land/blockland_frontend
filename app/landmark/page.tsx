@@ -1611,7 +1611,7 @@ export default function LandmarkPage() {
 
       {/* Search Location Dialog */}
       <Dialog open={isSearchDialogOpen} onOpenChange={setIsSearchDialogOpen}>
-        <DialogContent className="max-w-[90vw] rounded-3xl md:min-w-2xl">
+        <DialogContent className="w-[90vw] md:max-w-xl rounded-3xl">
           <DialogHeader>
             <DialogTitle className="">Search Location</DialogTitle>
             <DialogDescription className="">

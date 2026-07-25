@@ -142,5 +142,5 @@ h1, h2, h3 {
 }
 
 p {
-  @apply !text-zinc-400;
+  @apply text-zinc-400;
 }

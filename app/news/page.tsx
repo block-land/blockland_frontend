@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, Calendar, Clock, ArrowRight, BookOpen } from "lucide-react";
-import { DUMMY_NEWS, getCategoryBadgeColor } from "@/lib/news";
+import { Search, Calendar, Clock, ArrowRight, BookOpen, Loader2 } from "lucide-react";
+import { getCategoryBadgeColor, fetchNews, type NewsItem } from "@/lib/news";
 import { withCustomButton } from "@/components/custom/button_custom";
 
 const LinkButtonCustom = withCustomButton(Link);
@@ -11,21 +11,32 @@ const LinkButtonCustom = withCustomButton(Link);
 export default function NewsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [news, setNews] = useState<NewsItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  // Filtering news list
-  const filteredNews = DUMMY_NEWS.filter((item) => {
-    const matchesSearch =
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.author.name.toLowerCase().includes(searchQuery.toLowerCase());
+  // Debounce search query
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
 
-    const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
+  // Fetch news from backend
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      const res = await fetchNews(selectedCategory, debouncedSearch);
+      if (res.ok) {
+        setNews(res.news);
+      }
+      setLoading(false);
+    }
+    load();
+  }, [selectedCategory, debouncedSearch]);
 
-    return matchesSearch && matchesCategory;
-  });
-
-  const featuredNews = DUMMY_NEWS[0];
-  const remainingNews = filteredNews.filter((item) => item.id !== featuredNews.id);
+  const displayNews = news;
 
   const categories = ["All", "Announcement", "Development", "Marketplace", "Ecosystem"];
 
@@ -45,55 +56,6 @@ export default function NewsPage() {
             Stay up to date with the latest announcements, engineering deep-dives, and guides from the Blockland core developers.
           </p>
         </div>
-
-        {/* Featured Banner Hero (If searching or filtering is active, skip or show conditional banner) */}
-        {searchQuery === "" && selectedCategory === "All" && featuredNews && (
-          <div className="bg-zinc-950 border border-zinc-900 rounded-3xl overflow-hidden hover:border-zinc-800 transition-all duration-300 group grid grid-cols-1 lg:grid-cols-12 gap-0">
-            {/* Cover Image */}
-            <div className="lg:col-span-7 relative aspect-video lg:aspect-auto overflow-hidden min-h-[300px]">
-              <img
-                src={featuredNews.imageUrl}
-                alt={featuredNews.title}
-                className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-700"
-              />
-              <div className="absolute inset-0 bg-linear-to-t lg:bg-linear-to-r from-zinc-955 via-zinc-955/20 to-transparent opacity-90" />
-            </div>
-
-            {/* Content Details */}
-            <div className="lg:col-span-5 p-6 sm:p-10 flex flex-col justify-between space-y-8 lg:space-y-0">
-              <div className="space-y-4">
-                <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-xl border ${getCategoryBadgeColor(featuredNews.category)}`}>
-                  {featuredNews.category}
-                </span>
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight group-hover:text-primary transition-colors">
-                  {featuredNews.title}
-                </h2>
-                <p className="text-sm text-zinc-400 leading-relaxed">
-                  {featuredNews.excerpt}
-                </p>
-              </div>
-
-              {/* Author & CTA */}
-              <div className="flex items-center justify-between pt-6 border-t border-zinc-900/60">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={featuredNews.author.avatar}
-                    alt={featuredNews.author.name}
-                    className="w-9 h-9 rounded-full object-cover border border-zinc-800"
-                  />
-                  <div>
-                    <h5 className="font-semibold text-white text-xs">{featuredNews.author.name}</h5>
-                    <p className="text-[10px] text-zinc-500 font-mono mt-0.5">{featuredNews.date}</p>
-                  </div>
-                </div>
-
-                <LinkButtonCustom href={`/news/${featuredNews.id}`}>
-                  Read Article
-                </LinkButtonCustom>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Filters and Search Bar */}
         <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between border-t border-b border-zinc-900 py-6">
@@ -129,12 +91,16 @@ export default function NewsPage() {
         </div>
 
         {/* Grid List */}
-        {filteredNews.length > 0 ? (
+        {loading ? (
+          <div className="flex justify-center items-center py-24">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : displayNews.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {(searchQuery !== "" || selectedCategory !== "All" ? filteredNews : remainingNews).map((item) => (
+            {displayNews.map((item) => (
               <article
                 key={item.id}
-                className="bg-zinc-950 border border-zinc-900 rounded-2xl overflow-hidden hover:border-zinc-800 transition-all duration-300 hover:scale-[1.01] flex flex-col group"
+                className="bg-zinc-955 border border-zinc-900 rounded-2xl overflow-hidden hover:border-zinc-800 transition-all duration-300 hover:scale-[1.01] flex flex-col group"
               >
                 <Link href={`/news/${item.id}`} className="block relative aspect-video overflow-hidden">
                   <img

@@ -3,9 +3,9 @@
 import React from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Calendar, Clock, Share2, Twitter, Copy, Check, MessageSquare } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Share2, Twitter, Copy, Check, MessageSquare, Loader2 } from "lucide-react";
 import { FaTelegramPlane } from "react-icons/fa";
-import { DUMMY_NEWS, getCategoryBadgeColor } from "@/lib/news";
+import { getCategoryBadgeColor, fetchNews, fetchNewsItem, type NewsItem } from "@/lib/news";
 import { withCustomButton } from "@/components/custom/button_custom";
 
 const LinkButtonCustom = withCustomButton(Link);
@@ -13,9 +13,46 @@ const LinkButtonCustom = withCustomButton(Link);
 export default function NewsDetailPage() {
   const params = useParams();
   const newsId = params?.id as string;
-  const item = DUMMY_NEWS.find((article) => article.id === newsId);
 
+  const [item, setItem] = React.useState<NewsItem | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [relatedArticles, setRelatedArticles] = React.useState<NewsItem[]>([]);
   const [copied, setCopied] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!newsId) return;
+
+    async function load() {
+      setLoading(true);
+      const resItem = await fetchNewsItem(newsId);
+      if (resItem.ok && resItem.news) {
+        setItem(resItem.news);
+        
+        // Fetch related articles
+        const resList = await fetchNews();
+        if (resList.ok) {
+          const filtered = resList.news
+            .filter((article) => article.id !== resItem.news!.id)
+            .slice(0, 2);
+          setRelatedArticles(filtered);
+        }
+      } else {
+        setItem(null);
+      }
+      setLoading(false);
+    }
+
+    load();
+  }, [newsId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-zinc-550 font-sans text-sm">Loading article...</p>
+      </div>
+    );
+  }
 
   if (!item) {
     return (
@@ -36,8 +73,6 @@ export default function NewsDetailPage() {
       setTimeout(() => setCopied(false), 2000);
     }
   };
-
-  const relatedArticles = DUMMY_NEWS.filter((article) => article.id !== item.id).slice(0, 2);
 
   return (
     <div className="min-h-screen bg-black text-white pt-16 md:pt-32 pb-24 font-sans">

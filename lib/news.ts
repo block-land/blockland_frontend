@@ -1,3 +1,5 @@
+import { BACKEND_URL } from "./api";
+
 export interface NewsItem {
   id: string;
   title: string;
@@ -12,6 +14,37 @@ export interface NewsItem {
     avatar: string;
     role: string;
   };
+}
+
+export async function fetchNews(
+  category?: string,
+  search?: string
+): Promise<{ ok: boolean; news: NewsItem[]; error?: string }> {
+  try {
+    const params = new URLSearchParams();
+    if (category && category !== "All") params.set("category", category);
+    if (search) params.set("search", search);
+
+    const res = await fetch(`${BACKEND_URL}/api/news?${params}`);
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    console.error("fetchNews error:", err);
+    return { ok: false, news: [], error: "Failed to connect to backend" };
+  }
+}
+
+export async function fetchNewsItem(
+  id: string
+): Promise<{ ok: boolean; news?: NewsItem; error?: string }> {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/news/${id}`);
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    console.error("fetchNewsItem error:", err);
+    return { ok: false, error: "Failed to connect to backend" };
+  }
 }
 
 export const DUMMY_NEWS: NewsItem[] = [
