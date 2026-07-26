@@ -116,7 +116,9 @@ export default function Header() {
               <li key={item.label}>
                 <Link
                   href={item.href}
-                  className="transition-colors hover:text-primary focus-visible:text-primary focus-visible:outline-none"
+                  className={`transition-colors hover:text-primary focus-visible:text-primary focus-visible:outline-none ${
+                    pathname.startsWith(item.href) ? "text-primary" : ""
+                  }`}
                 >
                   {item.label}
                 </Link>
@@ -154,7 +156,9 @@ export default function Header() {
             <li key={item.label}>
               <Link
                 href={item.href}
-                className="block rounded-xl px-4 py-4 text-2xl font-semibold transition-colors hover:bg-zinc-900 hover:text-primary focus-visible:bg-zinc-900 focus-visible:text-primary focus-visible:outline-none"
+                className={`block rounded-xl px-4 py-4 text-2xl font-semibold transition-colors hover:bg-zinc-900 hover:text-primary focus-visible:bg-zinc-900 focus-visible:text-primary focus-visible:outline-none ${
+                  pathname.startsWith(item.href) ? "text-primary" : ""
+                }`}
               >
                 {item.label}
               </Link>
