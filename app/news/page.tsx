@@ -2,11 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, Calendar, Clock, ArrowRight, BookOpen, Loader2 } from "lucide-react";
+import { Search, Calendar, Clock, BookOpen, Loader2 } from "lucide-react";
 import { getCategoryBadgeColor, fetchNews, type NewsItem } from "@/lib/news";
-import { withCustomButton } from "@/components/custom/button_custom";
-
-const LinkButtonCustom = withCustomButton(Link);
 
 export default function NewsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -46,10 +43,10 @@ export default function NewsPage() {
         
         {/* Header Title */}
         <div className="space-y-4 max-w-2xl">
-          <span className="text-primary text-sm font-semibold tracking-widest uppercase">
+          <div className="text-primary text-sm  tracking-widest uppercase">
             Blockland Newsroom
-          </span>
-          <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight text-white">
+          </div>
+          <h1 className="text-4xl sm:text-5xl  tracking-tight text-white">
             Ecosystem <span className="text-primary">Updates</span>
           </h1>
           <p className="text-zinc-400 text-lg leading-relaxed">
@@ -66,7 +63,7 @@ export default function NewsPage() {
                 key={cat}
                 type="button"
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                className={`px-4 py-2 rounded-xl text-xs  border transition-all cursor-pointer ${
                   selectedCategory === cat
                     ? "bg-primary text-black border-primary"
                     : "border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"
@@ -109,14 +106,14 @@ export default function NewsPage() {
                     className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-zinc-950 to-transparent opacity-60" />
-                  <span className={`absolute top-4 left-4 text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getCategoryBadgeColor(item.category)}`}>
+                  <span className={`absolute top-4 left-4 text-[9px]  uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getCategoryBadgeColor(item.category)}`}>
                     {item.category}
                   </span>
                 </Link>
 
                 <div className="p-6 flex-1 flex flex-col justify-between space-y-6">
                   <div className="space-y-3">
-                    <div className="flex gap-4 items-center text-[10px] text-zinc-550 font-mono">
+                    <div className="flex gap-4 items-center text-[10px] text-zinc-550 ">
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" /> {item.date}
                       </span>
@@ -126,7 +123,7 @@ export default function NewsPage() {
                     </div>
 
                     <Link href={`/news/${item.id}`}>
-                      <h3 className="text-xl font-semibold text-white group-hover:text-primary transition-colors line-clamp-2 leading-snug">
+                      <h3 className="text-xl  text-white group-hover:text-primary transition-colors line-clamp-2 leading-snug">
                         {item.title}
                       </h3>
                     </Link>
@@ -143,15 +140,14 @@ export default function NewsPage() {
                         alt={item.author.name}
                         className="w-6 h-6 rounded-full object-cover border border-zinc-800"
                       />
-                      <span className="text-[10px] font-semibold text-zinc-300">{item.author.name}</span>
+                      <span className="text-[10px]  text-zinc-300">{item.author.name}</span>
                     </div>
 
                     <Link
                       href={`/news/${item.id}`}
-                      className="text-[11px] font-semibold text-zinc-450 hover:text-white flex items-center gap-1 group/btn"
+                      className="text-[11px] text-primary"
                     >
                       Read Now
-                      <ArrowRight className="h-3.5 w-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
                     </Link>
                   </div>
                 </div>
@@ -161,7 +157,7 @@ export default function NewsPage() {
         ) : (
           <div className="text-center py-20 border border-dashed border-zinc-850 rounded-2xl space-y-4">
             <BookOpen className="h-10 w-10 text-zinc-700 mx-auto" />
-            <h3 className="font-semibold text-lg text-white">No articles found</h3>
+            <h3 className=" text-lg text-white">No articles found</h3>
             <p className="text-zinc-500 text-sm max-w-sm mx-auto">
               No matching news articles fit your search criteria. Let's try adjusting the filters.
             </p>

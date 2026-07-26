@@ -3,12 +3,22 @@
 import React from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Calendar, Clock, Share2, Twitter, Copy, Check, MessageSquare, Loader2 } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  Twitter,
+  Copy,
+  Check,
+  Loader2,
+} from "lucide-react";
 import { FaTelegramPlane } from "react-icons/fa";
-import { getCategoryBadgeColor, fetchNews, fetchNewsItem, type NewsItem } from "@/lib/news";
-import { withCustomButton } from "@/components/custom/button_custom";
-
-const LinkButtonCustom = withCustomButton(Link);
+import {
+  getCategoryBadgeColor,
+  fetchNews,
+  fetchNewsItem,
+  type NewsItem,
+} from "@/lib/news";
+import { Separator } from "@/components/ui/separator";
 
 export default function NewsDetailPage() {
   const params = useParams();
@@ -27,7 +37,7 @@ export default function NewsDetailPage() {
       const resItem = await fetchNewsItem(newsId);
       if (resItem.ok && resItem.news) {
         setItem(resItem.news);
-        
+
         // Fetch related articles
         const resList = await fetchNews();
         if (resList.ok) {
@@ -57,8 +67,10 @@ export default function NewsDetailPage() {
   if (!item) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4">
-        <h2 className="text-2xl font-semibold">Article not found</h2>
-        <p className="text-zinc-500 font-sans">The news article you are looking for does not exist.</p>
+        <h2 className="text-2xl ">Article not found</h2>
+        <p className="text-zinc-500 font-sans">
+          The news article you are looking for does not exist.
+        </p>
         <Link href="/news" className="text-primary hover:underline">
           Back to Newsroom
         </Link>
@@ -77,14 +89,9 @@ export default function NewsDetailPage() {
   return (
     <div className="min-h-screen bg-black text-white pt-16 md:pt-32 pb-24 font-sans">
       <div className="mx-auto max-w-[900px] px-6 sm:px-10 space-y-10">
-        
         {/* Navigation Breadcrumb */}
         <div>
-          <Link
-            href="/news"
-            className="inline-flex items-center gap-2 text-zinc-400 hover:text-white transition-colors group text-sm font-medium"
-          >
-            <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+          <Link href="/news" className="text-primary text-sm">
             Back to Newsroom
           </Link>
         </div>
@@ -92,10 +99,12 @@ export default function NewsDetailPage() {
         {/* Article Meta Header */}
         <div className="space-y-6">
           <div className="flex flex-wrap items-center gap-4">
-            <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-xl border ${getCategoryBadgeColor(item.category)}`}>
+            <span
+              className={`text-[10px]  uppercase tracking-wider px-2.5 py-1 rounded-xl border ${getCategoryBadgeColor(item.category)}`}
+            >
               {item.category}
             </span>
-            <div className="flex gap-4 items-center text-xs text-zinc-550 font-mono">
+            <div className="flex gap-4 items-center text-xs text-zinc-550 ">
               <span className="flex items-center gap-1">
                 <Calendar className="h-3.5 w-3.5" /> {item.date}
               </span>
@@ -105,7 +114,7 @@ export default function NewsDetailPage() {
             </div>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
+          <h1 className="text-3xl sm:text-5xl tracking-tight text-white leading-tight">
             {item.title}
           </h1>
 
@@ -118,8 +127,10 @@ export default function NewsDetailPage() {
                 className="w-10 h-10 rounded-full object-cover border border-zinc-800"
               />
               <div>
-                <h5 className="font-semibold text-white text-sm">{item.author.name}</h5>
-                <p className="text-[10px] text-zinc-500 font-mono mt-0.5">{item.author.role}</p>
+                <h5 className=" text-white text-sm">{item.author.name}</h5>
+                <p className="text-[10px] text-zinc-500  mt-0.5">
+                  {item.author.role}
+                </p>
               </div>
             </div>
 
@@ -130,7 +141,11 @@ export default function NewsDetailPage() {
                 title="Copy Link"
                 className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-all cursor-pointer"
               >
-                {copied ? <Check className="h-4.5 w-4.5 text-emerald-500" /> : <Copy className="h-4.5 w-4.5" />}
+                {copied ? (
+                  <Check className="h-4.5 w-4.5 text-emerald-500" />
+                ) : (
+                  <Copy className="h-4.5 w-4.5" />
+                )}
               </button>
               <a
                 href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(item.title)}`}
@@ -173,11 +188,12 @@ export default function NewsDetailPage() {
         </article>
 
         {/* Footer separator line */}
-        <div className="h-px bg-zinc-900 pt-8" />
+        {/* <div className="h-px bg-zinc-900 pt-8" /> */}
+        <Separator/>
 
         {/* Related Articles Footer section */}
         <div className="space-y-6">
-          <h3 className="text-xl font-semibold text-white flex items-center gap-2">
+          <h3 className="text-xl  text-white flex items-center gap-2">
             Related Articles
           </h3>
 
@@ -189,14 +205,18 @@ export default function NewsDetailPage() {
                 className="bg-zinc-955 border border-zinc-900 rounded-2xl p-5 block hover:border-zinc-800 transition-all hover:scale-[1.01] group space-y-4"
               >
                 <div className="space-y-2">
-                  <span className={`text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border ${getCategoryBadgeColor(article.category)}`}>
-                    {article.category}
-                  </span>
-                  <h4 className="font-semibold text-white group-hover:text-primary transition-colors text-base line-clamp-2 leading-snug">
+                  <div>
+                    <span
+                      className={`text-[9px]  uppercase tracking-wider px-2 py-0.5 rounded border ${getCategoryBadgeColor(article.category)}`}
+                    >
+                      {article.category}
+                    </span>
+                  </div>
+                  <h4 className=" text-white group-hover:text-primary transition-colors text-base line-clamp-2 leading-snug">
                     {article.title}
                   </h4>
                 </div>
-                <div className="flex gap-4 items-center text-[10px] text-zinc-550 font-mono">
+                <div className="flex gap-4 items-center text-[10px] text-zinc-550 ">
                   <span>{article.date}</span>
                   <span>•</span>
                   <span>{article.readTime}</span>
@@ -205,7 +225,6 @@ export default function NewsDetailPage() {
             ))}
           </div>
         </div>
-
       </div>
     </div>
   );
