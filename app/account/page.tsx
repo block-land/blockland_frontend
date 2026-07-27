@@ -648,7 +648,7 @@ export default function AccountPage() {
                 )}
               </div>
               <span
-                className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-zinc-955 ${wallet ? "bg-emerald-500" : "bg-zinc-500"}`}
+                className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-zinc-955 ${wallet ? "bg-primary" : "bg-zinc-500"}`}
               />
             </div>
 
@@ -658,7 +658,7 @@ export default function AccountPage() {
                   {profileData?.username || "Coordinate Owner"}
                 </h1>
               </div>
-              <div className="flex items-center gap-2 text-zinc-400 text-sm font-mono">
+              <div className="flex items-center gap-2 text-zinc-400 text-sm ">
                 <span>
                   {wallet
                     ? shortenAddress(wallet.address)
@@ -670,7 +670,7 @@ export default function AccountPage() {
                     className="text-zinc-500 text-sm hover:text-white transition-colors cursor-pointer"
                   >
                     {copied ? (
-                      <Check className="h-4 w-4 text-emerald-500" />
+                      <Check className="h-4 w-4 text-primary" />
                     ) : (
                       <Copy className="h-4 w-4" />
                     )}
@@ -698,28 +698,28 @@ export default function AccountPage() {
         {/* Portfolio Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-zinc-950 border border-zinc-900 rounded-3xl p-6 space-y-2">
-            <span className="text-xs text-zinc-500 uppercase tracking-wider font-mono">
+            <span className="text-xs text-zinc-500 uppercase tracking-wider ">
               Owned Tiles
             </span>
-            <div className="text-3xl text-white font-mono">
+            <div className="text-3xl text-white ">
               {totalTilesCount} Units
             </div>
           </div>
           <div className="bg-zinc-950 border border-zinc-900 rounded-3xl p-6 space-y-2">
-            <span className="text-xs text-zinc-500 uppercase tracking-wider font-mono">
+            <span className="text-xs text-zinc-500 uppercase tracking-wider ">
               Blockland Balance
             </span>
-            <div className="text-3xl text-primary font-mono">
+            <div className="text-3xl text-primary ">
               {usdcBalance !== null
                 ? `${usdcBalance.toFixed(2)} USDC`
                 : "Loading..."}
             </div>
           </div>
           <div className="bg-zinc-950 border border-zinc-900 rounded-3xl p-6 space-y-2">
-            <span className="text-xs text-zinc-500 uppercase tracking-wider font-mono">
+            <span className="text-xs text-zinc-500 uppercase tracking-wider ">
               SOL Balance
             </span>
-            <div className="text-3xl font-mono">
+            <div className="text-3xl ">
               {solBalance !== null
                 ? `${solBalance.toFixed(4)} SOL`
                 : "Loading..."}
@@ -782,7 +782,7 @@ export default function AccountPage() {
                     </button>
                   )}
                 </div>
-                <span className="text-xs text-zinc-550 font-mono shrink-0">
+                <span className="text-xs text-zinc-550  shrink-0">
                   Showing {paginatedTiles.length} of {totalTilesCount} units
                 </span>
               </div>
@@ -853,7 +853,7 @@ export default function AccountPage() {
                               TILE ID
                             </span>
                             <h4
-                              className="truncate text-white text-normal font-mono"
+                              className="truncate text-white text-normal "
                               title={tile.id}
                             >
                               {tile.coordinates}
@@ -865,7 +865,7 @@ export default function AccountPage() {
                               <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
                                 Buy Price
                               </div>
-                              <div className="text-base font-mono">
+                              <div className="text-base ">
                                 {tile.purchasePrice.toFixed(5)} SOL
                               </div>
                             </div>
@@ -1012,7 +1012,7 @@ export default function AccountPage() {
                               TILE ID
                             </span>
                             <h4
-                              className="truncate text-white text-normal font-mono"
+                              className="truncate text-white text-normal "
                               title={tile.id}
                             >
                               {tile.coordinates}
@@ -1024,7 +1024,7 @@ export default function AccountPage() {
                               <div className="text-[10px] text-zinc-500 uppercase tracking-wide">
                                 Sell Price
                               </div>
-                              <div className="text-base font-mono text-primary ">
+                              <div className="text-base  text-primary ">
                                 {tile.purchasePrice.toFixed(5)} SOL
                               </div>
                             </div>
@@ -1156,11 +1156,11 @@ export default function AccountPage() {
                               >
                                 {tile.rarity}
                               </span>
-                              <span className="text-[11px] text-zinc-555 font-mono flex items-center gap-1">
+                              <span className="text-[11px] text-zinc-555  flex items-center gap-1">
                                 <Grid className="h-3 w-3" />
                                 {tile.coordinates}
                               </span>
-                              <span className="text-[10px] text-zinc-555 font-mono">
+                              <span className="text-[10px] text-zinc-555 ">
                                 • {tile.offerDate}
                               </span>
                             </div>
@@ -1174,7 +1174,7 @@ export default function AccountPage() {
                               </p>
                               <span className="text-xs text-zinc-500">
                                 Seller:{" "}
-                                <span className="font-mono text-zinc-400">
+                                <span className=" text-zinc-400">
                                   {tile.seller
                                     ? `${tile.seller.slice(0, 6)}...${tile.seller.slice(-4)}`
                                     : "—"}
@@ -1187,16 +1187,16 @@ export default function AccountPage() {
                         {/* Actions */}
                         <div className="flex items-center justify-between md:justify-end gap-6 pt-4 md:pt-0 border-t md:border-t-0 border-zinc-900">
                           <div className="text-left md:text-right space-y-1">
-                            <div className="text-[10px] text-zinc-500 uppercase tracking-wide font-mono">
+                            <div className="text-[10px] text-zinc-500 uppercase tracking-wide ">
                               Your Offer
                             </div>
-                            <div className="text-lg  text-primary font-mono">
+                            <div className="text-lg  text-primary ">
                               {tile.offerPriceSol.toFixed(5)} SOL
                             </div>
                             <span
                               className={`inline-block text-[9px] uppercase  tracking-wider px-1.5 py-0.5 rounded border ${
                                 tile.offerStatus === "accepted"
-                                  ? "border-emerald-700/60 text-emerald-400"
+                                  ? "border-primary/60 text-primary"
                                   : tile.offerStatus === "declined" ||
                                       tile.offerStatus === "cancelled"
                                     ? "border-zinc-700 text-zinc-500"
@@ -1260,7 +1260,7 @@ export default function AccountPage() {
                   >
                     {selectedDetailTile.rarity}
                   </span>
-                  {/* <div className="absolute bottom-3 left-3 flex gap-1 items-center text-xs font-mono">
+                  {/* <div className="absolute bottom-3 left-3 flex gap-1 items-center text-xs ">
                     <Grid className="h-3.5 w-3.5 text-primary" />
                     <span>{selectedDetailTile.coordinates}</span>
                   </div> */}
@@ -1283,7 +1283,7 @@ export default function AccountPage() {
                     <div className="space-y-1 pb-4">
                       <span className="text-zinc-500 text-[10px]">TILE ID</span>
                       <h4
-                        className="truncate text-white text-normal font-mono"
+                        className="truncate text-white text-normal "
                         title={selectedDetailTile.id}
                       >
                         {/* {selectedDetailTile.id} */}
@@ -1294,7 +1294,7 @@ export default function AccountPage() {
                       <span className="text-zinc-500 text-[10px]">
                         PURCHASE PRICE
                       </span>
-                      <h4 className="text-white font-mono">
+                      <h4 className="text-white ">
                         {selectedDetailTile.purchasePrice.toFixed(5)} SOL
                       </h4>
                     </div>
@@ -1419,7 +1419,7 @@ export default function AccountPage() {
                                     {off.bidderUsername ||
                                       `${off.bidder.slice(0, 6)}...${off.bidder.slice(-4)}`}
                                   </p>
-                                  <span className="text-[9px] text-zinc-500 font-mono">
+                                  <span className="text-[9px] text-zinc-500 ">
                                     {new Date(off.createdAt).toLocaleDateString()}
                                   </span>
                                 </div>
@@ -1428,7 +1428,7 @@ export default function AccountPage() {
                                 <span
                                   className={`text-[9px] uppercase  tracking-wider px-1.5 py-0.5 rounded border ${
                                     offerStatus === "accepted"
-                                      ? "border-emerald-700/60 text-emerald-400"
+                                      ? "border-primary/60 text-primary"
                                       : offerStatus === "declined"
                                         ? "border-zinc-700 text-zinc-500"
                                         : "border-amber-700/60 text-amber-400"
@@ -1436,7 +1436,7 @@ export default function AccountPage() {
                                 >
                                   {offerStatus}
                                 </span>
-                                <span className="text-xs  text-primary font-mono">
+                                <span className="text-xs  text-primary ">
                                   {lamportsToSol(
                                     Number(off.priceLamports),
                                   ).toFixed(5)}{" "}
@@ -1448,12 +1448,12 @@ export default function AccountPage() {
                           <AccordionContent>
                             {isPending ? (
                               <div className="flex items-center gap-2 pt-2">
-                                <ButtonCustom
+                                <Button
                                   disabled={isUpdating}
                                   onClick={() =>
                                     handleUpdateOfferStatus(off.id, "accepted")
                                   }
-                                  className="flex-1 justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500"
+                                  className="flex-1 justify-center gap-1.5"
                                 >
                                   {isUpdating ? (
                                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1461,7 +1461,7 @@ export default function AccountPage() {
                                     <Check className="h-3.5 w-3.5" />
                                   )}
                                   Approve
-                                </ButtonCustom>
+                                </Button>
                                 <Button
                                   disabled={isUpdating}
                                   variant="outline"
@@ -1496,12 +1496,12 @@ export default function AccountPage() {
               </ScrollArea>
 
               <div className="flex gap-3">
-                <ButtonCustom
+                <Button
                   onClick={() => setSelectedOffersTile(null)}
                   className="w-full justify-center"
                 >
                   Close
-                </ButtonCustom>
+                </Button>
               </div>
             </div>
           )}
@@ -1576,7 +1576,7 @@ export default function AccountPage() {
                         className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none p-0 text-[15px] font-normal text-white placeholder-zinc-650"
                         required
                       />
-                      <span className="text-xs font-mono text-zinc-500 shrink-0 select-none">
+                      <span className="text-xs  text-zinc-500 shrink-0 select-none">
                         SOL
                       </span>
                     </div>
@@ -1604,7 +1604,7 @@ export default function AccountPage() {
               {sellStatus === "confirm" && (
                 <div className="space-y-6">
                   {sellError && (
-                    <div className="text-xs text-red-500 bg-red-500/10 border border-red-500/20 p-3 rounded-lg font-mono">
+                    <div className="text-xs text-red-500 bg-red-500/10 border border-red-500/20 p-3 rounded-lg ">
                       {sellError}
                     </div>
                   )}
@@ -1717,7 +1717,7 @@ export default function AccountPage() {
               {/* State: SUCCESS */}
               {sellStatus === "success" && (
                 <div className="text-center space-y-4 py-4">
-                  <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto text-xl border border-emerald-500/20">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto text-xl border border-primary/20">
                     ✓
                   </div>
                   <div>
@@ -1729,7 +1729,7 @@ export default function AccountPage() {
                       at <strong>{sellPriceInput} SOL</strong>.
                     </p>
                   </div>
-                  <div className="text-xs font-mono bg-black p-3 rounded-lg border border-zinc-800 text-zinc-550 text-left overflow-x-auto">
+                  <div className="text-xs  bg-black p-3 rounded-lg border border-zinc-800 text-zinc-550 text-left overflow-x-auto">
                     Tx: 7s9aK...e98v1u
                   </div>
                   <ButtonCustom

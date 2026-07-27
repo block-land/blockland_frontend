@@ -20,6 +20,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { RiArrowLeftSFill } from "react-icons/ri";
+import { NumericFormat } from "react-number-format";
+import { Input } from "@/components/ui/input";
 import { BACKEND_URL } from "@/lib/api";
 
 const ButtonCustom = withCustomButton("button");
@@ -190,16 +192,8 @@ export default function TileDetailPage() {
     }
   }, [tileId]);
 
-  // Current connected wallet (for the "this is your tile" guard on Chat Seller).
-  const [currentWallet, setCurrentWallet] = React.useState<string | null>(null);
-  React.useEffect(() => {
-    setCurrentWallet(window.localStorage.getItem("privy:walletAddress"));
-  }, []);
-
   // Chat Seller floating widget.
   const [isChatOpen, setIsChatOpen] = React.useState(false);
-
-  const isOwnTile = !!tile && !!currentWallet && tile.publisher.walletAddress === currentWallet;
 
   if (loading) {
     return (
@@ -323,12 +317,12 @@ export default function TileDetailPage() {
                     <p className="text-xs text-zinc-500  mt-0.5">{tile.publisher.walletAddress ? `${tile.publisher.walletAddress.slice(0, 6)}...${tile.publisher.walletAddress.slice(-6)}` : ""}</p>
                   </div>
                 </div>
-                <div className="text-right space-y-1  text-[11px] text-zinc-500">
+                <div className="text-right space-y-1  text-[11px]">
                   <div className="flex items-center gap-1 justify-end">
-                    <Calendar className="h-3.5 w-3.5" />
-                    <span>Listed</span>
+                    <Calendar className="h-3.5 w-3.5 text-zinc-400" />
+                    <p>Listed</p>
                   </div>
-                  <span className="text-zinc-400 ">{tile.date}</span>
+                  <h4>{tile.date}</h4>
                 </div>
               </div>
             </div>
@@ -341,11 +335,11 @@ export default function TileDetailPage() {
               <div className="flex flex-col gap-6 text-sm">
                 <div className="space-y-1">
                   <span className="text-zinc-500 ">TILE ID</span>
-                  <p className="text-zinc-200   truncate" title={tile.id}>{tile.id}</p>
+                  <h4 className=" truncate" title={tile.id}>{tile.id}</h4>
                 </div>
                 <div className="space-y-1">
                   <span className="text-zinc-500 ">COORDINATES</span>
-                  <p className="text-zinc-200  ">{tile.coordinates}</p>
+                  <h4>{tile.coordinates}</h4>
                 </div>
               </div>
             </div>
@@ -389,14 +383,17 @@ export default function TileDetailPage() {
               ) : null}
               <div className="flex gap-2">
                 <div className="relative flex-1 bg-black flex gap-2 h-[48px] items-center px-4 rounded-xl border border-zinc-800 focus-within:border-zinc-700 has-[:disabled]:opacity-50">
-                  <input
-                    type="number"
-                    step="0.0001"
-                    placeholder="Offering price in SOL"
+                  <NumericFormat
+                    customInput={Input}
+                    allowNegative={false}
+                    decimalScale={5}
+                    placeholder="e.g. 0.05"
                     value={offerPrice}
-                    onChange={(e) => setOfferPrice(e.target.value)}
+                    onValueChange={(values) => {
+                      setOfferPrice(values.value);
+                    }}
                     disabled={isOfferFormDisabled}
-                    className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none p-0 text-[15px] font-normal text-white placeholder-zinc-650 disabled:cursor-not-allowed"
+                    className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none p-0 text-[15px] font-normal text-white placeholder-zinc-650 disabled:cursor-not-allowed"
                     required
                   />
                   <span className="text-xs  text-zinc-500 shrink-0 select-none">SOL</span>
@@ -455,22 +452,22 @@ export default function TileDetailPage() {
             <div className="space-y-4 pt-4 border-t border-zinc-900">
               <ButtonCustom
                 onClick={handleBuy}
-                disabled={notConnected}
+                disabled={notConnected || userOwnsTile}
                 className="w-full justify-center py-4 text-base disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Buy Coordinate Unit
+                {userOwnsTile ? "Your Tile" : "Buy Coordinate Unit"}
               </ButtonCustom>
               <div className="flex gap-4">
                 <button
                   onClick={() => {
-                    if (!tile || isOwnTile || notConnected) return;
+                    if (!tile || userOwnsTile || notConnected) return;
                     setIsChatOpen(true);
                   }}
-                  disabled={isOwnTile || notConnected}
+                  disabled={userOwnsTile || notConnected}
                   className="flex-1 flex items-center justify-center gap-2 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 py-3 rounded-xl transition-all cursor-pointer  text-sm text-white disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <MessageSquare className="h-4 w-4" />{" "}
-                  {isOwnTile ? "Your Tile" : notConnected ? "Connect Wallet" : "Chat Seller"}
+                  {userOwnsTile ? "Your Tile" : notConnected ? "Connect Wallet" : "Chat Seller"}
                 </button>
                 <button className="flex-1 flex items-center justify-center gap-2 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 py-3 rounded-xl transition-all cursor-pointer  text-sm">
                   <Share2 className="h-4 w-4" /> Share
