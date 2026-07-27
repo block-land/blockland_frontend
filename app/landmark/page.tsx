@@ -255,6 +255,8 @@ export default function LandmarkPage() {
 
   // Custom confirm/transaction dialog state
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  // Mobile-only dialog that wraps the Buy Tiles summary card on small screens.
+  const [isBuyTilesDialogOpen, setIsBuyTilesDialogOpen] = useState(false);
   const [mintStatus, setMintStatus] = useState<
     "idle" | "minting" | "success" | "error"
   >("idle");
@@ -275,7 +277,11 @@ export default function LandmarkPage() {
   const wallet = wallets[0];
 
   // Fetch user landmarks when wallet is connected and dialog is opened
-  const fetchUserLandmarks = async (offsetVal: number, replace: boolean = false, currentSearch: string = "") => {
+  const fetchUserLandmarks = async (
+    offsetVal: number,
+    replace: boolean = false,
+    currentSearch: string = "",
+  ) => {
     if (!wallet?.address) return;
     if (offsetVal === 0) {
       setIsLoadingLandmarks(true);
@@ -285,7 +291,9 @@ export default function LandmarkPage() {
 
     try {
       // Build search query param
-      const searchParam = currentSearch.trim() ? `&search=${encodeURIComponent(currentSearch.trim())}` : "";
+      const searchParam = currentSearch.trim()
+        ? `&search=${encodeURIComponent(currentSearch.trim())}`
+        : "";
 
       // Fetch user landmarks using pagination (limit = 10)
       const res = await fetch(
@@ -374,7 +382,13 @@ export default function LandmarkPage() {
 
   // IntersectionObserver for infinite scrolling
   useEffect(() => {
-    if (!isDialogOpen || !hasMoreLandmarks || isLoadingLandmarks || isLoadingMoreLandmarks) return;
+    if (
+      !isDialogOpen ||
+      !hasMoreLandmarks ||
+      isLoadingLandmarks ||
+      isLoadingMoreLandmarks
+    )
+      return;
 
     const currentSentinel = sentinelRef.current;
     if (!currentSentinel) return;
@@ -385,14 +399,20 @@ export default function LandmarkPage() {
           loadMoreLandmarks();
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     observer.observe(currentSentinel);
     return () => {
       observer.unobserve(currentSentinel);
     };
-  }, [isDialogOpen, hasMoreLandmarks, landmarksOffset, isLoadingLandmarks, isLoadingMoreLandmarks]);
+  }, [
+    isDialogOpen,
+    hasMoreLandmarks,
+    landmarksOffset,
+    isLoadingLandmarks,
+    isLoadingMoreLandmarks,
+  ]);
 
   // Fetch wallet balance when confirm dialog opens
   useEffect(() => {
@@ -705,7 +725,9 @@ export default function LandmarkPage() {
         // instead of waiting for React to commit the state update.
         const cell = getCell(e.lngLat.lat, e.lngLat.lng);
         const nextCells = selectedCellsRef.current.includes(cell)
-          ? selectedCellsRef.current.filter((selectedCell) => selectedCell !== cell)
+          ? selectedCellsRef.current.filter(
+              (selectedCell) => selectedCell !== cell,
+            )
           : [...selectedCellsRef.current, cell];
         selectedCellsRef.current = nextCells;
         updateSelectedTilesSource(map, nextCells);
@@ -849,7 +871,8 @@ export default function LandmarkPage() {
           // post-fetch source updates (the network await can outlast a style
           // change that started after this guard passed).
           const isReady = () =>
-            !!map.style && typeof (map.style as any).getOwnSource === "function";
+            !!map.style &&
+            typeof (map.style as any).getOwnSource === "function";
 
           if (!map.isStyleLoaded() || !isReady()) return;
 
@@ -1286,69 +1309,90 @@ export default function LandmarkPage() {
           <div className="absolute bottom-12 md:bottom-8 left-1/2 -translate-x-1/2 w-full max-w-[1440px] z-20 px-6 sm:px-10 lg:px-[68px] space-y-2">
             <div className="flex justify-between items-end gap-4">
               {selectedCells.length > 0 && (
-                <div className="">
-                  <Card className="bg-primary border-0">
-                    <CardContent className="p-4">
-                      {/* Summary row */}
-                      <div className="flex gap-10">
-                        <div className="gap-4 flex items-center divide-x">
-                          <div className="flex justify-between items-end gap-4 pe-4">
-                            <Layers className="h-6 w-6 text-background" />
-                            <h4 className="text-background">
-                              {selectedCells.length} Tile
-                              {selectedCells.length > 1 ? "s" : ""}
-                            </h4>
+                <>
+                  {/* Desktop: inline Card (unchanged) */}
+                  <div className="hidden md:block">
+                    <Card className="bg-primary border-0">
+                      <CardContent className="p-4">
+                        {/* Summary row */}
+                        <div className="flex gap-10">
+                          <div className="gap-4 flex items-center divide-x">
+                            <div className="flex justify-between items-end gap-4 pe-4">
+                              <Layers className="h-6 w-6 text-background" />
+                              <h4 className="text-background">
+                                {selectedCells.length} Tile
+                                {selectedCells.length > 1 ? "s" : ""}
+                              </h4>
+                            </div>
+                            <div className="flex justify-between gap-2">
+                              {/* <span className="text-background">Total: </span> */}
+                              <h4 className="text-background">
+                                {tilePrice
+                                  ? `${(tilePrice.sol * selectedCells.length).toFixed(5)} SOL`
+                                  : "…"}{" "}
+                              </h4>
+                            </div>
                           </div>
-                          <div className="flex justify-between gap-2">
-                            {/* <span className="text-background">Total: </span> */}
-                            <h4 className="text-background">
-                              {tilePrice
-                                ? `${(tilePrice.sol * selectedCells.length).toFixed(5)} SOL`
-                                : "…"}{" "}
-                            </h4>
+                          <div className="flex items-center gap-3">
+                            <Button
+                              type="button"
+                              size={"lg"}
+                              variant="secondary"
+                              onClick={() => {
+                                if (!wallet?.address) {
+                                  toast.error("Connect your wallet first");
+                                  return;
+                                }
+                                setMintStatus("idle");
+                                setMintError(null);
+                                setIsConfirmDialogOpen(true);
+                              }}
+                              disabled={isMinting}
+                              className="text-primary font-semibold"
+                            >
+                              Buy Tiles
+                            </Button>
+                            <Button
+                              type="button"
+                              size={"icon"}
+                              variant="outline"
+                              onClick={() => {
+                                selectedCellsRef.current = [];
+                                if (mapRef.current) {
+                                  updateSelectedTilesSource(mapRef.current, []);
+                                }
+                                setSelectedCells([]);
+                                setMintError(null);
+                              }}
+                              disabled={isMinting}
+                              className="bg-transparent text-background"
+                            >
+                              <RiDeleteBin5Line />
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <Button
-                            type="button"
-                            size={"lg"}
-                            variant="secondary"
-                            onClick={() => {
-                              if (!wallet?.address) {
-                                toast.error("Connect your wallet first");
-                                return;
-                              }
-                              setMintStatus("idle");
-                              setMintError(null);
-                              setIsConfirmDialogOpen(true);
-                            }}
-                            disabled={isMinting}
-                            className="text-primary font-semibold"
-                          >
-                            Buy Tiles
-                          </Button>
-                          <Button
-                            type="button"
-                            size={"icon"}
-                            variant="outline"
-                            onClick={() => {
-                              selectedCellsRef.current = [];
-                              if (mapRef.current) {
-                                updateSelectedTilesSource(mapRef.current, []);
-                              }
-                              setSelectedCells([]);
-                              setMintError(null);
-                            }}
-                            disabled={isMinting}
-                            className="bg-transparent text-background"
-                          >
-                            <RiDeleteBin5Line />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Mobile: compact pill trigger that opens a dialog */}
+                  <button
+                    type="button"
+                    onClick={() => setIsBuyTilesDialogOpen(true)}
+                    className="md:hidden flex items-center gap-2 bg-primary text-background font-semibold rounded-xl px-4 py-2.5 shadow-lg"
+                  >
+                    <Layers className="h-4 w-4" />
+                    <span>
+                      {selectedCells.length} Tile
+                      {selectedCells.length > 1 ? "s" : ""}
+                    </span>
+                    {/* <span className="opacity-80">
+                      {tilePrice
+                        ? `${(tilePrice.sol * selectedCells.length).toFixed(5)} SOL`
+                        : "…"}
+                    </span> */}
+                  </button>
+                </>
               )}
               <div className="flex flex-col gap-2 ml-auto self-end">
                 <ButtonCustom
@@ -1484,12 +1528,13 @@ export default function LandmarkPage() {
                     </DialogTrigger>
                     <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl min-w-0 max-h-[calc(100dvh-2rem)] overflow-hidden">
                       <DialogHeader className="min-w-0 pr-6">
-                        <DialogTitle >
-                          Your Landmarks
-                        </DialogTitle>
-                        <DialogDescription >
-                          Select a landmark <span className="text-primary">{totalLandmarksCount}</span> to fly directly to its location on
-                          the map.
+                        <DialogTitle>Your Landmarks</DialogTitle>
+                        <DialogDescription>
+                          Select a landmark{" "}
+                          <span className="text-primary">
+                            {totalLandmarksCount}
+                          </span>{" "}
+                          to fly directly to its location on the map.
                         </DialogDescription>
                       </DialogHeader>
                       <div className="flex min-h-0 min-w-0 flex-col gap-2 mt-4 overflow-hidden">
@@ -1529,8 +1574,12 @@ export default function LandmarkPage() {
                                           loading="lazy"
                                           onError={(event) => {
                                             const image = event.currentTarget;
-                                            const fallback = landmark.fallbackThumbnail;
-                                            if (fallback && image.src !== fallback) {
+                                            const fallback =
+                                              landmark.fallbackThumbnail;
+                                            if (
+                                              fallback &&
+                                              image.src !== fallback
+                                            ) {
                                               image.src = fallback;
                                             } else {
                                               image.style.visibility = "hidden";
@@ -1563,7 +1612,10 @@ export default function LandmarkPage() {
                                     </button>
                                   ))}
                                   {hasMoreLandmarks && (
-                                    <div ref={sentinelRef} className="h-4 flex items-center justify-center">
+                                    <div
+                                      ref={sentinelRef}
+                                      className="h-4 flex items-center justify-center"
+                                    >
                                       {isLoadingMoreLandmarks && (
                                         <Loader2 className="h-4 w-4 animate-spin text-primary" />
                                       )}
@@ -1574,6 +1626,85 @@ export default function LandmarkPage() {
                             )}
                           </>
                         )}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* Mobile-only Buy Tiles dialog (triggered by the compact
+                      pill on small screens). Mirrors the desktop Card content
+                      but stacked vertically to fit narrow viewports. */}
+                  <Dialog
+                    open={isBuyTilesDialogOpen}
+                    onOpenChange={setIsBuyTilesDialogOpen}
+                  >
+                    <DialogContent className="rounded-3xl w-[calc(100vw-2rem)] max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Buy Tiles</DialogTitle>
+                        <DialogDescription>
+                          Review your selection and confirm the purchase.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="flex flex-col gap-4 mt-2">
+                        {/* Summary */}
+                        <div className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 p-4">
+                          <div className="flex items-center gap-3">
+                            <Layers className="h-5 w-5 text-primary" />
+                            <div>
+                              <p className="text-sm text-zinc-400">Selected</p>
+                              <p className="text-base font-semibold text-white">
+                                {selectedCells.length} Tile
+                                {selectedCells.length > 1 ? "s" : ""}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-zinc-400">Total</p>
+                            <p className="text-base font-semibold text-primary font-mono">
+                              {tilePrice
+                                ? `${(tilePrice.sol * selectedCells.length).toFixed(5)} SOL`
+                                : "…"}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-3">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              selectedCellsRef.current = [];
+                              if (mapRef.current) {
+                                updateSelectedTilesSource(mapRef.current, []);
+                              }
+                              setSelectedCells([]);
+                              setMintError(null);
+                              setIsBuyTilesDialogOpen(false);
+                            }}
+                            disabled={isMinting}
+                            className="flex-1 border-zinc-800"
+                          >
+                            <RiDeleteBin5Line className="h-4 w-4" />
+                            Clear
+                          </Button>
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              if (!wallet?.address) {
+                                toast.error("Connect your wallet first");
+                                return;
+                              }
+                              setMintStatus("idle");
+                              setMintError(null);
+                              setIsBuyTilesDialogOpen(false);
+                              setIsConfirmDialogOpen(true);
+                            }}
+                            disabled={isMinting}
+                            className="flex-1 bg-primary hover:bg-primary/95 text-black font-semibold"
+                          >
+                            Buy Tiles
+                          </Button>
+                        </div>
                       </div>
                     </DialogContent>
                   </Dialog>
@@ -1942,9 +2073,7 @@ export default function LandmarkPage() {
 
           <div className="flex justify-between items-center text-sm pt-4 border-t border-zinc-800">
             <span>Cell</span>
-            <h4 className=" text-zinc-300 text-sm">
-              {soldTileInfo?.cell}
-            </h4>
+            <h4 className=" text-zinc-300 text-sm">{soldTileInfo?.cell}</h4>
           </div>
 
           <div className="flex justify-between items-center text-sm border-t border-zinc-800 pt-4">
