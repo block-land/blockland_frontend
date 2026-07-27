@@ -11,6 +11,7 @@ import {
   Loader2,
   MapPin,
   Wallet,
+  X,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Avatar from "boring-avatars";
@@ -78,6 +79,18 @@ function MessagePageInner() {
   const [newMessage, setNewMessage] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // Track if we have sent the tile context in the current hook mount/session.
+  const sentTileInSession = useRef(false);
+
+  // Read deep-link params from "Chat Seller" (Shopee-style)
+  const sellerWallet = searchParams.get("seller");
+  const tileId = searchParams.get("tile");
+
+  // Reset session tracker when route params change
+  useEffect(() => {
+    sentTileInSession.current = false;
+  }, [sellerWallet, tileId, activeId]);
+
   // A pending recipient staged from a tile redirect or new chat (no conversation yet).
   const [pendingRecipient, setPendingRecipient] = useState<{
     walletAddress: string;
@@ -115,10 +128,6 @@ function MessagePageInner() {
 
     return () => clearTimeout(t);
   }, [searchQuery, currentWallet, conversations]);
-
-  // ---- Read deep-link params from "Chat Seller" (Shopee-style) ----
-  const sellerWallet = searchParams.get("seller");
-  const tileId = searchParams.get("tile");
 
   useEffect(() => {
     setMounted(true);
@@ -175,13 +184,22 @@ function MessagePageInner() {
 
     const text = newMessage;
     setNewMessage("");
+
+    // Check if we have already sent the tile context in the current hook session.
+    const finalTileId = sentTileInSession.current ? undefined : (tileId ?? activeConversation?.tileId ?? undefined);
+
     const ok = await send({
       recipientWallet: recipient,
       text,
-      tileId: tileId ?? activeConversation?.tileId ?? undefined,
+      tileId: finalTileId,
     });
-    // First message to a staged recipient — clear the pending state.
-    if (ok && pendingRecipient) setPendingRecipient(null);
+    if (ok) {
+      if (finalTileId) {
+        sentTileInSession.current = true;
+      }
+      // First message to a staged recipient — clear the pending state.
+      if (pendingRecipient) setPendingRecipient(null);
+    }
   };
 
 
@@ -262,7 +280,7 @@ function MessagePageInner() {
                 Messages
               </h2>
               <span
-                className={`flex items-center gap-1.5 text-[10px] font-mono ${
+                className={`flex items-center gap-1.5 text-[10px]  ${
                   connected ? "text-emerald-500" : "text-zinc-500"
                 }`}
               >
@@ -369,11 +387,22 @@ function MessagePageInner() {
                       {displayConversation.other.username}
                       <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
                     </h3>
-                    <p className="text-xs text-zinc-500 font-mono mt-0.5">
+                    <p className="text-xs text-zinc-500  mt-0.5">
                       {shortWallet(displayConversation.other.walletAddress)}
                     </p>
                   </div>
                 </div>
+                <button
+                  onClick={() => {
+                    selectConversation(null);
+                    setPendingRecipient(null);
+                  }}
+                  className="text-zinc-400 hover:text-white transition-colors cursor-pointer p-2 rounded-lg hover:bg-zinc-800 shrink-0"
+                  aria-label="Close conversation"
+                  title="Close conversation"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
 
               {/* Chat Viewport messages area */}
@@ -425,10 +454,10 @@ function MessagePageInner() {
                                 : "bg-zinc-900 border border-zinc-800 text-white rounded-tl-none"
                             }`}
                           >
-                            <p>{msg.text}</p>
+                            <span>{msg.text}</span>
                           </div>
                         </div>
-                        <span className="text-[9px] text-zinc-550 mt-1 px-8 font-mono flex items-center gap-1">
+                        <span className="text-[9px] text-zinc-550 mt-1 px-8  flex items-center gap-1">
                           {formatTime(msg.createdAt)}
                           {isOwn && <CheckCheck className="h-3 w-3 text-primary" />}
                         </span>
@@ -510,7 +539,7 @@ function ContactListItem({
             {user.username}
             <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" />
           </h4>
-          <p className="text-xs text-zinc-500 font-mono truncate mt-0.5 max-w-[160px]">
+          <p className="text-xs text-zinc-500  truncate mt-0.5 max-w-[160px]">
             {shortWallet(user.walletAddress)}
           </p>
         </div>
@@ -557,7 +586,7 @@ function ConversationListItem({
       </div>
 
       <div className="text-right space-y-1.5 shrink-0">
-        <span className="text-[10px] text-zinc-500 font-mono">
+        <span className="text-[10px] text-zinc-500 ">
           {formatTime(thread.lastMessageAt)}
         </span>
         {thread.unread > 0 && (
@@ -633,8 +662,11 @@ function InlineTileCard({
       : null;
 
   return (
-    <div
-      className={`flex items-center gap-3 border rounded-2xl p-3 ${
+    <a
+      href={`/marketplace/${tile.id}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`flex items-center gap-3 border rounded-2xl p-3 transition-colors cursor-pointer hover:border-primary/50 ${
         isOwn
           ? "bg-primary/10 border-primary/30 rounded-tr-none"
           : "bg-zinc-900 border-zinc-800 rounded-tl-none"
@@ -658,9 +690,17 @@ function InlineTileCard({
             {tile.rarity}
           </span>
         </div>
-        <p className="text-xs text-zinc-300 flex items-center gap-1 mt-0.5">
-          <MapPin className="h-3 w-3 text-zinc-500" />
-          {lat.toFixed(4)}°, {lng.toFixed(4)}°
+        <p className="text-xs text-zinc-300 flex items-center gap-1 mt-0.5 min-w-0">
+          <MapPin className="h-3 w-3 text-zinc-500 shrink-0" />
+          <span className="truncate">
+            {tile.placeName
+              ? tile.placeName
+              : (
+                <span className="">
+                  {lat.toFixed(4)}°, {lng.toFixed(4)}°
+                </span>
+              )}
+          </span>
         </p>
         {priceSol != null && (
           <p className="text-sm font-semibold text-primary mt-0.5">
@@ -668,6 +708,6 @@ function InlineTileCard({
           </p>
         )}
       </div>
-    </div>
+    </a>
   );
 }

@@ -383,14 +383,14 @@ export default function Marketplace() {
                               <span className=" text-zinc-300 truncate">
                                 {tile.publisher.name}
                               </span>
-                              <span className="text-[10px] text-zinc-550 font-mono truncate">
+                              <span className="text-[10px] text-zinc-550  truncate">
                                 {tile.publisher.walletAddress
                                   ? `${tile.publisher.walletAddress.slice(0, 4)}...${tile.publisher.walletAddress.slice(-4)}`
                                   : ""}
                               </span>
                             </div>
                           </div>
-                          <span className="text-[10px] text-zinc-555 font-mono">
+                          <span className="text-[10px] text-zinc-555 ">
                             {tile.date}
                           </span>
                         </div>
@@ -398,10 +398,10 @@ export default function Marketplace() {
 
                       <div className="flex items-center justify-between pt-4">
                         <div className="space-y-0.5">
-                          <div className="text-xs text-zinc-500 uppercase tracking-wide font-mono">
+                          <div className="text-xs text-zinc-500 uppercase tracking-wide ">
                             Price
                           </div>
-                          <div className="text-lg  text-primary font-mono">
+                          <div className="text-lg  text-primary ">
                             {tile.price.toFixed(5)} SOL
                           </div>
                         </div>
@@ -443,11 +443,11 @@ export default function Marketplace() {
                           >
                             {tile.rarity}
                           </span>
-                          <span className="text-[11px] text-zinc-555 font-mono flex items-center gap-1">
+                          <span className="text-[11px] text-zinc-555  flex items-center gap-1">
                             <Grid className="h-3 w-3" />
                             {tile.coordinates}
                           </span>
-                          <span className="text-[10px] text-zinc-555 font-mono">
+                          <span className="text-[10px] text-zinc-555 ">
                             • {tile.date}
                           </span>
                         </div>
@@ -494,10 +494,10 @@ export default function Marketplace() {
                     {/* Actions */}
                     <div className="flex items-center justify-between md:justify-end gap-6 pt-4 md:pt-0 border-t md:border-t-0 border-zinc-900">
                       <div className="text-left md:text-right space-y-0.5">
-                        <div className="text-[10px] text-zinc-500 uppercase tracking-wide font-mono">
+                        <div className="text-[10px] text-zinc-500 uppercase tracking-wide ">
                           Price
                         </div>
-                        <div className="text-lg  text-primary font-mono">
+                        <div className="text-lg  text-primary ">
                           {tile.price.toFixed(5)} SOL
                         </div>
                       </div>

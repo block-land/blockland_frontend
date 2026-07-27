@@ -1626,7 +1626,7 @@ export default function LandmarkPage() {
                   .env.local
                 </code>{" "}
                 file in your frontend directory and add:
-                <code className="block mt-2 bg-zinc-800 p-2 rounded text-zinc-300 text-left font-mono break-all whitespace-pre-wrap">
+                <code className="block mt-2 bg-zinc-800 p-2 rounded text-zinc-300 text-left  break-all whitespace-pre-wrap">
                   NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=your_mapbox_access_token
                 </code>
               </div>
@@ -1770,7 +1770,7 @@ export default function LandmarkPage() {
 
             {/* Error Message */}
             {mintStatus === "error" && mintError && (
-              <div className="p-3 bg-red-950/20 border border-red-800/30 rounded-lg text-sm text-red-400 font-mono break-all whitespace-pre-wrap">
+              <div className="p-3 bg-red-950/20 border border-red-800/30 rounded-lg text-sm text-red-400  break-all whitespace-pre-wrap">
                 {mintError}
               </div>
             )}
@@ -1937,7 +1937,7 @@ export default function LandmarkPage() {
               ) : (
                 <p className="font-semibold text-zinc-500 italic">Anonymous</p>
               )}
-              <p className="text-sm text-zinc-400 truncate font-mono">
+              <p className="text-sm text-zinc-400 truncate ">
                 {soldTileInfo?.ownerShort}
               </p>
             </div>
@@ -1945,14 +1945,14 @@ export default function LandmarkPage() {
 
           <div className="flex justify-between items-center text-sm pt-4 border-t border-zinc-800">
             <span>Cell</span>
-            <h4 className="font-mono text-zinc-300 text-sm">
+            <h4 className=" text-zinc-300 text-sm">
               {soldTileInfo?.cell}
             </h4>
           </div>
 
           <div className="flex justify-between items-center text-sm border-t border-zinc-800 pt-4">
             <span>Last Price</span>
-            <h4 className="font-mono text-primary text-sm">
+            <h4 className=" text-primary text-sm">
               {soldTileInfo?.priceLamports
                 ? `${lamportsToSol(Number(soldTileInfo.priceLamports)).toFixed(5)} SOL`
                 : "—"}

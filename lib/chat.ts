@@ -34,6 +34,8 @@ export interface ConversationTile {
   lng: string;
   rarity: string;
   listingPriceLamports: string | null;
+  /** Reverse-geocoded place name; nullable for legacy tiles. */
+  placeName?: string | null;
 }
 
 export interface Conversation {

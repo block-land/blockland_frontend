@@ -288,7 +288,7 @@ export default function TileDetailPage() {
                 <span className={`text-xs  uppercase tracking-wider px-3 py-1 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}>
                   {tile.rarity}
                 </span>
-                <div className="flex gap-2 text-sm text-white font-mono backdrop-blur-md px-3 py-1.5 rounded border border-zinc-800">
+                <div className="flex gap-2 text-sm text-white  backdrop-blur-md px-3 py-1.5 rounded border border-zinc-800">
                   <Grid className="h-4 w-4 text-primary shrink-0" />
                   <span>{tile.coordinates}</span>
                 </div>
@@ -297,7 +297,7 @@ export default function TileDetailPage() {
 
             {/* Publisher Block info */}
             <div className="space-y-4">
-              <h4 className="text-xs text-zinc-500 uppercase tracking-wider font-mono">Listed Publisher</h4>
+              <h4 className="text-xs text-zinc-500 uppercase tracking-wider ">Listed Publisher</h4>
               <div className="flex items-center justify-between p-4 bg-black/40 border border-zinc-900 rounded-2xl">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full overflow-hidden border border-zinc-800 shrink-0">
@@ -320,10 +320,10 @@ export default function TileDetailPage() {
                       {tile.publisher.name}
                       <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
                     </h5>
-                    <p className="text-xs text-zinc-500 font-mono mt-0.5">{tile.publisher.walletAddress ? `${tile.publisher.walletAddress.slice(0, 6)}...${tile.publisher.walletAddress.slice(-6)}` : ""}</p>
+                    <p className="text-xs text-zinc-500  mt-0.5">{tile.publisher.walletAddress ? `${tile.publisher.walletAddress.slice(0, 6)}...${tile.publisher.walletAddress.slice(-6)}` : ""}</p>
                   </div>
                 </div>
-                <div className="text-right space-y-1 font-mono text-[11px] text-zinc-500">
+                <div className="text-right space-y-1  text-[11px] text-zinc-500">
                   <div className="flex items-center gap-1 justify-end">
                     <Calendar className="h-3.5 w-3.5" />
                     <span>Listed</span>
@@ -340,12 +340,12 @@ export default function TileDetailPage() {
               </h3>
               <div className="flex flex-col gap-6 text-sm">
                 <div className="space-y-1">
-                  <span className="text-zinc-500 font-mono">TILE ID</span>
-                  <p className="text-zinc-200 font-mono  truncate" title={tile.id}>{tile.id}</p>
+                  <span className="text-zinc-500 ">TILE ID</span>
+                  <p className="text-zinc-200   truncate" title={tile.id}>{tile.id}</p>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-zinc-500 font-mono">COORDINATES</span>
-                  <p className="text-zinc-200 font-mono ">{tile.coordinates}</p>
+                  <span className="text-zinc-500 ">COORDINATES</span>
+                  <p className="text-zinc-200  ">{tile.coordinates}</p>
                 </div>
               </div>
             </div>
@@ -368,16 +368,16 @@ export default function TileDetailPage() {
 
             {/* Price Box */}
             <div className="bg-black/60 border border-zinc-900 rounded-2xl p-5 space-y-2">
-              <span className="text-xs text-zinc-500 uppercase tracking-wider font-mono">Current Price</span>
+              <span className="text-xs text-zinc-500 uppercase tracking-wider ">Current Price</span>
               <div className="flex items-baseline gap-2">
-                <span className="text-4xl text-primary font-mono">{tile.price.toFixed(5)}</span>
-                <span className="text-lg  text-zinc-300 font-mono">SOL</span>
+                <span className="text-4xl text-primary ">{tile.price.toFixed(5)}</span>
+                <span className="text-lg  text-zinc-300 ">SOL</span>
               </div>
             </div>
 
             {/* Offering Input Block */}
             <form onSubmit={handleMakeOffer} className="space-y-3 bg-zinc-900/40 p-5 rounded-2xl border border-zinc-900">
-              <h4 className="text-xs text-zinc-400 uppercase tracking-wider font-mono">Make an Offer</h4>
+              <h4 className="text-xs text-zinc-400 uppercase tracking-wider ">Make an Offer</h4>
               {notConnected ? (
                 <p className="text-xs text-zinc-500 py-2">
                   Connect your wallet to make an offer.
@@ -399,7 +399,7 @@ export default function TileDetailPage() {
                     className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none p-0 text-[15px] font-normal text-white placeholder-zinc-650 disabled:cursor-not-allowed"
                     required
                   />
-                  <span className="text-xs font-mono text-zinc-500 shrink-0 select-none">SOL</span>
+                  <span className="text-xs  text-zinc-500 shrink-0 select-none">SOL</span>
                 </div>
                 <button
                   type="submit"
@@ -413,7 +413,7 @@ export default function TileDetailPage() {
 
             {/* Offer List Block using ScrollArea */}
             <div className="space-y-3 bg-zinc-900/20 p-5 rounded-2xl border border-zinc-900">
-              <h4 className="text-xs text-zinc-400 uppercase tracking-wider font-mono flex items-center gap-1.5">
+              <h4 className="text-xs text-zinc-400 uppercase tracking-wider  flex items-center gap-1.5">
                 <Tag className="h-3.5 w-3.5 text-primary" /> Active Offers ({offers.length})
               </h4>
               <ScrollArea className="h-[135px] pr-2">
@@ -438,12 +438,12 @@ export default function TileDetailPage() {
                         </div>
                         <div>
                           <p className="text-xs  text-zinc-300">{off.bidder}</p>
-                          <span className="text-[9px] text-zinc-550 font-mono">{off.date}</span>
+                          <span className="text-[9px] text-zinc-550 ">{off.date}</span>
                         </div>
                       </div>
                       <div className="text-right">
-                        <span className="text-xs  text-primary font-mono">{off.price.toFixed(5)} SOL</span>
-                        <p className="text-[8px] text-emerald-500 font-mono">Pending</p>
+                        <span className="text-xs  text-primary ">{off.price.toFixed(5)} SOL</span>
+                        <p className="text-[8px] text-emerald-500 ">Pending</p>
                       </div>
                     </div>
                   ))}
@@ -533,7 +533,7 @@ export default function TileDetailPage() {
               </div>
 
               {buyError && (
-                <div className="text-xs text-red-500 bg-red-500/10 border border-red-500/20 p-3 rounded-lg font-mono">
+                <div className="text-xs text-red-500 bg-red-500/10 border border-red-500/20 p-3 rounded-lg ">
                   {buyError}
                 </div>
               )}
@@ -632,7 +632,7 @@ export default function TileDetailPage() {
                   You are now the proud owner of <strong>{tile.name}</strong> coordinate unit.
                 </p>
               </div>
-              <div className="text-xs font-mono bg-black p-3 rounded-lg border border-zinc-800 text-zinc-500 text-left overflow-x-auto">
+              <div className="text-xs  bg-black p-3 rounded-lg border border-zinc-800 text-zinc-500 text-left overflow-x-auto">
                 Tx: {buyTxSignature.slice(0, 8)}...{buyTxSignature.slice(-8)}
               </div>
               <ButtonCustom onClick={() => setActiveModal(null)} className="w-full justify-center">

@@ -31,6 +31,18 @@ export function useDirectChat(
   const [sending, setSending] = useState(false);
   const [connected, setConnected] = useState(false);
 
+  // Track if we have sent the tile context in the current hook mount/session.
+  const sentTileInSession = useRef(false);
+  // Mirror of sentTileInSession as state so consumers can re-render
+  // (e.g. hide the header tile card once the tile has been sent).
+  const [tileSent, setTileSent] = useState(false);
+
+  // Reset session tracker when recipient or tile changes
+  useEffect(() => {
+    sentTileInSession.current = false;
+    setTileSent(false);
+  }, [recipientWallet, tileId]);
+
   // Refs so the SSE callback reads current values without re-subscribing.
   const convIdRef = useRef<string | null>(null);
   useEffect(() => {
@@ -84,7 +96,16 @@ export function useDirectChat(
         if (payload.conversationId !== convIdRef.current) return;
 
         setMessages((prev) =>
-          prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]
+          prev.some((m) => m.id === msg.id)
+            ? // Merge fields (notably `tile`) into the existing optimistic
+              // message so the inline tile card renders once the SSE echo
+              // arrives with the full tile payload from the backend.
+              prev.map((m) =>
+                m.id === msg.id
+                  ? { ...m, ...msg, tile: m.tile ?? msg.tile }
+                  : m
+              )
+            : [...prev, msg]
         );
         // Auto-mark-read for incoming messages while the widget is open.
         if (msg.senderWallet !== currentWallet && convIdRef.current) {
@@ -104,8 +125,20 @@ export function useDirectChat(
 
   // ---- Send a message ----
   const send = useCallback(
-    async (text: string): Promise<boolean> => {
+    async (
+      text: string,
+      opts?: { attachTile?: boolean }
+    ): Promise<boolean> => {
       if (!currentWallet || !recipientWallet || !text.trim() || isSelf) return false;
+
+      // Check if we have already sent the tile in the current session.
+      // If we haven't sent it yet (and the caller hasn't opted out via
+      // `attachTile: false`), attach it to the current message.
+      const wantsTile = opts?.attachTile !== false;
+      const finalTileId =
+        !wantsTile || sentTileInSession.current
+          ? undefined
+          : (tileId ?? undefined);
 
       setSending(true);
       const tempId = `optimistic-${Date.now()}`;
@@ -116,6 +149,7 @@ export function useDirectChat(
         text: text.trim(),
         createdAt: new Date().toISOString(),
         readAt: null,
+        tileId: finalTileId,
       };
       setMessages((prev) => [...prev, optimistic]);
 
@@ -123,12 +157,17 @@ export function useDirectChat(
         senderWallet: currentWallet,
         recipientWallet,
         text: text.trim(),
-        tileId: tileId ?? undefined,
+        tileId: finalTileId,
       });
 
       setSending(false);
 
       if (res.ok && res.conversationId) {
+        // Mark that the tile has been sent in the current session so next messages won't attach it.
+        if (finalTileId) {
+          sentTileInSession.current = true;
+          setTileSent(true);
+        }
         // Swap the temp id for the authoritative id the backend persists, so
         // the SSE echo dedupes against the same id (no duplicate bubble).
         if (res.tempMessageId && res.tempMessageId !== tempId) {
@@ -143,7 +182,7 @@ export function useDirectChat(
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       return false;
     },
-    [currentWallet, recipientWallet, conversationId, tileId, isSelf]
+    [currentWallet, recipientWallet, conversationId, tileId, isSelf, messages]
   );
 
   return {
@@ -153,6 +192,7 @@ export function useDirectChat(
     sending,
     connected,
     isSelf,
+    tileSent,
     send,
   };
 }
