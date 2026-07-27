@@ -98,6 +98,11 @@ export default function LayoutsClient({
     restDelta: 0.001,
   });
 
+  const isAdmin = pathname === "/login" || pathname.startsWith("/dashboard");
+  if (isAdmin) {
+    return <>{children}</>;
+  }
+
   return (
     <PrivyProviderWrapper>
       {useNativeScroll ? (

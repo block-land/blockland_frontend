@@ -17,6 +17,9 @@ export interface ChatMessage {
   text: string;
   createdAt: string; // ISO
   readAt: string | null; // ISO
+  /** Tile referenced by this message (inline tile context, Shopee-style). */
+  tileId?: string | null;
+  tile?: ConversationTile | null;
 }
 
 export interface OtherParticipant {

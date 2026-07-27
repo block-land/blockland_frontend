@@ -812,6 +812,7 @@ export default function TileDetailPage() {
           tileName={tile.name}
           tilePriceSol={tile.price}
           tileId={tile.id}
+          tileThumbnail={tile.imageUrl}
         />
       )}
     </div>

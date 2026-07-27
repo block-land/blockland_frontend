@@ -22,6 +22,8 @@ export interface ChatSellerWidgetProps {
   tileName?: string;
   tilePriceSol?: number;
   tileId?: string;
+  /** Mapbox static thumbnail URL for the tile. */
+  tileThumbnail?: string;
 }
 
 export default function ChatSellerWidget({
@@ -33,6 +35,7 @@ export default function ChatSellerWidget({
   tileName,
   tilePriceSol,
   tileId,
+  tileThumbnail,
 }: ChatSellerWidgetProps) {
   const [mounted, setMounted] = useState(false);
   const [newMessage, setNewMessage] = useState("");
@@ -141,7 +144,15 @@ export default function ChatSellerWidget({
       {/* Tile context card */}
       {tileName && (
         <div className="bg-zinc-900/50 border-b border-zinc-800 px-4 py-2 flex items-center gap-2">
-          <div className="w-7 h-7 rounded-md bg-zinc-800 border border-zinc-700 shrink-0" />
+          {tileThumbnail ? (
+            <img
+              src={tileThumbnail}
+              alt={tileName}
+              className="w-7 h-7 rounded-md object-cover border border-zinc-700 shrink-0"
+            />
+          ) : (
+            <div className="w-7 h-7 rounded-md bg-zinc-800 border border-zinc-700 shrink-0" />
+          )}
           <div className="min-w-0">
             <p className="text-[11px] text-zinc-400 truncate">
               About: <span className="text-zinc-200">{tileName}</span>

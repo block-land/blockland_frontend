@@ -18,8 +18,11 @@ import { useWallets } from "@privy-io/react-auth/solana";
 import { useChat } from "@/lib/useChat";
 import {
   type Conversation,
+  type ConversationTile,
   type SearchedUser,
   searchUsers,
+  buildTileThumbnailUrl,
+  lamportsToSol,
 } from "@/lib/chat";
 
 /** Default prefilled message when entering a thread from a tile (Shopee-style). */
@@ -392,8 +395,23 @@ function MessagePageInner() {
                           isOwn ? "items-end" : "items-start"
                         }`}
                       >
+                        {/* Inline tile card — rendered as a "message bubble"
+                            so the tile being discussed appears in the chat
+                            timeline (Shopee-style product card in chat). */}
+                        {msg.tile && (
+                          <div className="flex items-end gap-2 max-w-[75%] mb-1 group">
+                            {!isOwn && (
+                              <ParticipantAvatar
+                                photoUrl={displayConversation.other.photoUrl}
+                                name={displayConversation.other.username}
+                                size={24}
+                              />
+                            )}
+                            <InlineTileCard tile={msg.tile} isOwn={isOwn} />
+                          </div>
+                        )}
                         <div className="flex items-end gap-2 max-w-[70%] group">
-                          {!isOwn && (
+                          {!isOwn && !msg.tile && (
                             <ParticipantAvatar
                               photoUrl={displayConversation.other.photoUrl}
                               name={displayConversation.other.username}
@@ -581,6 +599,75 @@ function ParticipantAvatar({
         name={name || "anon"}
         colors={["#f5e1a4", "#d9d593", "#ee7f27", "#bc162a", "#302325"]}
       />
+    </div>
+  );
+}
+
+/** Rarity badge color. */
+function rarityBadge(rarity: string): string {
+  switch (rarity) {
+    case "Legendary":
+      return "bg-amber-500/20 text-amber-400 border border-amber-500/30";
+    case "Epic":
+      return "bg-purple-500/20 text-purple-400 border border-purple-500/30";
+    case "Rare":
+      return "bg-blue-500/20 text-blue-400 border border-blue-500/30";
+    default:
+      return "bg-zinc-500/20 text-zinc-400 border border-zinc-500/30";
+  }
+}
+
+/** Inline tile card rendered as a message bubble within the chat timeline. */
+function InlineTileCard({
+  tile,
+  isOwn,
+}: {
+  tile: ConversationTile;
+  isOwn: boolean;
+}) {
+  const lat = parseFloat(tile.lat);
+  const lng = parseFloat(tile.lng);
+  const priceSol =
+    tile.listingPriceLamports != null
+      ? lamportsToSol(Number(tile.listingPriceLamports))
+      : null;
+
+  return (
+    <div
+      className={`flex items-center gap-3 border rounded-2xl p-3 ${
+        isOwn
+          ? "bg-primary/10 border-primary/30 rounded-tr-none"
+          : "bg-zinc-900 border-zinc-800 rounded-tl-none"
+      }`}
+    >
+      <img
+        src={buildTileThumbnailUrl(lat, lng)}
+        alt="tile"
+        className="w-12 h-12 rounded-lg object-cover border border-zinc-800 shrink-0"
+      />
+      <div className="min-w-0">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] uppercase tracking-wide text-zinc-500">
+            Tile
+          </span>
+          <span
+            className={`text-[10px] px-1.5 py-0.5 rounded-full ${rarityBadge(
+              tile.rarity,
+            )}`}
+          >
+            {tile.rarity}
+          </span>
+        </div>
+        <p className="text-xs text-zinc-300 flex items-center gap-1 mt-0.5">
+          <MapPin className="h-3 w-3 text-zinc-500" />
+          {lat.toFixed(4)}°, {lng.toFixed(4)}°
+        </p>
+        {priceSol != null && (
+          <p className="text-sm font-semibold text-primary mt-0.5">
+            {priceSol.toFixed(3)} SOL
+          </p>
+        )}
+      </div>
     </div>
   );
 }

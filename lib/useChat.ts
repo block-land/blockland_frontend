@@ -190,6 +190,10 @@ export function useChat(currentWallet: string | null | undefined) {
         text: params.text.trim(),
         createdAt: new Date().toISOString(),
         readAt: null,
+        // Include tile context if the message references a tile, so the inline
+        // tile card renders immediately (before the SSE echo arrives).
+        tileId: params.tileId ?? null,
+        tile: activeConversation?.tile ?? null,
       };
       setMessages((prev) => [...prev, optimistic]);
 
@@ -203,7 +207,8 @@ export function useChat(currentWallet: string | null | undefined) {
       setSending(false);
 
       if (res.ok && res.conversationId) {
-        // Swap the temp id for the authoritative one the backend will persist.
+        // Swap the temp id for the authoritative one the backend will persist,
+        // while preserving the tile data (the SSE echo may not arrive yet).
         if (res.tempMessageId && res.tempMessageId !== tempId) {
           setMessages((prev) =>
             prev.map((m) => (m.id === tempId ? { ...m, id: res.tempMessageId! } : m))

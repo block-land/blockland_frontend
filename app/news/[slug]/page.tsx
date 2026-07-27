@@ -19,10 +19,45 @@ import {
   type NewsItem,
 } from "@/lib/news";
 import { Separator } from "@/components/ui/separator";
+import Avatar from "boring-avatars";
+
+/**
+ * Render a content fragment to safe HTML.
+ *
+ * New articles are authored with TipTap and stored as HTML — pass through
+ * directly (the editor already emits a limited, safe tag set). Legacy articles
+ * were stored as plain markdown fragments; for those we apply the minimal
+ * markdown transform below as a fallback so old posts still render readable.
+ */
+function renderContent(text: string): string {
+  // Heuristic: if the fragment looks like HTML (contains a tag), treat it as
+  // TipTap HTML and pass through.
+  if (/<[a-z][\s\S]*>/i.test(text)) {
+    return text;
+  }
+  // Legacy markdown fallback (bold, italic, links, headings).
+  const html = text
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.*?)\*/g, "<em>$1</em>")
+    .replace(
+      /\[(.*?)\]\((.*?)\)/g,
+      '<a href="$2" class="text-primary hover:underline" target="_blank" rel="noopener noreferrer">$1</a>',
+    );
+  if (text.startsWith("### ")) {
+    return `<h3 class="text-lg font-bold text-white mt-4 mb-2">${html.slice(4)}</h3>`;
+  }
+  if (text.startsWith("## ")) {
+    return `<h2 class="text-xl font-bold text-white mt-6 mb-2">${html.slice(3)}</h2>`;
+  }
+  if (text.startsWith("# ")) {
+    return `<h1 class="text-2xl font-bold text-white mt-8 mb-4">${html.slice(2)}</h1>`;
+  }
+  return `<p>${html}</p>`;
+}
 
 export default function NewsDetailPage() {
   const params = useParams();
-  const newsId = params?.id as string;
+  const slug = params?.slug as string;
 
   const [item, setItem] = React.useState<NewsItem | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -30,11 +65,11 @@ export default function NewsDetailPage() {
   const [copied, setCopied] = React.useState(false);
 
   React.useEffect(() => {
-    if (!newsId) return;
+    if (!slug) return;
 
     async function load() {
       setLoading(true);
-      const resItem = await fetchNewsItem(newsId);
+      const resItem = await fetchNewsItem(slug);
       if (resItem.ok && resItem.news) {
         setItem(resItem.news);
 
@@ -42,7 +77,7 @@ export default function NewsDetailPage() {
         const resList = await fetchNews();
         if (resList.ok) {
           const filtered = resList.news
-            .filter((article) => article.id !== resItem.news!.id)
+            .filter((article) => article.slug !== resItem.news!.slug)
             .slice(0, 2);
           setRelatedArticles(filtered);
         }
@@ -53,7 +88,7 @@ export default function NewsDetailPage() {
     }
 
     load();
-  }, [newsId]);
+  }, [slug]);
 
   if (loading) {
     return (
@@ -108,9 +143,6 @@ export default function NewsDetailPage() {
               <span className="flex items-center gap-1">
                 <Calendar className="h-3.5 w-3.5" /> {item.date}
               </span>
-              <span className="flex items-center gap-1">
-                <Clock className="h-3.5 w-3.5" /> {item.readTime}
-              </span>
             </div>
           </div>
 
@@ -119,13 +151,22 @@ export default function NewsDetailPage() {
           </h1>
 
           {/* Author Block */}
-          <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-900 rounded-2xl">
+          <div className="flex items-center justify-between p-4 bg-zinc-955 border border-zinc-900 rounded-2xl">
             <div className="flex items-center gap-3">
-              <img
-                src={item.author.avatar}
-                alt={item.author.name}
-                className="w-10 h-10 rounded-full object-cover border border-zinc-800"
-              />
+              <div className="w-10 h-10 rounded-full overflow-hidden border border-zinc-800 shrink-0">
+                <Avatar
+                  size={40}
+                  name={item.author.name}
+                  colors={[
+                    "#f5e1a4",
+                    "#d9d593",
+                    "#ee7f27",
+                    "#bc162a",
+                    "#302325",
+                  ]}
+                  variant="pixel"
+                />
+              </div>
               <div>
                 <h5 className=" text-white text-sm">{item.author.name}</h5>
                 <p className="text-[10px] text-zinc-500  mt-0.5">
@@ -179,11 +220,9 @@ export default function NewsDetailPage() {
         </div>
 
         {/* Main Content Body */}
-        <article className="prose prose-invert max-w-none text-zinc-300 text-base sm:text-lg leading-relaxed space-y-6 font-sans">
+        <article className="prose prose-invert max-w-none text-zinc-300 text-base sm:text-lg leading-relaxed space-y-6 font-sans [&_img]:max-w-full [&_img]:rounded-xl [&_img]:my-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_blockquote]:border-l-2 [&_blockquote]:border-zinc-700 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-zinc-400">
           {item.content.map((p, index) => (
-            <p key={index} className="indent-0">
-              {p}
-            </p>
+            <div key={index} className="indent-0" dangerouslySetInnerHTML={{ __html: renderContent(p) }} />
           ))}
         </article>
 
@@ -201,7 +240,7 @@ export default function NewsDetailPage() {
             {relatedArticles.map((article) => (
               <Link
                 key={article.id}
-                href={`/news/${article.id}`}
+                href={`/news/${article.slug}`}
                 className="bg-zinc-955 border border-zinc-900 rounded-2xl p-5 block hover:border-zinc-800 transition-all hover:scale-[1.01] group space-y-4"
               >
                 <div className="space-y-2">
@@ -218,8 +257,6 @@ export default function NewsDetailPage() {
                 </div>
                 <div className="flex gap-4 items-center text-[10px] text-zinc-550 ">
                   <span>{article.date}</span>
-                  <span>•</span>
-                  <span>{article.readTime}</span>
                 </div>
               </Link>
             ))}

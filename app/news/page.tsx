@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Search, Calendar, Clock, BookOpen, Loader2 } from "lucide-react";
 import { getCategoryBadgeColor, fetchNews, type NewsItem } from "@/lib/news";
+import Avatar from "boring-avatars";
 
 export default function NewsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -99,7 +100,7 @@ export default function NewsPage() {
                 key={item.id}
                 className="bg-zinc-955 border border-zinc-900 rounded-2xl overflow-hidden hover:border-zinc-800 transition-all duration-300 hover:scale-[1.01] flex flex-col group"
               >
-                <Link href={`/news/${item.id}`} className="block relative aspect-video overflow-hidden">
+                <Link href={`/news/${item.slug}`} className="block relative aspect-video overflow-hidden">
                   <img
                     src={item.imageUrl}
                     alt={item.title}
@@ -110,41 +111,49 @@ export default function NewsPage() {
                     {item.category}
                   </span>
                 </Link>
-
+ 
                 <div className="p-6 flex-1 flex flex-col justify-between space-y-6">
                   <div className="space-y-3">
                     <div className="flex gap-4 items-center text-[10px] text-zinc-550 ">
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" /> {item.date}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> {item.readTime}
-                      </span>
                     </div>
-
-                    <Link href={`/news/${item.id}`}>
+ 
+                    <Link href={`/news/${item.slug}`}>
                       <h3 className="text-xl  text-white group-hover:text-primary transition-colors line-clamp-2 leading-snug">
                         {item.title}
                       </h3>
                     </Link>
 
                     <p className="text-xs text-zinc-400 line-clamp-3 leading-relaxed">
-                      {item.excerpt}
+                      {item.content?.[0]
+                        ? item.content[0].replace(/<[^>]*>/g, "").slice(0, 160)
+                        : ""}
                     </p>
                   </div>
 
                   <div className="flex items-center justify-between pt-4 border-t border-zinc-900">
                     <div className="flex items-center gap-2">
-                      <img
-                        src={item.author.avatar}
-                        alt={item.author.name}
-                        className="w-6 h-6 rounded-full object-cover border border-zinc-800"
-                      />
+                      <div className="w-6 h-6 rounded-full overflow-hidden border border-zinc-800 shrink-0">
+                        <Avatar
+                          size={24}
+                          name={item.author.name}
+                          colors={[
+                            "#f5e1a4",
+                            "#d9d593",
+                            "#ee7f27",
+                            "#bc162a",
+                            "#302325",
+                          ]}
+                          variant="pixel"
+                        />
+                      </div>
                       <span className="text-[10px]  text-zinc-300">{item.author.name}</span>
                     </div>
-
+ 
                     <Link
-                      href={`/news/${item.id}`}
+                      href={`/news/${item.slug}`}
                       className="text-[11px] text-primary"
                     >
                       Read Now

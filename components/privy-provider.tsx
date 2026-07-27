@@ -37,6 +37,12 @@ export default function PrivyProviderWrapper({
         appearance: {
           theme: "#0A0A0A",
           accentColor: "#F1C67C",
+          // This app is external-wallet-only (no email/sms/social logins), so
+          // the wallet picker must show first. Setting this explicitly signals
+          // intent and silences Privy's "you should only disable
+          // showWalletLoginFirst when other logins are enabled" warning — here
+          // wallet-first is the intended, only flow.
+          showWalletLoginFirst: true,
         },
       }}
     >

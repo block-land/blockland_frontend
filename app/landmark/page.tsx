@@ -842,7 +842,16 @@ export default function LandmarkPage() {
       map.on("load", () => {
         // --- Fetch sold tiles + generate grid on viewport ---
         const refreshOverlay = async () => {
-          if (!map.isStyleLoaded()) return;
+          // Mapbox GL JS stores the style on `map.style`. Some map API calls
+          // (getSource, getBounds, getZoom) THROW if invoked while the style is
+          // mid-swap (e.g. user toggled Default↔Satellite), because the style
+          // manager is briefly detached. Guard against that here AND before the
+          // post-fetch source updates (the network await can outlast a style
+          // change that started after this guard passed).
+          const isReady = () =>
+            !!map.style && typeof (map.style as any).getOwnSource === "function";
+
+          if (!map.isStyleLoaded() || !isReady()) return;
 
           const bounds = map.getBounds();
           if (!bounds) return;
@@ -890,11 +899,22 @@ export default function LandmarkPage() {
                 priceLamports: f.properties.priceLamports ?? null,
               }));
               const geojson = buildSoldTilesGeoJSON(tiles);
-              const soldSource = map.getSource("sold-tiles") as
-                | mapboxgl.GeoJSONSource
-                | undefined;
-              if (soldSource) {
-                soldSource.setData(geojson);
+              // The network fetch above is async — the style may have started
+              // swapping while we were waiting. Re-check readiness and wrap each
+              // getSource in a guard so a mid-swap style doesn't throw and abort
+              // the rest of the overlay update.
+              if (isReady()) {
+                try {
+                  const soldSource = map.getSource("sold-tiles") as
+                    | mapboxgl.GeoJSONSource
+                    | undefined;
+                  if (soldSource) {
+                    soldSource.setData(geojson);
+                  }
+                } catch (e) {
+                  // Style mid-swap — silently skip this update; the next
+                  // moveend/idle/style.load will re-sync the overlay.
+                }
               }
               // Keep the sold-cell ref in sync so box-select can skip owned tiles.
               // Accumulate across viewport moves so tiles seen earlier aren't lost.
@@ -904,11 +924,17 @@ export default function LandmarkPage() {
               ]);
               // Feed the dedicated Point source for labels (one point per tile)
               const labelGeojson = buildSoldTilesCentroidsGeoJSON(tiles);
-              const labelSource = map.getSource("sold-tiles-labels") as
-                | mapboxgl.GeoJSONSource
-                | undefined;
-              if (labelSource) {
-                labelSource.setData(labelGeojson);
+              if (isReady()) {
+                try {
+                  const labelSource = map.getSource("sold-tiles-labels") as
+                    | mapboxgl.GeoJSONSource
+                    | undefined;
+                  if (labelSource) {
+                    labelSource.setData(labelGeojson);
+                  }
+                } catch (e) {
+                  // Style mid-swap — skip.
+                }
               }
             }
           } catch (err) {
