@@ -1283,7 +1283,7 @@ export default function LandmarkPage() {
       {!error && (
         <>
           {/* Buy tile bar — appears when tiles are selected (multi-select) */}
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-full max-w-[1440px] z-20 px-6 sm:px-10 lg:px-[68px] space-y-2">
+          <div className="absolute bottom-12 md:bottom-8 left-1/2 -translate-x-1/2 w-full max-w-[1440px] z-20 px-6 sm:px-10 lg:px-[68px] space-y-2">
             <div className="flex justify-between items-end gap-4">
               {selectedCells.length > 0 && (
                 <div className="">
@@ -1424,7 +1424,7 @@ export default function LandmarkPage() {
 
                 {/* Map Style selectors (Figma node 46:61) */}
                 <div
-                  className="flex gap-[26px] items-center shrink-0"
+                  className="flex justify-between gap-[26px] items-center shrink-0"
                   data-node-id="46:61"
                 >
                   {/* Button 1: Style Dropdown */}
@@ -1437,7 +1437,7 @@ export default function LandmarkPage() {
                         <div className="flex items-center justify-center size-[36px] rounded-xl border bg-zinc-900 border-zinc-800 text-zinc-400 group-hover:text-white group-hover:border-zinc-700">
                           <Layers className="h-5 w-5" />
                         </div>
-                        <span className="text-[16px] font-medium transition-colors text-white group-hover:text-primary">
+                        <span className="text-[16px] font-medium transition-colors text-white group-hover:text-primary hidden md:block">
                           {mapStyle === "default" ? "Default" : "Realistic"}
                         </span>
                       </button>
@@ -1479,9 +1479,6 @@ export default function LandmarkPage() {
                         </div>
                         <span className="text-[16px] font-medium transition-colors text-white group-hover:text-primary hidden md:block">
                           Your Landmark
-                        </span>
-                        <span className="text-[16px] font-medium transition-colors text-white group-hover:text-primary block md:hidden">
-                          Landmark
                         </span>
                       </button>
                     </DialogTrigger>
@@ -1582,7 +1579,7 @@ export default function LandmarkPage() {
                   </Dialog>
 
                   {/* Divider Line */}
-                  <div className="h-[44px] w-px bg-zinc-800 shrink-0 hidden md:block" />
+                  <div className="h-[44px] w-px bg-zinc-800 shrink-0" />
 
                   {/* Button: Toggle Box-Select mode */}
                   <button
@@ -1592,7 +1589,7 @@ export default function LandmarkPage() {
                     }}
                     title={selectMode ? "Exit Select mode" : "Select area"}
                     className={cn(
-                      "hidden md:flex items-center justify-center size-[36px] rounded-xl border focus:outline-none group cursor-pointer transition-colors me-[16px]",
+                      "flex items-center justify-center size-[36px] rounded-xl border focus:outline-none group cursor-pointer transition-colors me-[16px]",
                       selectMode
                         ? "border-primary bg-primary/15 text-primary"
                         : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700",

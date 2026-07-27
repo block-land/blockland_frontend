@@ -103,7 +103,7 @@ export default function Header() {
           className="flex shrink-0 items-center gap-3 text-white transition-opacity hover:opacity-85"
           aria-label="Blockland home"
         >
-          <img src="/img/logo_white.png" className="w-[160px]" alt="" />
+          <img src="/img/logo_white.png" className="w-[130px] md:w-[160px]" alt="" />
         </Link>
 
         {/* Desktop nav */}
