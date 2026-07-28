@@ -14,6 +14,11 @@ import {
   X,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import Avatar from "boring-avatars";
 import { useWallets } from "@privy-io/react-auth/solana";
 import { useChat } from "@/lib/useChat";
@@ -292,16 +297,18 @@ function MessagePageInner() {
                 {connected ? "Live" : "Connecting"}
               </span>
             </div>
-            <div className="relative bg-black flex gap-2.5 h-[40px] items-center px-3 rounded-xl border border-zinc-800 focus-within:border-zinc-700">
-              <Search className="h-4 w-4 text-zinc-550 shrink-0" />
-              <input
+            <InputGroup className="bg-black h-[40px] rounded-xl border-zinc-800">
+              <InputGroupAddon align="inline-start">
+                <Search className="h-4 w-4 text-zinc-550 shrink-0" />
+              </InputGroupAddon>
+              <InputGroupInput
                 type="text"
                 placeholder="Search contact..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none p-0 text-sm text-white placeholder-zinc-550"
+                className="text-sm text-white placeholder-zinc-550"
               />
-            </div>
+            </InputGroup>
           </div>
 
           {/* Threads List */}

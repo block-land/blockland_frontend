@@ -49,6 +49,11 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import {
   Accordion,
   AccordionItem,
   AccordionTrigger,
@@ -754,25 +759,29 @@ export default function AccountPage() {
               </div>
 
               <div className="flex items-center gap-4 flex-1 max-w-sm w-full">
-                <div className="relative bg-zinc-950 flex gap-2.5 h-[40px] items-center px-3 rounded-xl border border-zinc-800 focus-within:border-zinc-700 flex-1">
-                  <Search className="h-4 w-4 text-zinc-550 shrink-0" />
-                  <input
+                <InputGroup className="bg-zinc-950 h-[40px] rounded-xl border-zinc-800 flex-1">
+                  <InputGroupAddon align="inline-start">
+                    <Search className="h-4 w-4 text-zinc-550 shrink-0" />
+                  </InputGroupAddon>
+                  <InputGroupInput
                     type="text"
                     placeholder="Search by name, location..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none p-0 text-sm text-white placeholder-zinc-600"
+                    className="text-sm text-white placeholder-zinc-600"
                   />
                   {searchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchQuery("")}
-                      className="text-zinc-500 text-sm hover:text-white transition-colors cursor-pointer"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+                    <InputGroupAddon align="inline-end">
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery("")}
+                        className="text-zinc-500 text-sm hover:text-white transition-colors cursor-pointer"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </InputGroupAddon>
                   )}
-                </div>
+                </InputGroup>
                 <span className="text-xs text-zinc-550  shrink-0">
                   Showing {paginatedTiles.length} of {totalTilesCount} units
                 </span>
@@ -1479,7 +1488,7 @@ export default function AccountPage() {
           if (!open) setSellingTile(null);
         }}
       >
-        <DialogContent className="max-w-xl">
+        <DialogContent className="w-[90vw] md:min-w-xl">
           <DialogHeader>
             <DialogTitle className="text-white">
               {sellStatus === "idle" && "List Tile for Sale"}

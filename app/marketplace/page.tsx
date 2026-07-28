@@ -234,7 +234,7 @@ export default function Marketplace() {
           {/* Sort selection */}
           <div className="flex items-center gap-4">
             {/* View Mode Toggle */}
-            <div className="flex items-center border border-zinc-800 rounded-xl overflow-hidden bg-zinc-950 p-1 shrink-0">
+            <div className="hidden md:flex items-center border border-zinc-800 rounded-xl overflow-hidden bg-zinc-950 p-1 shrink-0">
               <button
                 type="button"
                 onClick={() => setViewMode("grid")}
@@ -261,7 +261,7 @@ export default function Marketplace() {
               </button>
             </div>
 
-            <div className="flex gap-2 items-center bg-zinc-950 px-4 h-[48px] rounded-xl border border-zinc-800">
+            <div className="flex gap-2 justify-center md:justify-start items-center bg-zinc-950 px-4 h-[48px] rounded-xl border border-zinc-800 w-full md:w-auto">
               <RiExpandUpDownFill className="h-4 w-4 text-zinc-500" />
               <select
                 value={sortBy}

@@ -4,6 +4,11 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Search, Calendar, Clock, BookOpen, Loader2 } from "lucide-react";
 import { getCategoryBadgeColor, fetchNews, type NewsItem } from "@/lib/news";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import Avatar from "boring-avatars";
 
 export default function NewsPage() {
@@ -76,16 +81,18 @@ export default function NewsPage() {
           </div>
 
           {/* Search Bar */}
-          <div className="relative bg-zinc-950 flex gap-2.5 h-[44px] items-center px-4 rounded-xl border border-zinc-800 focus-within:border-zinc-700 w-full md:w-[320px]">
-            <Search className="h-4.5 w-4.5 text-zinc-500 shrink-0" />
-            <input
+          <InputGroup className="bg-zinc-950 h-[44px] rounded-xl border-zinc-800 w-full md:w-[320px]">
+            <InputGroupAddon align="inline-start">
+              <Search className="h-4.5 w-4.5 text-zinc-500 shrink-0" />
+            </InputGroupAddon>
+            <InputGroupInput
               type="text"
               placeholder="Search news..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none p-0 text-xs text-white placeholder-zinc-500"
+              className="text-xs text-white placeholder-zinc-500"
             />
-          </div>
+          </InputGroup>
         </div>
 
         {/* Grid List */}

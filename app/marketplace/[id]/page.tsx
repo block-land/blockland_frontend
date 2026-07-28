@@ -638,7 +638,7 @@ export default function TileDetailPage() {
           if (!open) setActiveModal(null);
         }}
       >
-        <DialogContent className="max-w-xl text-zinc-300">
+        <DialogContent className="w-[90vw] md:min-w-xl text-zinc-300 rounded-3xl">
           <DialogHeader>
             <DialogTitle className="text-white ">
               {activeModal === "offer" ? "Confirm Offer Submission" : "Offer Submitted"}
@@ -676,7 +676,7 @@ export default function TileDetailPage() {
                 </div>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-col-reverse md:flex-row gap-3">
                 <button
                   type="button"
                   onClick={() => setActiveModal(null)}
