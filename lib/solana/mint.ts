@@ -11,8 +11,6 @@ import { BACKEND_URL } from "@/lib/api";
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
 
-export type RarityTier = "Legendary" | "Epic" | "Rare" | "Common";
-
 export interface TilePrice {
   usd: number;
   sol: number;

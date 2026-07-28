@@ -26,8 +26,6 @@ export interface MintTileRequest {
   lng: number;
   /** Base64-encoded PNG image of the Mapbox tile snapshot. */
   imageBase64: string;
-  /** Rarity tier. */
-  rarity: "Legendary" | "Epic" | "Rare" | "Common";
   /** Human-readable place name (reverse-geocoded once at purchase). */
   placeName?: string;
 }

@@ -36,6 +36,11 @@ import {
   RiSearchLine,
 } from "react-icons/ri";
 import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import { useWallets } from "@privy-io/react-auth/solana";
 import {
   getCell,
@@ -198,6 +203,7 @@ export default function LandmarkPage() {
   const [hasMoreLandmarks, setHasMoreLandmarks] = useState(true);
   const [landmarksOffset, setLandmarksOffset] = useState(0);
   const [totalLandmarksCount, setTotalLandmarksCount] = useState(0);
+  const [landmarksSearch, setLandmarksSearch] = useState("");
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   // Tile multi-select state — array of selected H3 cell IDs available to buy
@@ -360,24 +366,39 @@ export default function LandmarkPage() {
     }
   };
 
-  // Reset offset and fetch first page when dialog is opened, wallet address changes, or search query changes
+  // Reset offset and fetch first page when dialog is opened or wallet changes
   useEffect(() => {
     if (isDialogOpen && wallet?.address) {
       setUserLandmarks([]);
       setLandmarksOffset(0);
       setHasMoreLandmarks(true);
-      fetchUserLandmarks(0, true, "");
+      fetchUserLandmarks(0, true, landmarksSearch);
     } else if (!isDialogOpen) {
       setUserLandmarks([]);
       setLandmarksOffset(0);
       setHasMoreLandmarks(true);
+      setLandmarksSearch("");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wallet?.address, isDialogOpen]);
+
+  // Debounced search: when the search term changes, reset and refetch.
+  useEffect(() => {
+    if (!isDialogOpen || !wallet?.address) return;
+    const t = setTimeout(() => {
+      setUserLandmarks([]);
+      setLandmarksOffset(0);
+      setHasMoreLandmarks(true);
+      fetchUserLandmarks(0, true, landmarksSearch);
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [landmarksSearch]);
 
   // Load more function
   const loadMoreLandmarks = () => {
     if (isLoadingMoreLandmarks || !hasMoreLandmarks) return;
-    fetchUserLandmarks(landmarksOffset, false, "");
+    fetchUserLandmarks(landmarksOffset, false, landmarksSearch);
   };
 
   // IntersectionObserver for infinite scrolling
@@ -466,7 +487,6 @@ export default function LandmarkPage() {
     setSuccessCount(0);
     setSuccessPriceSol(0);
 
-    const rarity = "Common" as const;
     const cellsToProcess = [...selectedCells];
     const totalToMint = cellsToProcess.length;
     setInitialToMintCount(totalToMint);
@@ -498,7 +518,6 @@ export default function LandmarkPage() {
           lat,
           lng,
           imageBase64: images[i],
-          rarity,
           placeName: placeNames[i] ?? undefined,
         });
         if (!res.ok) {
@@ -1526,7 +1545,7 @@ export default function LandmarkPage() {
                         </span>
                       </button>
                     </DialogTrigger>
-                    <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl min-w-0 max-h-[calc(100dvh-2rem)] overflow-hidden">
+                    <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl min-w-0 max-h-[calc(100dvh-2rem)] overflow-hidden rounded-3xl">
                       <DialogHeader className="min-w-0 pr-6">
                         <DialogTitle>Your Landmarks</DialogTitle>
                         <DialogDescription>
@@ -1537,6 +1556,33 @@ export default function LandmarkPage() {
                           to fly directly to its location on the map.
                         </DialogDescription>
                       </DialogHeader>
+                      {/* Search landmark by location */}
+                      {wallet?.address && (
+                        <InputGroup className="bg-black h-[40px] rounded-xl border-zinc-800 mt-2">
+                          <InputGroupAddon align="inline-start">
+                            <Search className="h-4 w-4 text-zinc-550 shrink-0" />
+                          </InputGroupAddon>
+                          <InputGroupInput
+                            type="text"
+                            placeholder="Search landmark by location..."
+                            value={landmarksSearch}
+                            onChange={(e) => setLandmarksSearch(e.target.value)}
+                            className="text-sm text-white placeholder-zinc-550"
+                          />
+                          {landmarksSearch && (
+                            <InputGroupAddon align="inline-end">
+                              <button
+                                type="button"
+                                onClick={() => setLandmarksSearch("")}
+                                className="text-zinc-500 hover:text-white transition-colors"
+                                aria-label="Clear search"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </InputGroupAddon>
+                          )}
+                        </InputGroup>
+                      )}
                       <div className="flex min-h-0 min-w-0 flex-col gap-2 mt-4 overflow-hidden">
                         {!wallet?.address ? (
                           <div className="text-center py-8 text-zinc-500 text-sm">
@@ -1549,8 +1595,9 @@ export default function LandmarkPage() {
                           </div>
                         ) : userLandmarks.length === 0 ? (
                           <div className="text-center py-8 text-zinc-500 text-sm">
-                            You don't own any landmarks yet. Choose some tiles
-                            on the map to purchase!
+                            {landmarksSearch.trim()
+                              ? `No landmarks match "${landmarksSearch.trim()}".`
+                              : "You don't own any landmarks yet. Choose some tiles on the map to purchase!"}
                           </div>
                         ) : (
                           <>
@@ -1659,7 +1706,7 @@ export default function LandmarkPage() {
                           </div>
                           <div className="text-right">
                             <p className="text-sm text-zinc-400">Total</p>
-                            <p className="text-base font-semibold text-primary font-mono">
+                            <p className="text-base font-semibold text-primary ">
                               {tilePrice
                                 ? `${(tilePrice.sol * selectedCells.length).toFixed(5)} SOL`
                                 : "…"}
@@ -1668,7 +1715,7 @@ export default function LandmarkPage() {
                         </div>
 
                         {/* Actions */}
-                        <div className="flex gap-3">
+                        <div className="flex flex-col-reverse md:flex-row gap-3">
                           <Button
                             type="button"
                             variant="outline"
@@ -1684,7 +1731,7 @@ export default function LandmarkPage() {
                             disabled={isMinting}
                             className="flex-1 border-zinc-800"
                           >
-                            <RiDeleteBin5Line className="h-4 w-4" />
+                            <RiDeleteBin5Line className="h-4 w-4 hidden md:block" />
                             Clear
                           </Button>
                           <Button
@@ -1774,26 +1821,22 @@ export default function LandmarkPage() {
           </DialogHeader>
           <div className="flex flex-col gap-4 mt-4">
             <ScrollArea className="h-[50vh]">
-              <div className="relative bg-black flex gap-[12px] h-[48px] items-center px-4 rounded-xl border border-zinc-800 focus-within:border-zinc-700">
-                {isSearching ? (
-                  <Loader2 className="h-5 w-5 shrink-0 animate-spin text-primary" />
-                ) : (
-                  <RiSearchLine className="h-5 w-5 shrink-0" />
-                )}
-                <Input
+              <InputGroup className="bg-black h-[48px] rounded-xl border-zinc-800">
+                <InputGroupAddon align="inline-start">
+                  {isSearching ? (
+                    <Loader2 className="h-5 w-5 shrink-0 animate-spin text-primary" />
+                  ) : (
+                    <RiSearchLine className="h-5 w-5 shrink-0" />
+                  )}
+                </InputGroupAddon>
+                <InputGroupInput
                   type="text"
                   value={searchQuery}
                   onChange={(e) => handleSearchInput(e.target.value)}
                   placeholder="Search places in USA..."
-                  style={{
-                    border: "0",
-                    borderWidth: "0",
-                    outline: "none",
-                    boxShadow: "none",
-                  }}
                   autoFocus
                 />
-              </div>
+              </InputGroup>
 
               {/* Live autocomplete suggestions */}
               {searchResults.length > 0 && (
@@ -1838,7 +1881,7 @@ export default function LandmarkPage() {
           }
         }}
       >
-        <DialogContent className="min-w-xl">
+        <DialogContent className="w-[90vw] md:min-w-xl rounded-3xl">
           <DialogHeader>
             <DialogTitle>
               {mintStatus === "idle" && "Confirm Purchase"}
@@ -1959,7 +2002,7 @@ export default function LandmarkPage() {
           </div>
 
           {/* Action buttons */}
-          <div className="flex justify-end gap-3 mt-4">
+          <div className="flex flex-col-reverse md:flex-row justify-between md:justify-end gap-3 mt-4">
             {mintStatus === "idle" && (
               <>
                 <Button

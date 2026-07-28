@@ -18,7 +18,6 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { getRarityBadgeColor } from "@/lib/tiles";
 import { withCustomButton } from "@/components/custom/button_custom";
 import { getOwnerTiles, type CompressedNft } from "@/lib/solana/helius";
 import { lamportsToSol, getWalletBalance } from "@/lib/solana/mint";
@@ -69,7 +68,6 @@ interface OwnedTile {
   name: string;
   location: string;
   coordinates: string;
-  rarity: "Legendary" | "Epic" | "Rare" | "Common";
   imageUrl: string;
   purchasePrice: number;
   purchasedDate: string;
@@ -85,7 +83,6 @@ interface MyOfferTile {
   name: string;
   location: string;
   coordinates: string;
-  rarity: "Legendary" | "Epic" | "Rare" | "Common";
   imageUrl: string;
   offerPriceSol: number;
   offerStatus: "pending" | "accepted" | "declined" | "cancelled";
@@ -114,9 +111,6 @@ function nftToTile(nft: CompressedNft): OwnedTile {
   const lngAttr = nft.content.metadata.attributes?.find(
     (a) => a.trait_type === "longitude",
   );
-  const rarityAttr = nft.content.metadata.attributes?.find(
-    (a) => a.trait_type === "rarity",
-  );
   const lat = Number(latAttr?.value ?? 0);
   const lng = Number(lngAttr?.value ?? 0);
 
@@ -125,7 +119,6 @@ function nftToTile(nft: CompressedNft): OwnedTile {
     name: nft.content.metadata.name || "Unnamed Tile",
     location: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
     coordinates: `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`,
-    rarity: (rarityAttr?.value as OwnedTile["rarity"]) || "Common",
     imageUrl: buildStaticMapUrl(lng, lat),
     purchasePrice: 0.0025, // Fallback default price (approx $0.2 equivalent)
     purchasedDate: new Date().toLocaleDateString("en-US", {
@@ -316,7 +309,6 @@ export default function AccountPage() {
               name: `BLT ${lat.toFixed(3)},${lng.toFixed(3)}`,
               location: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
               coordinates: `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`,
-              rarity: (t.rarity as OwnedTile["rarity"]) || "Common",
               imageUrl: buildStaticMapUrl(lng, lat),
               purchasePrice: lamportsToSol(lamports),
               purchasedDate: purchaseDate.toLocaleDateString("en-US", {
@@ -497,7 +489,6 @@ export default function AccountPage() {
             name: `BLT ${lat.toFixed(3)},${lng.toFixed(3)}`,
             location: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
             coordinates: `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`,
-            rarity: (o.rarity as MyOfferTile["rarity"]) || "Common",
             imageUrl: buildStaticMapUrl(lng, lat),
             offerPriceSol: lamportsToSol(Number(o.offerPriceLamports)),
             offerStatus: (o.offerStatus as MyOfferTile["offerStatus"]) ?? "pending",
@@ -822,7 +813,7 @@ export default function AccountPage() {
                         key={tile.id}
                         className="bg-zinc-950 border border-zinc-900 rounded-2xl overflow-hidden hover:border-zinc-800 transition-all hover:scale-[1.01] flex flex-col group"
                       >
-                        {/* Photo & Rarity */}
+                        {/* Photo */}
                         <div className="relative aspect-video overflow-hidden">
                           <img
                             src={tile.imageUrl}
@@ -830,11 +821,6 @@ export default function AccountPage() {
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
                           <div className="absolute inset-0 bg-linear-to-t from-zinc-955 to-transparent opacity-60" />
-                          <span
-                            className={`absolute top-4 left-4 text-[10px]  uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
-                          >
-                            {tile.rarity}
-                          </span>
                         </div>
 
                         {/* Details */}
@@ -981,7 +967,7 @@ export default function AccountPage() {
                         key={tile.id}
                         className="bg-zinc-950 border border-zinc-900 rounded-2xl overflow-hidden hover:border-zinc-800 transition-all hover:scale-[1.01] flex flex-col group"
                       >
-                        {/* Photo & Rarity */}
+                        {/* Photo */}
                         <div className="relative aspect-video overflow-hidden">
                           <img
                             src={tile.imageUrl}
@@ -989,11 +975,6 @@ export default function AccountPage() {
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
                           <div className="absolute inset-0 bg-linear-to-t from-zinc-955 to-transparent opacity-60" />
-                          <span
-                            className={`absolute top-4 left-4 text-[10px]  uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
-                          >
-                            {tile.rarity}
-                          </span>
                         </div>
 
                         {/* Details */}
@@ -1149,13 +1130,6 @@ export default function AccountPage() {
                           {/* Details */}
                           <div className="space-y-2">
                             <div className="flex flex-wrap items-center gap-2">
-                              <span
-                                className={`text-[9px]  uppercase tracking-wider px-2 py-0.5 rounded border ${getRarityBadgeColor(
-                                  tile.rarity,
-                                )}`}
-                              >
-                                {tile.rarity}
-                              </span>
                               <span className="text-[11px] text-zinc-555  flex items-center gap-1">
                                 <Grid className="h-3 w-3" />
                                 {tile.coordinates}
@@ -1255,11 +1229,6 @@ export default function AccountPage() {
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-zinc-955 to-transparent opacity-60" />
-                  <span
-                    className={`absolute top-3 left-3 text-[10px]  uppercase tracking-wider px-2 py-0.5 rounded border backdrop-blur-md ${getRarityBadgeColor(selectedDetailTile.rarity)}`}
-                  >
-                    {selectedDetailTile.rarity}
-                  </span>
                   {/* <div className="absolute bottom-3 left-3 flex gap-1 items-center text-xs ">
                     <Grid className="h-3.5 w-3.5 text-primary" />
                     <span>{selectedDetailTile.coordinates}</span>
@@ -1345,7 +1314,7 @@ export default function AccountPage() {
 
           {selectedOffersTile && (
             <div className="space-y-6 mt-4">
-              {/* Info Tile (Thumbnail map, Rarity badge, Lokasi) */}
+              {/* Info Tile (Thumbnail map, Lokasi) */}
               <div className="flex gap-4 items-start border-b border-zinc-800 pb-4">
                 <img
                   src={selectedOffersTile.imageUrl}
@@ -1353,11 +1322,6 @@ export default function AccountPage() {
                   className="w-16 h-16 object-cover rounded-lg border border-zinc-800 shrink-0"
                 />
                 <div className="space-y-0.5">
-                  <span
-                    className={`text-[9px] uppercase  tracking-wider px-1.5 py-0.5 rounded border ${getRarityBadgeColor(selectedOffersTile.rarity)}`}
-                  >
-                    {selectedOffersTile.rarity}
-                  </span>
                   <h4 className=" text-white mt-1">
                     {selectedOffersTile.name}
                   </h4>
@@ -1534,11 +1498,6 @@ export default function AccountPage() {
                   className="w-16 h-16 object-cover rounded-lg border border-zinc-800 shrink-0"
                 />
                 <div className="space-y-0.5">
-                  <span
-                    className={`text-[9px] uppercase  tracking-wider px-1.5 py-0.5 rounded border ${getRarityBadgeColor(sellingTile.rarity)}`}
-                  >
-                    {sellingTile.rarity}
-                  </span>
                   <h4 className=" text-white mt-1">
                     {sellingTile.name}
                   </h4>

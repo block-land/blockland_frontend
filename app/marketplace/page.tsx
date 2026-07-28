@@ -8,12 +8,15 @@ import {
   Grid,
   List,
   Tag,
-  SlidersHorizontal,
   ArrowUpDown,
   Loader2,
 } from "lucide-react";
 import { withCustomButton } from "@/components/custom/button_custom";
-import { getRarityBadgeColor } from "@/lib/tiles";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import { lamportsToSol } from "@/lib/solana/mint";
 import Avatar from "boring-avatars";
 import {
@@ -36,7 +39,6 @@ export interface TileItem {
   name: string;
   location: string;
   coordinates: string;
-  rarity: "Legendary" | "Epic" | "Rare" | "Common";
   imageUrl: string;
   price: number; // in SOL desimal
   date: string;
@@ -58,7 +60,6 @@ function buildStaticMapUrl(lng: number, lat: number): string {
 
 export default function Marketplace() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedRarity, setSelectedRarity] = useState<string>("All");
   const [sortBy, setSortBy] = useState<"price-asc" | "price-desc">(
     "price-desc",
   );
@@ -78,16 +79,15 @@ export default function Marketplace() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Reset page when search, rarity or sorting changes
+  // Reset page when search or sorting changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearchQuery, selectedRarity, sortBy]);
+  }, [debouncedSearchQuery, sortBy]);
 
   const loadTiles = useCallback(
     async (
       page: number,
       searchVal: string,
-      rarityVal: string,
       sortVal: string,
     ) => {
       setLoading(true);
@@ -96,11 +96,10 @@ export default function Marketplace() {
         const searchParam = searchVal.trim()
           ? `&search=${encodeURIComponent(searchVal.trim())}`
           : "";
-        const rarityParam = rarityVal !== "All" ? `&rarity=${rarityVal}` : "";
         const sortParam = `&sort=${sortVal}`;
 
         const res = await fetch(
-          `${BACKEND_URL}/api/tiles?limit=${ITEMS_PER_PAGE}&offset=${offset}${searchParam}${rarityParam}${sortParam}&status=listed`,
+          `${BACKEND_URL}/api/tiles?limit=${ITEMS_PER_PAGE}&offset=${offset}${searchParam}${sortParam}&status=listed`,
         );
         const data = await res.json();
 
@@ -120,7 +119,6 @@ export default function Marketplace() {
               name: `BLT ${lat.toFixed(3)},${lng.toFixed(3)}`,
               location: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
               coordinates: `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`,
-              rarity: (t.rarity as TileItem["rarity"]) || "Common",
               imageUrl: buildStaticMapUrl(lng, lat),
               price: lamportsToSol(lamports),
               date: createdAt.toLocaleDateString("en-US", {
@@ -184,15 +182,11 @@ export default function Marketplace() {
   );
 
   useEffect(() => {
-    loadTiles(currentPage, debouncedSearchQuery, selectedRarity, sortBy);
-  }, [currentPage, debouncedSearchQuery, selectedRarity, sortBy, loadTiles]);
+    loadTiles(currentPage, debouncedSearchQuery, sortBy);
+  }, [currentPage, debouncedSearchQuery, sortBy, loadTiles]);
 
   const handleSearchChange = (val: string) => {
     setSearchQuery(val);
-  };
-
-  const handleRarityChange = (val: string) => {
-    setSelectedRarity(val);
   };
 
   const handleSortChange = (val: "price-asc" | "price-desc") => {
@@ -223,42 +217,18 @@ export default function Marketplace() {
         <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between border-t border-b border-zinc-900 py-6">
           <div className="flex flex-1 flex-col sm:flex-row gap-4 items-stretch sm:items-center">
             {/* Search Input */}
-            <div className="relative bg-zinc-950 flex gap-3 h-[48px] items-center px-4 rounded-xl border border-zinc-800 focus-within:border-zinc-700 flex-1">
-              <Search className="h-5 w-5 text-zinc-500 shrink-0" />
-              <input
+            <InputGroup className="bg-zinc-950 h-[48px] rounded-xl border-zinc-800 flex-1">
+              <InputGroupAddon align="inline-start">
+                <Search className="h-5 w-5 text-zinc-500 shrink-0" />
+              </InputGroupAddon>
+              <InputGroupInput
                 type="text"
                 placeholder="Search by name, location or coordinate..."
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none p-0 text-[15px] font-normal text-white placeholder-zinc-500"
+                className="text-[15px] font-normal text-white placeholder-zinc-500"
               />
-            </div>
-
-            {/* Rarity Select */}
-            <div className="flex gap-2 items-center bg-zinc-950 px-4 h-[48px] rounded-xl border border-zinc-800">
-              <SlidersHorizontal className="h-4 w-4 text-zinc-500" />
-              <select
-                value={selectedRarity}
-                onChange={(e) => handleRarityChange(e.target.value)}
-                className="bg-transparent border-none outline-none focus:ring-0 text-[15px] text-zinc-300 font-medium cursor-pointer py-1"
-              >
-                <option value="All" className="bg-zinc-950 text-white">
-                  All Rarity
-                </option>
-                <option value="Legendary" className="bg-zinc-950 text-white">
-                  Legendary
-                </option>
-                <option value="Epic" className="bg-zinc-950 text-white">
-                  Epic
-                </option>
-                <option value="Rare" className="bg-zinc-950 text-white">
-                  Rare
-                </option>
-                <option value="Common" className="bg-zinc-950 text-white">
-                  Common
-                </option>
-              </select>
-            </div>
+            </InputGroup>
           </div>
 
           {/* Sort selection */}
@@ -324,7 +294,7 @@ export default function Marketplace() {
                     key={tile.id}
                     className="bg-zinc-950 border border-zinc-900 rounded-2xl overflow-hidden hover:border-zinc-800 transition-all hover:scale-[1.01] flex flex-col group"
                   >
-                    {/* Photo & Rarity Badge */}
+                    {/* Photo */}
                     <div className="relative aspect-video overflow-hidden">
                       <img
                         src={tile.imageUrl}
@@ -332,11 +302,6 @@ export default function Marketplace() {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                       <div className="absolute inset-0 bg-linear-to-t from-zinc-950 to-transparent opacity-60" />
-                      <span
-                        className={`absolute top-4 left-4 text-xs  uppercase tracking-wider px-3 py-1 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
-                      >
-                        {tile.rarity}
-                      </span>
                       <div className="absolute bottom-4 left-4 flex gap-1 items-center text-xs uppercase tracking-wider px-3 py-1 rounded border backdrop-blur-md">
                         <Grid className="h-3.5 w-3.5 text-primary" />
                         <span>{tile.coordinates}</span>
@@ -438,11 +403,6 @@ export default function Marketplace() {
                       {/* Details */}
                       <div className="space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className={`text-xs  uppercase tracking-wider px-3 py-1 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}
-                          >
-                            {tile.rarity}
-                          </span>
                           <span className="text-[11px] text-zinc-555  flex items-center gap-1">
                             <Grid className="h-3 w-3" />
                             {tile.coordinates}

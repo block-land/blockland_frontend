@@ -279,20 +279,6 @@ export default function ChatSellerWidget({
   );
 }
 
-/** Rarity badge color helper. */
-function rarityBadge(rarity: string): string {
-  switch (rarity) {
-    case "Legendary":
-      return "bg-amber-500/20 text-amber-400 border border-amber-500/30";
-    case "Epic":
-      return "bg-purple-500/20 text-purple-400 border border-purple-500/30";
-    case "Rare":
-      return "bg-blue-500/20 text-blue-400 border border-blue-500/30";
-    default:
-      return "bg-zinc-500/20 text-zinc-400 border border-zinc-500/30";
-  }
-}
-
 /** Inline tile card rendered as a message bubble within the chat timeline. */
 function InlineTileCard({
   tile,
@@ -328,13 +314,6 @@ function InlineTileCard({
         <div className="flex items-center gap-1.5">
           <span className="text-[10px] uppercase tracking-wide text-zinc-500">
             Tile
-          </span>
-          <span
-            className={`text-[10px] px-1.5 py-0.5 rounded-full ${rarityBadge(
-              tile.rarity,
-            )}`}
-          >
-            {tile.rarity}
           </span>
         </div>
         <p className="text-xs text-zinc-300 flex items-center gap-1 mt-0.5 min-w-0">

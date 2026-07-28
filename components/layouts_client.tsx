@@ -119,7 +119,7 @@ export default function LayoutsClient({
               headerPosition === "absolute"
                 ? "absolute top-0 left-0 right-0 z-50"
                 : headerPosition === "fixed"
-                  ? "fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-zinc-900/50 transition-all shrink-0"
+                  ? `fixed top-0 left-0 right-0 z-50 transition-all shrink-0 ${pathname === "/landmark" && isMobile ? "bg-transparent border-b-0" : "bg-black/80 backdrop-blur-md border-b border-zinc-900/50"}`
                   : "sticky top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-zinc-900/50 transition-all shrink-0"
             }>
               <section className={headerPosition === "absolute" ? "mx-auto flex w-full max-w-[1440px] flex-col px-6 pt-[47px] sm:px-10 lg:px-[68px]" : "mx-auto flex w-full max-w-[1440px] flex-col px-6 py-4 sm:px-10 lg:px-[68px]"}>
@@ -154,7 +154,7 @@ export default function LayoutsClient({
               headerPosition === "absolute"
                 ? "absolute top-0 left-0 right-0 z-50"
                 : headerPosition === "fixed"
-                  ? "fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-zinc-900/50 transition-all shrink-0"
+                  ? `fixed top-0 left-0 right-0 z-50 transition-all shrink-0 ${pathname === "/landmark" && isMobile ? "bg-transparent border-b-0" : "bg-black/80 backdrop-blur-md border-b border-zinc-900/50"}`
                   : "sticky top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-zinc-900/50 transition-all shrink-0"
             }>
               <section className={headerPosition === "absolute" ? "mx-auto flex w-full max-w-[1440px] flex-col px-6 pt-[47px] sm:px-10 lg:px-[68px]" : "mx-auto flex w-full max-w-[1440px] flex-col px-6 py-4 sm:px-10 lg:px-[68px]"}>

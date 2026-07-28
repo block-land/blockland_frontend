@@ -6,7 +6,6 @@ export interface TileItem {
   price: number;
   seller: string;
   imageUrl: string;
-  rarity: "Legendary" | "Epic" | "Rare" | "Common";
   country: string;
   date: string;
   publisher: {
@@ -25,7 +24,6 @@ export const DUMMY_TILES: TileItem[] = [
     price: 350,
     seller: "0x7a...d3e1",
     imageUrl: "https://images.unsplash.com/photo-1506012787146-f92b2d7d6d96?w=600&auto=format&fit=crop&q=60",
-    rarity: "Legendary",
     country: "United States",
     date: "Jul 05, 2026",
     publisher: {
@@ -42,7 +40,6 @@ export const DUMMY_TILES: TileItem[] = [
     price: 280,
     seller: "0x9f...a89c",
     imageUrl: "https://images.unsplash.com/photo-1522083165195-342750297f05?w=600&auto=format&fit=crop&q=60",
-    rarity: "Epic",
     country: "United States",
     date: "Jul 04, 2026",
     publisher: {
@@ -59,7 +56,6 @@ export const DUMMY_TILES: TileItem[] = [
     price: 190,
     seller: "0x2b...ff54",
     imageUrl: "https://images.unsplash.com/photo-1581012739307-3def625ae67e?w=600&auto=format&fit=crop&q=60",
-    rarity: "Rare",
     country: "United States",
     date: "Jul 02, 2026",
     publisher: {
@@ -76,7 +72,6 @@ export const DUMMY_TILES: TileItem[] = [
     price: 150,
     seller: "0x4c...82ea",
     imageUrl: "https://images.unsplash.com/photo-1615551043360-33de8b5f410c?w=600&auto=format&fit=crop&q=60",
-    rarity: "Rare",
     country: "United States",
     date: "Jun 30, 2026",
     publisher: {
@@ -93,7 +88,6 @@ export const DUMMY_TILES: TileItem[] = [
     price: 420,
     seller: "0xea...890b",
     imageUrl: "https://images.unsplash.com/photo-1524008279394-3aed4073ab30?w=600&auto=format&fit=crop&q=60",
-    rarity: "Legendary",
     country: "United States",
     date: "Jun 28, 2026",
     publisher: {
@@ -110,7 +104,6 @@ export const DUMMY_TILES: TileItem[] = [
     price: 120,
     seller: "0x12...55ad",
     imageUrl: "https://images.unsplash.com/photo-1535498730771-e735b998cd64?w=600&auto=format&fit=crop&q=60",
-    rarity: "Common",
     country: "United States",
     date: "Jun 25, 2026",
     publisher: {
@@ -120,16 +113,3 @@ export const DUMMY_TILES: TileItem[] = [
     },
   },
 ];
-
-export const getRarityBadgeColor = (rarity: TileItem["rarity"]) => {
-  switch (rarity) {
-    case "Legendary":
-      return "bg-amber-500/10 text-amber-500 border-amber-500/25";
-    case "Epic":
-      return "bg-purple-500/10 text-purple-500 border-purple-500/25";
-    case "Rare":
-      return "bg-cyan-500/10 text-cyan-500 border-cyan-500/25";
-    default:
-      return "bg-zinc-500/10 text-zinc-400 border-zinc-700/50";
-  }
-};

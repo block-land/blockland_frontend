@@ -6,7 +6,6 @@ import Link from "next/link";
 import { ArrowLeft, MapPin, Grid, Calendar, User, ShieldCheck, Share2, DollarSign, MessageSquare, Tag, Loader2 } from "lucide-react";
 import { withCustomButton } from "@/components/custom/button_custom";
 import ChatSellerWidget from "@/components/chat-seller-widget";
-import { getRarityBadgeColor } from "@/lib/tiles";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { lamportsToSol } from "@/lib/solana/mint";
 import Avatar from "boring-avatars";
@@ -33,7 +32,6 @@ export interface TileItemDetail {
   name: string;
   location: string;
   coordinates: string;
-  rarity: "Legendary" | "Epic" | "Rare" | "Common";
   imageUrl: string;
   price: number; // in SOL desimal
   date: string;
@@ -111,7 +109,6 @@ export default function TileDetailPage() {
             name: `BLT ${lat.toFixed(3)},${lng.toFixed(3)}`,
             location: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
             coordinates: `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`,
-            rarity: (t.rarity as TileItemDetail["rarity"]) || "Common",
             imageUrl: buildStaticMapUrl(lng, lat),
             price: lamportsToSol(lamports),
             date: createdAt.toLocaleDateString("en-US", {
@@ -279,9 +276,6 @@ export default function TileDetailPage() {
               />
               <div className="absolute inset-0 bg-linear-to-t from-black via-black/20 to-transparent" />
               <div className="absolute bottom-6 left-6 right-6 flex flex-wrap gap-4 items-center justify-between">
-                <span className={`text-xs  uppercase tracking-wider px-3 py-1 rounded border backdrop-blur-md ${getRarityBadgeColor(tile.rarity)}`}>
-                  {tile.rarity}
-                </span>
                 <div className="flex gap-2 text-sm text-white  backdrop-blur-md px-3 py-1.5 rounded border border-zinc-800">
                   <Grid className="h-4 w-4 text-primary shrink-0" />
                   <span>{tile.coordinates}</span>
@@ -504,9 +498,6 @@ export default function TileDetailPage() {
                   className="w-20 h-20 object-cover rounded-lg border border-zinc-800 shrink-0"
                 />
                 <div className="space-y-1">
-                  <span className={`text-[10px] uppercase  tracking-wider px-2 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}>
-                    {tile.rarity}
-                  </span>
                   <h4 className=" text-white mt-1">{tile.name}</h4>
                   <p className="text-xs text-zinc-400 flex items-center gap-1">
                     <MapPin className="h-3.5 w-3.5" /> {tile.location}
@@ -663,9 +654,6 @@ export default function TileDetailPage() {
                   className="w-20 h-20 object-cover rounded-lg border border-zinc-800 shrink-0"
                 />
                 <div className="space-y-1">
-                  <span className={`text-[10px] uppercase  tracking-wider px-2 py-0.5 rounded border ${getRarityBadgeColor(tile.rarity)}`}>
-                    {tile.rarity}
-                  </span>
                   <h4 className=" text-white mt-1">{tile.name}</h4>
                   <p className="text-xs text-zinc-400 flex items-center gap-1">
                     <MapPin className="h-3.5 w-3.5" /> {tile.location}
