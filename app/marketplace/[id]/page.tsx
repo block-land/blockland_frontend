@@ -234,10 +234,10 @@ export default function TileDetailPage() {
   // they may offer again.
   const userPendingOffer = wallet
     ? offers.find(
-        (off) => off.rawBidder === wallet.address && off.status === "pending",
+        (off) => off.rawBidder?.toLowerCase() === wallet.address?.toLowerCase() && off.status === "pending",
       )
     : undefined;
-  const userOwnsTile = !!tile && wallet?.address === tile.publisher.walletAddress;
+  const userOwnsTile = !!tile && wallet?.address?.toLowerCase() === tile.publisher.walletAddress?.toLowerCase();
   const notConnected = !wallet;
   const isOfferFormDisabled = notConnected || userOwnsTile || Boolean(userPendingOffer);
 
@@ -371,9 +371,7 @@ export default function TileDetailPage() {
                   Connect your wallet to make an offer.
                 </p>
               ) : userPendingOffer ? (
-                <p className="text-xs text-zinc-500 py-2">
-                  You have an active offer on this tile. Cancel it to make a new one.
-                </p>
+                null
               ) : null}
               <div className="flex gap-2">
                 <div className="relative flex-1 bg-black flex gap-2 h-[48px] items-center px-4 rounded-xl border border-zinc-800 focus-within:border-zinc-700 has-[:disabled]:opacity-50">
