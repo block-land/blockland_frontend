@@ -450,7 +450,7 @@ export default function TileDetailPage() {
               >
                 {userOwnsTile ? "Your Tile" : "Buy Coordinate Unit"}
               </ButtonCustom>
-              <div className="flex gap-4">
+              <div className="flex flex-col md:flex-row gap-4">
                 <button
                   onClick={() => {
                     if (!tile || userOwnsTile || notConnected) return;
