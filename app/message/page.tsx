@@ -12,6 +12,7 @@ import {
   MapPin,
   Wallet,
   X,
+  ArrowLeft,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -277,7 +278,7 @@ function MessagePageInner() {
     <div className="h-[calc(100vh-100px)] mx-auto flex w-full max-w-[1440px] flex-col px-6 py-4 sm:px-10 lg:px-[68px] overflow-hidden">
       <div className="flex-1 flex gap-6 h-full overflow-hidden">
         {/* Left Column: Messages List Sidebar */}
-        <div className="w-full md:w-[350px] shrink-0 bg-zinc-950 border border-zinc-900 rounded-3xl flex flex-col overflow-hidden">
+        <div className={`${displayConversation ? "hidden md:flex" : "flex"} w-full md:w-[350px] shrink-0 bg-zinc-950 border border-zinc-900 rounded-3xl flex-col overflow-hidden`}>
           {/* Header & Search */}
           <div className="p-5 border-b border-zinc-900 space-y-4">
             <div className="flex items-center justify-between">
@@ -382,12 +383,23 @@ function MessagePageInner() {
         </div>
 
         {/* Right Column: Chat Screen Area */}
-        <div className="flex-1 bg-zinc-950 border border-zinc-900 rounded-3xl flex flex-col overflow-hidden">
+        <div className={`${displayConversation ? "flex" : "hidden md:flex"} flex-1 bg-zinc-950 border border-zinc-900 rounded-3xl flex-col overflow-hidden`}>
           {displayConversation ? (
             <>
               {/* Active Header */}
               <div className="bg-zinc-900 border-b border-zinc-800 p-5 flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  {/* Back button — mobile only */}
+                  <button
+                    onClick={() => {
+                      selectConversation(null);
+                      setPendingRecipient(null);
+                    }}
+                    className="md:hidden text-zinc-400 hover:text-white p-1 -ml-1 shrink-0 cursor-pointer"
+                    aria-label="Back to conversations"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </button>
                   <ParticipantAvatar photoUrl={displayConversation.other.photoUrl} name={displayConversation.other.username} size={40} />
                   <div>
                     <h3 className="font-semibold text-white text-base flex items-center gap-1.5">

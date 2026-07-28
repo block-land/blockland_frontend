@@ -22,6 +22,7 @@ import { RiArrowLeftSFill } from "react-icons/ri";
 import { NumericFormat } from "react-number-format";
 import { Input } from "@/components/ui/input";
 import { BACKEND_URL } from "@/lib/api";
+import { SOLSCAN_CLUSTER_PARAM } from "@/lib/solana/constants";
 
 const ButtonCustom = withCustomButton("button");
 
@@ -432,7 +433,7 @@ export default function TileDetailPage() {
                       </div>
                       <div className="text-right">
                         <span className="text-xs  text-primary ">{off.price.toFixed(5)} SOL</span>
-                        <p className="text-[8px] text-emerald-500 ">Pending</p>
+                        <p className="text-[8px] text-primary ">Pending</p>
                       </div>
                     </div>
                   ))}
@@ -480,7 +481,7 @@ export default function TileDetailPage() {
           if (!open) setActiveModal(null);
         }}
       >
-        <DialogContent className="max-w-xl text-zinc-300">
+        <DialogContent className="w-[90vw] md:min-w-xl text-zinc-300 rounded-3xl">
           <DialogHeader>
             <DialogTitle className="text-white ">
               {activeModal === "buy" ? "Confirm Purchase" : "Transaction Success"}
@@ -609,7 +610,7 @@ export default function TileDetailPage() {
 
           {activeModal === "buy-success" && (
             <div className="text-center space-y-4 py-4 mt-4">
-              <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto text-xl border border-emerald-500/20">
+              <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto text-xl border border-primary/20">
                 ✓
               </div>
               <div>
@@ -618,9 +619,14 @@ export default function TileDetailPage() {
                   You are now the proud owner of <strong>{tile.name}</strong> coordinate unit.
                 </p>
               </div>
-              <div className="text-xs  bg-black p-3 rounded-lg border border-zinc-800 text-zinc-500 text-left overflow-x-auto">
+              <a
+                href={`https://solscan.io/tx/${buyTxSignature}${SOLSCAN_CLUSTER_PARAM}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-xs bg-black p-3 rounded-lg border border-zinc-800 text-zinc-500 text-left overflow-x-auto hover:text-primary transition-colors hover:border-zinc-700 cursor-pointer"
+              >
                 Tx: {buyTxSignature.slice(0, 8)}...{buyTxSignature.slice(-8)}
-              </div>
+              </a>
               <ButtonCustom onClick={() => setActiveModal(null)} className="w-full justify-center">
                 Close
               </ButtonCustom>

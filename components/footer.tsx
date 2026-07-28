@@ -53,7 +53,7 @@ export default function Footer() {
               <a href="#" className="hover:text-primary transition-colors">
                 <FaTelegram className="text-2xl" />
               </a>
-              <a href="#" className="hover:text-primary transition-colors">
+              <a href="https://github.com/block-land" target="_blank" className="hover:text-primary transition-colors">
                 <FaGithub className="text-2xl" />
               </a>
             </div>
