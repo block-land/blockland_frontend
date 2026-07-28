@@ -758,7 +758,7 @@ export default function AccountPage() {
                 </TabsList>
               </div>
 
-              <div className="flex items-center gap-4 flex-1 max-w-sm w-full">
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-4 flex-1 max-w-sm w-full">
                 <InputGroup className="bg-zinc-950 h-[40px] rounded-xl border-zinc-800 flex-1">
                   <InputGroupAddon align="inline-start">
                     <Search className="h-4 w-4 text-zinc-550 shrink-0" />
@@ -875,7 +875,7 @@ export default function AccountPage() {
                             </div>
                           </div>
 
-                          <div className="flex gap-2 w-full pt-2">
+                          <div className="flex flex-col md:flex-row gap-2 w-full pt-2">
                             <button
                               onClick={() => handleShowDetail(tile)}
                               className="flex-1 flex items-center justify-center gap-1.5 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 py-2.5 rounded-xl transition-all cursor-pointer  text-xs"
@@ -1029,7 +1029,7 @@ export default function AccountPage() {
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-2 w-full pt-2">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 w-full pt-2">
                             <Button
                               onClick={() => handleShowDetail(tile)}
                               variant={"outline"}
@@ -1316,7 +1316,7 @@ export default function AccountPage() {
           if (!open) setSelectedOffersTile(null);
         }}
       >
-        <DialogContent className="max-w-xl text-zinc-300">
+        <DialogContent className="w-[90vw] md:min-w-xl text-zinc-300 rounded-3xl">
           <DialogHeader>
             <DialogTitle className="text-white">Active Offers</DialogTitle>
           </DialogHeader>

@@ -404,7 +404,7 @@ export default function TileDetailPage() {
             {/* Offer List Block using ScrollArea */}
             <div className="space-y-3 bg-zinc-900/20 p-5 rounded-2xl border border-zinc-900">
               <h4 className="text-xs text-zinc-400 uppercase tracking-wider  flex items-center gap-1.5">
-                <Tag className="h-3.5 w-3.5 text-primary" /> Active Offers ({offers.length})
+                <Tag className="h-3.5 w-3.5 text-primary" /> Active Offers ({offers.filter(o => o.status === "pending").length})
               </h4>
               <ScrollArea className="h-[135px] pr-2">
                 <div className="space-y-3">
@@ -433,7 +433,17 @@ export default function TileDetailPage() {
                       </div>
                       <div className="text-right">
                         <span className="text-xs  text-primary ">{off.price.toFixed(5)} SOL</span>
-                        <p className="text-[8px] text-primary ">Pending</p>
+                        <span
+                          className={`inline-block text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded border ${
+                            off.status === "accepted"
+                              ? "border-primary/60 text-primary"
+                              : off.status === "declined" || off.status === "cancelled"
+                                ? "border-zinc-700 text-zinc-500"
+                                : "border-amber-700/60 text-amber-400"
+                          }`}
+                        >
+                          {off.status ?? "pending"}
+                        </span>
                       </div>
                     </div>
                   ))}
