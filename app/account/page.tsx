@@ -169,12 +169,18 @@ export default function AccountPage() {
     null
   );
 
-  // My Offers tab state (tiles the connected user has bid on)
+  // Fetch My Offers tab state (tiles the connected user has bid on)
   const [myOffers, setMyOffers] = React.useState<MyOfferTile[]>([]);
   const [loadingMyOffers, setLoadingMyOffers] = React.useState(false);
   const [cancellingOfferId, setCancellingOfferId] = React.useState<
     string | null
   >(null);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const ITEMS_PER_PAGE = 6;
+  const [totalTilesCount, setTotalTilesCount] = React.useState(0);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = React.useState("");
 
   // Local dialog sell state
   const [sellingTile, setSellingTile] = React.useState<OwnedTile | null>(null);
@@ -185,11 +191,20 @@ export default function AccountPage() {
   const [sellLoading, setSellLoading] = React.useState(false);
   const [sellError, setSellError] = React.useState<string | null>(null);
 
-  // Pagination states
-  const [currentPage, setCurrentPage] = React.useState(1);
-  const ITEMS_PER_PAGE = 6;
-  const [totalTilesCount, setTotalTilesCount] = React.useState(0);
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = React.useState("");
+  // Client-side filtering of myOffers based on search query
+  const filteredMyOffers = React.useMemo(() => {
+    const query = debouncedSearchQuery.toLowerCase().trim();
+    if (!query) return myOffers;
+    return myOffers.filter((tile) => {
+      return (
+        tile.name.toLowerCase().includes(query) ||
+        tile.location.toLowerCase().includes(query) ||
+        tile.coordinates.toLowerCase().includes(query) ||
+        (tile.sellerUsername && tile.sellerUsername.toLowerCase().includes(query)) ||
+        (tile.seller && tile.seller.toLowerCase().includes(query))
+      );
+    });
+  }, [myOffers, debouncedSearchQuery]);
 
   React.useEffect(() => {
     const timer = setTimeout(() => {
@@ -783,7 +798,11 @@ export default function AccountPage() {
                   )}
                 </InputGroup>
                 <span className="text-xs text-zinc-550  shrink-0">
-                  Showing {paginatedTiles.length} of {totalTilesCount} units
+                  {activeTab === "myoffers" ? (
+                    `Showing ${filteredMyOffers.length} of ${myOffers.length} units`
+                  ) : (
+                    `Showing ${paginatedTiles.length} of ${totalTilesCount} units`
+                  )}
                 </span>
               </div>
             </div>
@@ -1117,9 +1136,13 @@ export default function AccountPage() {
                     You haven&apos;t made any offers yet.
                   </p>
                 </div>
+              ) : filteredMyOffers.length === 0 ? (
+                <div className="text-center py-20 text-zinc-500 border border-dashed border-zinc-850 rounded-2xl">
+                  No matching offers found for "{searchQuery}".
+                </div>
               ) : (
                 <div className="flex flex-col gap-4">
-                  {myOffers.map((tile) => {
+                  {filteredMyOffers.map((tile) => {
                     const isPending = tile.offerStatus === "pending";
                     const isCancelling = cancellingOfferId === tile.offerId;
                     return (

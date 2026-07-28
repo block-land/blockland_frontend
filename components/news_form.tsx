@@ -8,6 +8,14 @@ import { uploadToCloudinary } from "@/lib/cloudinary";
 import { Loader2, ArrowLeft, Send, UploadCloud, X } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const TiptapEditor = dynamic(() => import("@/components/tiptap_editor"), {
   ssr: false,
@@ -23,7 +31,6 @@ interface NewsFormData {
   content: string[];
   category: string;
   imageUrl: string;
-  date: string;
 }
 
 interface NewsFormProps {
@@ -44,7 +51,6 @@ export default function NewsForm({
   const [category, setCategory] = useState("Announcement");
   const [imageUrl, setImageUrl] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [date, setDate] = useState("");
 
   // Populate initial data for edit mode
   useEffect(() => {
@@ -53,28 +59,6 @@ export default function NewsForm({
       setContentText(initialData.content ? initialData.content.join("") : "");
       setCategory(initialData.category || "Announcement");
       setImageUrl(initialData.imageUrl || "");
-      setDate(initialData.date || "");
-    } else {
-      // Prefill defaults for create mode
-      const today = new Date();
-      const monthNames = [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-      ];
-      const formattedDate = `${monthNames[today.getMonth()]} ${String(
-        today.getDate()
-      ).padStart(2, "0")}, ${today.getFullYear()}`;
-      setDate(formattedDate);
     }
   }, [initialData]);
 
@@ -113,7 +97,6 @@ export default function NewsForm({
       content,
       category,
       imageUrl,
-      date,
     };
 
     onSubmit(formData);
@@ -205,12 +188,12 @@ export default function NewsForm({
           {/* Title */}
           <div className="md:col-span-8 space-y-1.5">
             <label className="text-xs font-semibold text-zinc-400">Article Title</label>
-            <input
+            <Input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Blockland Launches USA Genesis Phase"
-              className="w-full bg-black border border-zinc-850 focus:border-zinc-700 rounded-xl px-4 py-3 text-xs outline-none text-white placeholder-zinc-650 font-medium"
+              className="w-full bg-black border border-zinc-850 focus:border-zinc-700 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-xl px-4 py-3 text-xs outline-none text-white placeholder-zinc-650 font-medium h-[44px]"
               required
             />
           </div>
@@ -218,16 +201,17 @@ export default function NewsForm({
           {/* Category */}
           <div className="md:col-span-4 space-y-1.5">
             <label className="text-xs font-semibold text-zinc-400">Category</label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full bg-black border border-zinc-850 focus:border-zinc-700 rounded-xl px-4 py-3 text-xs outline-none text-white font-semibold cursor-pointer"
-            >
-              <option value="Announcement">Announcement</option>
-              <option value="Development">Development</option>
-              <option value="Marketplace">Marketplace</option>
-              <option value="Ecosystem">Ecosystem</option>
-            </select>
+            <Select value={category} onValueChange={(val) => setCategory(val)}>
+              <SelectTrigger className="w-full bg-black border border-zinc-850 focus:ring-0 focus:ring-offset-0 rounded-xl px-4 py-3 text-xs outline-none text-white font-semibold cursor-pointer h-[44px] justify-between">
+                <SelectValue placeholder="Select Category" />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-950 border border-zinc-850 text-white">
+                <SelectItem className="cursor-pointer focus:bg-zinc-900 focus:text-white" value="Announcement">Announcement</SelectItem>
+                <SelectItem className="cursor-pointer focus:bg-zinc-900 focus:text-white" value="Development">Development</SelectItem>
+                <SelectItem className="cursor-pointer focus:bg-zinc-900 focus:text-white" value="Marketplace">Marketplace</SelectItem>
+                <SelectItem className="cursor-pointer focus:bg-zinc-900 focus:text-white" value="Ecosystem">Ecosystem</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
 
@@ -242,20 +226,6 @@ export default function NewsForm({
             <TiptapEditor
               content={contentText}
               onChange={setContentText}
-            />
-          </div>
-
-
-          {/* Date */}
-          <div className="md:col-span-12 space-y-1.5">
-            <label className="text-xs font-semibold text-zinc-400">Publication Date</label>
-            <input
-              type="text"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              placeholder="e.g. Jul 26, 2026"
-              className="w-full bg-black border border-zinc-855 focus:border-zinc-700 rounded-xl px-4 py-3 text-xs outline-none text-white placeholder-zinc-650"
-              required
             />
           </div>
         </div>

@@ -26,6 +26,10 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  icons: {
+    icon: "/img/icon.png",
+    apple: "/img/icon.png",
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -35,7 +39,7 @@ export const metadata: Metadata = {
     description: siteDescription,
     images: [
       {
-        url: "/img/hero-1.png",
+        url: "/img/meta.png",
         alt: "Blockland coordinate economy map",
       },
     ],
@@ -44,7 +48,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: siteName,
     description: siteDescription,
-    images: ["/img/hero-1.png"],
+    images: ["/img/meta.png"],
   },
 };
 
