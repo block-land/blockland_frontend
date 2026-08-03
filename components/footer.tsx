@@ -47,10 +47,10 @@ export default function Footer() {
 
             {/* Social Icons */}
             <div className="flex items-center gap-6 text-zinc-400">
-              <a href="#" className="hover:text-primary transition-colors">
+              <a href="https://x.com/BlockLand_world" target="_blank" className="hover:text-primary transition-colors">
                 <FaXTwitter className="text-2xl" />
               </a>
-              <a href="#" className="hover:text-primary transition-colors">
+              <a href="https://t.me/BlockLand_world" target="_blank" className="hover:text-primary transition-colors">
                 <FaTelegram className="text-2xl" />
               </a>
               <a href="https://github.com/block-land" target="_blank" className="hover:text-primary transition-colors">
@@ -65,9 +65,9 @@ export default function Footer() {
             </h3>
             <ul className="space-y-6 text-sm text-zinc-400">
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <Link href="#" className="hover:text-white transition-colors">
                   News
-                </a>
+                </Link>
               </li>
               {/* <li>
                 <a href="#" className="hover:text-white transition-colors">
@@ -88,12 +88,12 @@ export default function Footer() {
             </h3>
             <ul className="space-y-6 text-sm text-zinc-400">
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <a href="http://docs.blockland.app/" target="_blank" className="hover:text-white transition-colors">
                   Docs
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <a href="http://docs.blockland.app/" target="_blank" className="hover:text-white transition-colors">
                   Whitepaper
                 </a>
               </li>
