@@ -111,6 +111,22 @@ export async function listConversations(
   }
 }
 
+/** Fetch the total unread message count for a wallet (header badge). */
+export async function getUnreadCount(
+  wallet: string
+): Promise<number> {
+  try {
+    const res = await fetch(
+      `${BACKEND_URL}/api/messages/unread-count?wallet=${encodeURIComponent(wallet)}`
+    );
+    const data = await res.json();
+    return data.ok ? Number(data.unread) || 0 : 0;
+  } catch (err) {
+    console.error("getUnreadCount error:", err);
+    return 0;
+  }
+}
+
 /** Load message history for a conversation (cursor-based, older than `before`). */
 export async function getMessages(
   conversationId: string,

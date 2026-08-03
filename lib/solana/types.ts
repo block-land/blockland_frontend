@@ -28,6 +28,11 @@ export interface MintTileRequest {
   imageBase64: string;
   /** Human-readable place name (reverse-geocoded once at purchase). */
   placeName?: string;
+  /**
+   * On-chain signature proving the buyer transferred the tile price (in SOL)
+   * to the custodian (dev wallet). The backend verifies this before minting.
+   */
+  paymentSignature?: string;
 }
 
 export interface MintTileResponse {
@@ -38,5 +43,41 @@ export interface MintTileResponse {
   signature?: string;
   /** Irys metadata URI. */
   metadataUri?: string;
+  error?: string;
+}
+
+/** A single tile to mint as part of a bulk purchase. */
+export interface BulkMintTile {
+  lat: number;
+  lng: number;
+  /** Base64-encoded PNG image of the Mapbox tile snapshot. */
+  imageBase64: string;
+  /** Human-readable place name (reverse-geocoded once at purchase). */
+  placeName?: string;
+}
+
+export interface BulkMintRequest {
+  /** Buyer's wallet address (the cNFT recipient). */
+  buyer: string;
+  tiles: BulkMintTile[];
+  /**
+   * Single on-chain signature proving the buyer transferred the TOTAL price
+   * (priceLamports × tiles.length) to the custodian (dev wallet).
+   */
+  paymentSignature: string;
+}
+
+export interface BulkMintResponse {
+  ok: boolean;
+  mintedCount?: number;
+  failedCount?: number;
+  refundedLamports?: number;
+  minted?: Array<{
+    assetId: string;
+    h3Cell: string;
+    signature: string;
+    lat: number;
+    lng: number;
+  }>;
   error?: string;
 }

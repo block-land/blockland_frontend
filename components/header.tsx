@@ -22,7 +22,6 @@ export default function Header() {
   const scopeRef = useRef<HTMLDivElement>(null);
 
   // Close the mobile menu whenever the route changes.
-  // Close the mobile menu whenever the route changes.
   useEffect(() => {
     setIsOpen(false);
   }, [pathname]);
@@ -152,18 +151,18 @@ export default function Header() {
         className="lg:hidden fixed inset-0 z-[200] h-screen w-screen flex-col bg-black/95 backdrop-blur-md text-white"
       >
         <ul ref={navListRef} className="flex flex-col gap-2 px-6 pt-28">
-          {navItems.map((item) => (
-            <li key={item.label}>
-              <Link
-                href={item.href}
-                className={`block rounded-xl px-4 py-4 text-2xl font-semibold transition-colors hover:bg-zinc-900 hover:text-primary focus-visible:bg-zinc-900 focus-visible:text-primary focus-visible:outline-none ${
-                  pathname.startsWith(item.href) ? "text-primary" : ""
-                }`}
-              >
-                {item.label}
-              </Link>
-            </li>
-          ))}
+            {navItems.map((item) => (
+              <li key={item.label}>
+                <Link
+                  href={item.href}
+                  className={`block rounded-xl px-4 py-4 text-2xl font-semibold transition-colors hover:bg-zinc-900 hover:text-primary focus-visible:bg-zinc-900 focus-visible:text-primary focus-visible:outline-none ${
+                    pathname.startsWith(item.href) ? "text-primary" : ""
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              </li>
+            ))}
         </ul>
       </div>
     </div>

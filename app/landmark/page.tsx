@@ -55,12 +55,13 @@ import {
 import {
   getTilePrice,
   lamportsToSol,
-  mintTile,
+  mintTilesBulk,
   captureMapSnapshotsBatch,
   reverseGeocodePlaceNamesBatch,
   getWalletBalance,
   type TilePrice,
 } from "@/lib/solana/mint";
+import { escrowSol } from "@/lib/solana/signing";
 import { withCustomButton } from "@/components/custom/button_custom";
 import { Button } from "@/components/ui/button";
 import {
@@ -216,6 +217,10 @@ export default function LandmarkPage() {
   // tiles that are already owned (the click handler uses queryRenderedFeatures
   // for a single point, but that API doesn't work for a rectangle drag).
   const soldCellsRef = useRef<Set<string>>(new Set());
+
+  // Abort controller for the in-flight overlay fetch so overlapping
+  // moveend/idle triggers cancel the stale request instead of stacking.
+  const overlayAbortRef = useRef<AbortController | null>(null);
 
   // Box-select (drag a rectangle to select many tiles at once).
   // Toggled on via the "Select" button in the control bar; while active, map
@@ -471,7 +476,9 @@ export default function LandmarkPage() {
     priceLamports: string | null;
   } | null>(null);
 
-  // Mint all selected tiles inline (no global dialog)
+  // Mint all selected tiles inline. The buyer signs ONE wallet popup for the
+  // total price (regardless of tile count); the backend then mints every tile
+  // and refunds the buyer for any that fail.
   const handleBuyTiles = async () => {
     if (!wallet?.address) {
       setMintError("Connect your wallet first");
@@ -479,6 +486,11 @@ export default function LandmarkPage() {
       return;
     }
     if (!mapRef.current || selectedCells.length === 0) return;
+    if (!tilePrice) {
+      setMintError("Tile price not loaded yet. Please retry.");
+      toast.error("Tile price not loaded yet. Please retry.");
+      return;
+    }
 
     setIsMinting(true);
     setMintStatus("minting");
@@ -492,10 +504,8 @@ export default function LandmarkPage() {
     setInitialToMintCount(totalToMint);
 
     try {
-      // Capture ALL tile thumbnails in parallel first (one Mapbox Static API
-      // call per tile, all concurrent). This used to be done one-at-a-time
-      // inside the mint loop with a 2s map fly each — the main cause of slow
-      // bulk purchases.
+      // 1. Capture ALL tile thumbnails in parallel (one Mapbox Static API call
+      //    per tile, all concurrent).
       const centers = cellsToProcess.map((cell) => {
         const c = getCellCenter(cell);
         return { cell, lat: c.lat, lng: c.lng };
@@ -504,64 +514,114 @@ export default function LandmarkPage() {
         centers.map((c) => ({ lat: c.lat, lng: c.lng })),
       );
 
-      // Reverse-geocode each tile ONCE at purchase time (parallel) so the place
-      // name can be stored in the DB. This avoids re-geocoding the same tiles
-      // on every "Your Landmarks" view (saving Mapbox API quota).
+      // 2. Reverse-geocode each tile ONCE at purchase time (parallel) so the
+      //    place name can be stored in the DB.
       const placeNames = await reverseGeocodePlaceNamesBatch(
         centers.map((c) => ({ lat: c.lat, lng: c.lng })),
       );
 
-      for (let i = 0; i < totalToMint; i++) {
-        const { cell, lat, lng } = centers[i];
-        const res = await mintTile({
-          buyer: wallet.address,
-          lat,
-          lng,
+      // 3. Fetch the custodian (dev wallet) address that payments go to.
+      const escrowRes = await fetch(`${BACKEND_URL}/api/tiles/mint/escrow-address`);
+      const escrowData = await escrowRes.json();
+      if (!escrowData.ok || !escrowData.escrowAddress) {
+        throw new Error(
+          escrowData.error || "Failed to fetch mint escrow address",
+        );
+      }
+      const escrowAddress: string = escrowData.escrowAddress;
+
+      // 4. Buyer signs ONE on-chain transfer for the TOTAL price (all tiles).
+      //    This replaces the old per-tile signing loop that made bulk purchases
+      //    painfully slow (N wallet popups). Now it's exactly 1 approval.
+      const totalLamports = BigInt(tilePrice.lamports * totalToMint);
+      const paymentSignature = await escrowSol(
+        escrowAddress,
+        totalLamports,
+        wallet,
+      );
+
+      // 5. Single bulk mint request — backend verifies the total payment once,
+      //    then mints every tile. Partial failures are refunded automatically.
+      const res = await mintTilesBulk({
+        buyer: wallet.address,
+        tiles: centers.map((c, i) => ({
+          lat: c.lat,
+          lng: c.lng,
           imageBase64: images[i],
           placeName: placeNames[i] ?? undefined,
-        });
-        if (!res.ok) {
-          throw new Error(`Tile ${i + 1} failed: ${res.error || "unknown"}`);
-        }
+        })),
+        paymentSignature,
+      });
 
-        // Remove successfully minted tile from both the UI state and map source.
-        const remainingCells = selectedCellsRef.current.filter(
-          (selectedCell) => selectedCell !== cell,
-        );
-        selectedCellsRef.current = remainingCells;
-        if (mapRef.current) {
-          updateSelectedTilesSource(mapRef.current, remainingCells);
-        }
-        setSelectedCells(remainingCells);
-
-        setMintProgress(i + 1);
-
-        // Trigger map update so the freshly minted tile visually converts to Gold (Sold)
-        mapRef.current.fire("moveend");
+      if (!res.ok) {
+        throw new Error(res.error || "Bulk mint failed");
       }
 
-      setSuccessCount(totalToMint);
-      setSuccessPriceSol(tilePrice ? tilePrice.sol * totalToMint : 0);
-      setMintStatus("success");
-      toast.success(
-        `Successfully purchased ${totalToMint} Landmark Tile${totalToMint > 1 ? "s" : ""}!`,
+      const mintedCount = res.mintedCount ?? 0;
+      const failedCount = res.failedCount ?? 0;
+
+      // Remove successfully minted tiles from the UI state and map source.
+      const mintedCells = new Set(
+        (res.minted ?? []).map((m) =>
+          // Recompute the H3 cell from lat/lng so it matches the selection key.
+          getCell(m.lat, m.lng),
+        ),
       );
+      const remainingCells = selectedCellsRef.current.filter(
+        (selectedCell) => !mintedCells.has(selectedCell),
+      );
+      selectedCellsRef.current = remainingCells;
+      if (mapRef.current) {
+        updateSelectedTilesSource(mapRef.current, remainingCells);
+      }
+      setSelectedCells(remainingCells);
+
+      setMintProgress(mintedCount);
+      setSuccessCount(mintedCount);
+      setSuccessPriceSol(tilePrice.sol * mintedCount);
+
+      if (failedCount > 0 && mintedCount > 0) {
+        setMintStatus("success");
+        toast.success(
+          `${mintedCount} of ${totalToMint} tiles purchased. ${failedCount} failed and will be refunded.`,
+        );
+      } else if (failedCount > 0 && mintedCount === 0) {
+        setMintStatus("error");
+        setMintError(
+          `All ${totalToMint} tiles failed. You will be refunded.`,
+        );
+        toast.error(`Purchase failed: all tiles could not be minted. You will be refunded.`);
+      } else {
+        setMintStatus("success");
+        toast.success(
+          `Successfully purchased ${mintedCount} Landmark Tile${mintedCount > 1 ? "s" : ""}!`,
+        );
+      }
+
+      // Trigger map update so freshly minted tiles convert to Gold (Sold)
+      if (mapRef.current) mapRef.current.fire("moveend");
     } catch (err) {
       console.error("Mint error:", err);
       const errMsg = err instanceof Error ? err.message : "Unknown error";
       setMintError(errMsg);
       setMintStatus("error");
 
-      // Update toast to inform user about partial success if some tiles were bought
+      // Surface wallet rejections with a clear message instead of the raw
+      // "User rejected the request" string.
+      const userFacing =
+        /reject|denied|cancel/i.test(errMsg)
+          ? "Transaction was rejected in your wallet."
+          : errMsg;
+
       const count = mintProgress;
       setSuccessCount(count);
-      setSuccessPriceSol(tilePrice ? tilePrice.sol * count : 0);
+      setSuccessPriceSol(tilePrice.sol * count);
       if (count > 0) {
         toast.error(
-          `Purchase partially succeeded: ${count} of ${totalToMint} tiles secured. Error: ${errMsg}`,
+          `Purchase partially succeeded: ${count} of ${totalToMint} tiles secured. Error: ${userFacing}`,
         );
       } else {
-        toast.error(`Purchase failed: ${errMsg}`);
+        toast.error(`Purchase failed: ${userFacing}`);
       }
     } finally {
       setIsMinting(false);
@@ -925,9 +985,18 @@ export default function LandmarkPage() {
           // 2. Sold tiles — always fetch regardless of zoom.
           // Sold tiles are user purchases (few in number) and should stay
           // visible so users can see owned tiles even when zoomed out.
+          // Cancel any in-flight overlay fetch so overlapping moveend/idle
+          // triggers don't stack (and a stale fetch can't error after the map
+          // moves again). Aborted fetches throw AbortError — handled below.
+          if (overlayAbortRef.current) {
+            overlayAbortRef.current.abort();
+          }
+          const controller = new AbortController();
+          overlayAbortRef.current = controller;
           try {
             const res = await fetch(
               `${BACKEND_URL}/api/tiles/bounds?minLng=${b.minLng}&minLat=${b.minLat}&maxLng=${b.maxLng}&maxLat=${b.maxLat}`,
+              { signal: controller.signal },
             );
             const data = await res.json();
             if (data.features) {
@@ -980,7 +1049,15 @@ export default function LandmarkPage() {
               }
             }
           } catch (err) {
-            console.error("Failed to fetch sold tiles:", err);
+            // AbortError is expected when a newer overlay request supersedes
+            // this one — don't log it. Only surface genuine fetch failures.
+            if ((err as Error)?.name !== "AbortError") {
+              console.error("Failed to fetch sold tiles:", err);
+            }
+          } finally {
+            if (overlayAbortRef.current === controller) {
+              overlayAbortRef.current = null;
+            }
           }
         };
 

@@ -5,7 +5,7 @@
  * This module fetches the price from the backend (never hardcoded client-side).
  */
 
-import type { MintTileRequest, MintTileResponse } from "./types";
+import type { MintTileRequest, MintTileResponse, BulkMintRequest, BulkMintResponse } from "./types";
 import { RPC_URL } from "./constants";
 import { BACKEND_URL } from "@/lib/api";
 
@@ -155,4 +155,21 @@ export async function mintTile(
     body: JSON.stringify(payload),
   });
   return (await res.json()) as MintTileResponse;
+}
+
+/**
+ * Bulk mint many tiles in ONE request. The buyer signs a single SOL transfer
+ * for the TOTAL price (priceLamports × tiles.length); the backend verifies it
+ * once, then mints every tile. Much faster than per-tile minting because the
+ * user only approves one wallet popup regardless of tile count.
+ */
+export async function mintTilesBulk(
+  payload: BulkMintRequest
+): Promise<BulkMintResponse> {
+  const res = await fetch(`${BACKEND_URL}/api/tiles/mint/bulk`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return (await res.json()) as BulkMintResponse;
 }

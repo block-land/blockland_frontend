@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { withCustomButton } from "@/components/custom/button_custom";
 import VideoPlayer from "@/components/custom/video-player";
@@ -62,7 +63,9 @@ export default function Home() {
               real-world locations.
             </p>
             <div className="flex gap-4">
-              <ButtonCustom>Explore the map</ButtonCustom>
+              <Link href="/landmark">
+                <ButtonCustom>Explore the map</ButtonCustom>
+              </Link>
               <ButtonCustom variant="outline" onClick={handleWatchVision}>
                 Watch Vision
               </ButtonCustom>
@@ -133,7 +136,9 @@ export default function Home() {
               individual Coordinate Units. Every location is yours to own.
             </p>
             <div className="pt-2">
-              <ButtonCustom>Explore the map</ButtonCustom>
+              <Link href="/landmark">
+                <ButtonCustom>Explore the map</ButtonCustom>
+              </Link>
             </div>
           </div>
           <div className="lg:col-span-7 w-full aspect-[1920/840] max-w-2xl lg:max-w-none flex justify-center items-center">
