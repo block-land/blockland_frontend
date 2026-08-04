@@ -488,7 +488,9 @@ export default function TileDetailPage() {
       <Dialog
         open={activeModal === "buy" || activeModal === "buy-success"}
         onOpenChange={(open) => {
-          if (!open) setActiveModal(null);
+          // After a successful buy the dialog cannot be dismissed (no overlay
+          // click / ESC) — the user must pick one of the two exit buttons.
+          if (!open && activeModal !== "buy-success") setActiveModal(null);
         }}
       >
         <DialogContent className="w-[90vw] md:min-w-xl text-zinc-300 rounded-3xl">
@@ -637,9 +639,27 @@ export default function TileDetailPage() {
               >
                 Tx: {buyTxSignature.slice(0, 8)}...{buyTxSignature.slice(-8)}
               </a>
-              <ButtonCustom onClick={() => setActiveModal(null)} className="w-full justify-center">
-                Close
-              </ButtonCustom>
+              <div className="flex gap-3">
+                <ButtonCustom
+                  onClick={() => {
+                    setActiveModal(null);
+                    router.push("/marketplace");
+                  }}
+                  className="flex-1 justify-center"
+                >
+                  Back to Marketplace
+                </ButtonCustom>
+                <ButtonCustom
+                  variant="outline"
+                  onClick={() => {
+                    setActiveModal(null);
+                    router.push("/account");
+                  }}
+                  className="flex-1 justify-center"
+                >
+                  Account
+                </ButtonCustom>
+              </div>
             </div>
           )}
         </DialogContent>

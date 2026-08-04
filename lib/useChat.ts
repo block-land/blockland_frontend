@@ -190,10 +190,11 @@ export function useChat(currentWallet: string | null | undefined) {
         text: params.text.trim(),
         createdAt: new Date().toISOString(),
         readAt: null,
-        // Include tile context if the message references a tile, so the inline
-        // tile card renders immediately (before the SSE echo arrives).
-        tileId: params.tileId ?? null,
-        tile: activeConversation?.tile ?? null,
+      // Include tile context ONLY if this message was sent with a tileId.
+      // Previously this fell back to activeConversation?.tile, which caused
+      // every message in a tile-linked conversation to render the tile card.
+      tileId: params.tileId ?? null,
+      tile: params.tileId ? (activeConversation?.tile ?? null) : null,
       };
       setMessages((prev) => [...prev, optimistic]);
 

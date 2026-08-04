@@ -19,16 +19,60 @@ import {
   IconPlay,
 } from "../lib/icon";
 import { MdOutlineCheckCircleOutline } from "react-icons/md";
-import { RiCheckboxBlankCircleFill } from "react-icons/ri";
+import { RiCheckboxBlankCircleFill, RiFlashlightLine } from "react-icons/ri";
+import { BACKEND_URL } from "@/lib/api";
+import { useLiveActivity } from "@/lib/useLiveActivity";
 
 const ButtonCustom = withCustomButton("button");
 
+interface TileStats {
+  tilesMinted: number;
+  uniqueOwners: number;
+}
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return `${s}s Ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m Ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h Ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d Ago`;
+}
+
+function lamportsToSol(lamports: string): number {
+  return Number(lamports) / 1_000_000_000;
+}
+
 export default function Home() {
   const [isVideoOpen, setIsVideoOpen] = React.useState(false);
+  const [stats, setStats] = React.useState<TileStats | null>(null);
+  const { purchased, sold, profit, connected } = useLiveActivity();
 
   const handleWatchVision = () => {
     setIsVideoOpen(true);
   };
+
+  // Fetch live homepage stats (cached 60s server-side).
+  React.useEffect(() => {
+    let cancelled = false;
+    fetch(`${BACKEND_URL}/api/tiles/stats`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled && data.ok) {
+          setStats({
+            tilesMinted: data.tilesMinted,
+            uniqueOwners: data.uniqueOwners,
+          });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const videoJsOptions = {
     autoplay: true,
@@ -90,28 +134,100 @@ export default function Home() {
           </div>
         </div>
       </section>
-      <section className="py-20 container mx-auto gap-4 md:gap-0 grid grid-cols-2 md:grid-cols-4 divide-x-0 md:divide-x">
-        <div className="pb-4 md:pb-0 pl-2 md:pl-0">
-          <h4 className="text-2xl md:text-3xl !text-primary">1 Country</h4>
-          <p>USA Genesis</p>
+      <section className="py-20 container mx-auto space-y-0 md:space-y-20">
+        <div className="gap-4 md:gap-0 grid grid-cols-2 md:grid-cols-4 divide-x-0 md:divide-x">
+          <div className="pb-4 md:pb-0 pl-2 md:pl-0">
+            <h4 className="text-2xl md:text-3xl !text-primary">1 Country</h4>
+            <p>USA Genesis</p>
+          </div>
+          <div className="pb-4 md:pb-0 pl-2 md:pl-10">
+            <h4 className="text-2xl md:text-3xl !text-primary">1 Billion</h4>
+            <p>Coordinate Units, Total Supply</p>
+          </div>
+          <div className="pb-4 md:pb-0 pl-2 md:pl-10">
+            <h4 className="text-2xl md:text-3xl !text-primary">
+              {stats ? stats.uniqueOwners.toLocaleString() : "—"}
+            </h4>
+            <p>Owners On-chain</p>
+          </div>
+          <div className="pb-4 md:pb-0 pl-2 md:pl-10">
+            <h4 className="text-2xl md:text-3xl !text-primary">
+              {stats ? stats.tilesMinted.toLocaleString() : "—"}
+            </h4>
+            <p>Units Sold In Usdc</p>
+          </div>
         </div>
-        <div className="pb-4 md:pb-0 pl-2 md:pl-10">
-          <h4 className="text-2xl md:text-3xl !text-primary">1 Billion</h4>
-          <p>Coordinate Units, Total Supply</p>
-        </div>
-        <div className="pb-4 md:pb-0 pl-2 md:pl-10">
-          <h4 className="text-2xl md:text-3xl !text-primary">23,751</h4>
-          <p>Owners On-chain</p>
-        </div>
-        <div className="pb-4 md:pb-0 pl-2 md:pl-10">
-          <h4 className="text-2xl md:text-3xl !text-primary">142, 892</h4>
-          <p>Units Sold In Usdc</p>
-        </div>
+        {connected && (
+          <div className="gap-4 md:gap-0 grid grid-cols-2 md:grid-cols-4 divide-x-0 md:divide-x">
+            <div className="pb-4 md:pb-0 pl-2 md:pl-0">
+              <RiFlashlightLine className="text-2xl md:text-3xl !text-primary" />
+              <p className="flex items-center gap-1.5">Live Activity</p>
+            </div>
+
+            {/* Card 1: Purchased (latest primary mint) */}
+            <div className="pb-4 md:pb-0 pl-2 md:pl-10">
+              <h4 className="text-lg md:text-xl !text-primary">Purchased</h4>
+              {purchased ? (
+                <>
+                  <h3 className="text-sm truncate">
+                    TX:{" "}
+                    {purchased.txSignature
+                      ? `${purchased.txSignature.slice(0, 6)}…${purchased.txSignature.slice(-4)}`
+                      : "—"}
+                  </h3>
+                  <p className="text-xs">{timeAgo(purchased.createdAt)}</p>
+                </>
+              ) : (
+                <p className="text-xs text-zinc-600">Waiting…</p>
+              )}
+            </div>
+
+            {/* Card 2: Tile Sold (latest secondary sale) */}
+            <div className="pb-4 md:pb-0 pl-2 md:pl-10">
+              <h4 className="text-lg md:text-xl !text-primary">Tile Sold</h4>
+              {sold ? (
+                <>
+                  <h3 className="text-sm truncate">
+                    TX:{" "}
+                    {sold.txSignature
+                      ? `${sold.txSignature.slice(0, 6)}…${sold.txSignature.slice(-4)}`
+                      : "—"}
+                  </h3>
+                  <p className="text-xs">{timeAgo(sold.createdAt)}</p>
+                </>
+              ) : (
+                <p className="text-xs text-zinc-600">Waiting…</p>
+              )}
+            </div>
+
+            {/* Card 3: Profit (latest secondary sale with profit calc) */}
+            <div className="pb-4 md:pb-0 pl-2 md:pl-10">
+              <h4 className="text-lg md:text-xl !text-primary">Profit</h4>
+              {profit ? (
+                <>
+                  <h3 className="text-sm truncate">
+                    +{lamportsToSol(profit.profitLamports).toFixed(4)} SOL
+                  </h3>
+                  <p className="text-xs">{timeAgo(profit.createdAt)}</p>
+                </>
+              ) : (
+                <p className="text-xs text-zinc-600">Waiting…</p>
+              )}
+            </div>
+          </div>
+        )}
       </section>
       <section className="relative">
-        <img src="/img/bg-vision_converted.avif" className="w-full grayscale-20" alt="" />
+        <img
+          src="/img/bg-vision_converted.avif"
+          className="w-full grayscale-20"
+          alt=""
+        />
         <div className="absolute inset-0 flex justify-center items-center">
-          <div className="flex flex-col items-center gap-2 text-white" onClick={handleWatchVision}>
+          <div
+            className="flex flex-col items-center gap-2 text-white"
+            onClick={handleWatchVision}
+          >
             <div className="border p-4 rounded-full !border-white">
               <IconPlay className="text-3xl md:text-6xl" />
             </div>
@@ -317,7 +433,9 @@ export default function Home() {
       <Dialog open={isVideoOpen} onOpenChange={setIsVideoOpen}>
         <DialogContent className="max-w-3xl sm:max-w-4xl p-0 overflow-hidden bg-transparent border-0">
           <DialogHeader className="p-6 pb-0 opacity-0">
-            <DialogTitle className="text-xl font-semibold text-white">Watch Vision</DialogTitle>
+            <DialogTitle className="text-xl font-semibold text-white">
+              Watch Vision
+            </DialogTitle>
           </DialogHeader>
           <div className="w-full">
             <VideoPlayer options={videoJsOptions} />

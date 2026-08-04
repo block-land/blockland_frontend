@@ -465,18 +465,27 @@ export default function AccountPage() {
       if (!data.ok) {
         throw new Error(data.error || "Failed to update offer");
       }
-      // On approve, the listing is settled (sold) so other pending offers are
-      // auto-refunded/declined — refresh the visible list to reflect that.
+      // On approve, the listing is settled (sold): the tile moves to the new
+      // owner and disappears from the "Listed for Sale" grid. Close the offers
+      // dialog and refetch the tile list so the sold tile is removed.
       if (status === "accepted") {
-        setTileOffers((curr) =>
-          curr.map((off) =>
-            off.id === offerId
-              ? { ...off, status: "accepted" }
-              : off.status === "pending"
-                ? { ...off, status: "declined" }
-                : off
-          )
-        );
+        setSelectedOffersTile(null);
+        setTileOffers([]);
+        loadTiles(currentPage, debouncedSearchQuery, activeTab);
+      } else {
+        // On decline, only that offer is removed (refunded). Refetch the offers
+        // dialog so the declined offer disappears from the list.
+        if (selectedOffersTile) {
+          const refreshRes = await fetch(
+            `${BACKEND_URL}/api/tiles/${selectedOffersTile.id}/offers`
+          );
+          const refreshData = await refreshRes.json();
+          if (refreshData.ok && Array.isArray(refreshData.offers)) {
+            setTileOffers(refreshData.offers);
+          } else {
+            setTileOffers([]);
+          }
+        }
       }
     } catch (err) {
       console.error("Failed to update offer:", err);

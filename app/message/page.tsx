@@ -92,10 +92,14 @@ function MessagePageInner() {
   const sellerWallet = searchParams.get("seller");
   const tileId = searchParams.get("tile");
 
-  // Reset session tracker when route params change
+  // Reset the tile-sent tracker ONLY when the tile context from the URL
+  // changes (entering a new tile-linked conversation). Previously this also
+  // depended on `activeId`, but `activeId` changes after the first send (when
+  // useChat sets it to the newly created conversation), which reset the tracker
+  // and caused every subsequent message to re-send the tile card.
   useEffect(() => {
     sentTileInSession.current = false;
-  }, [sellerWallet, tileId, activeId]);
+  }, [sellerWallet, tileId]);
 
   // A pending recipient staged from a tile redirect or new chat (no conversation yet).
   const [pendingRecipient, setPendingRecipient] = useState<{
@@ -443,10 +447,11 @@ function MessagePageInner() {
                           isOwn ? "items-end" : "items-start"
                         }`}
                       >
-                        {/* Inline tile card — rendered as a "message bubble"
-                            so the tile being discussed appears in the chat
-                            timeline (Shopee-style product card in chat). */}
-                        {msg.tile && (
+                        {/* Inline tile card — only render when this specific
+                            message carries tile context (sent with tileId).
+                            Without the tileId guard, every message in a
+                            tile-linked conversation would show the card. */}
+                        {msg.tileId && msg.tile && (
                           <div className="flex items-end gap-2 max-w-[75%] mb-1 group">
                             {!isOwn && (
                               <ParticipantAvatar
