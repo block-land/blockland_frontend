@@ -158,7 +158,7 @@ export default function Home() {
           </div>
         </div>
         {connected && (
-          <div className="gap-4 md:gap-0 grid grid-cols-2 md:grid-cols-4 divide-x-0 md:divide-x">
+          <div className="gap-4 md:gap-0 grid grid-cols-2 md:grid-cols-4 divide-x-0 md:divide-x mt-8 md:mt-0">
             <div className="pb-4 md:pb-0 pl-2 md:pl-0">
               <RiFlashlightLine className="text-2xl md:text-3xl !text-primary" />
               <p className="flex items-center gap-1.5">Live Activity</p>

@@ -263,6 +263,7 @@ export default function LandmarkPage() {
   const [isMinting, setIsMinting] = useState(false);
   const [mintProgress, setMintProgress] = useState(0);
   const [mintError, setMintError] = useState<string | null>(null);
+  const [mintPhase, setMintPhase] = useState<string>("");
 
   // Custom confirm/transaction dialog state
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
@@ -506,6 +507,7 @@ export default function LandmarkPage() {
     try {
       // 1. Capture ALL tile thumbnails in parallel (one Mapbox Static API call
       //    per tile, all concurrent).
+      setMintPhase("Capturing tile images...");
       const centers = cellsToProcess.map((cell) => {
         const c = getCellCenter(cell);
         return { cell, lat: c.lat, lng: c.lng };
@@ -516,12 +518,16 @@ export default function LandmarkPage() {
 
       // 2. Reverse-geocode each tile ONCE at purchase time (parallel) so the
       //    place name can be stored in the DB.
+      setMintPhase("Resolving locations...");
       const placeNames = await reverseGeocodePlaceNamesBatch(
         centers.map((c) => ({ lat: c.lat, lng: c.lng })),
       );
 
       // 3. Fetch the custodian (dev wallet) address that payments go to.
-      const escrowRes = await fetch(`${BACKEND_URL}/api/tiles/mint/escrow-address`);
+      setMintPhase("Preparing payment...");
+      const escrowRes = await fetch(
+        `${BACKEND_URL}/api/tiles/mint/escrow-address`,
+      );
       const escrowData = await escrowRes.json();
       if (!escrowData.ok || !escrowData.escrowAddress) {
         throw new Error(
@@ -531,6 +537,7 @@ export default function LandmarkPage() {
       const escrowAddress: string = escrowData.escrowAddress;
 
       // 4. Buyer signs ONE on-chain transfer for the TOTAL price (all tiles).
+      setMintPhase("Awaiting wallet approval...");
       //    This replaces the old per-tile signing loop that made bulk purchases
       //    painfully slow (N wallet popups). Now it's exactly 1 approval.
       const totalLamports = BigInt(tilePrice.lamports * totalToMint);
@@ -541,6 +548,8 @@ export default function LandmarkPage() {
       );
 
       // 5. Single bulk mint request — backend verifies the total payment once,
+      //    then mints every tile. Partial failures are refunded automatically.
+      setMintPhase("Minting tiles on blockchain...");
       //    then mints every tile. Partial failures are refunded automatically.
       const res = await mintTilesBulk({
         buyer: wallet.address,
@@ -587,10 +596,10 @@ export default function LandmarkPage() {
         );
       } else if (failedCount > 0 && mintedCount === 0) {
         setMintStatus("error");
-        setMintError(
-          `All ${totalToMint} tiles failed. You will be refunded.`,
+        setMintError(`All ${totalToMint} tiles failed. You will be refunded.`);
+        toast.error(
+          `Purchase failed: all tiles could not be minted. You will be refunded.`,
         );
-        toast.error(`Purchase failed: all tiles could not be minted. You will be refunded.`);
       } else {
         setMintStatus("success");
         toast.success(
@@ -608,10 +617,9 @@ export default function LandmarkPage() {
 
       // Surface wallet rejections with a clear message instead of the raw
       // "User rejected the request" string.
-      const userFacing =
-        /reject|denied|cancel/i.test(errMsg)
-          ? "Transaction was rejected in your wallet."
-          : errMsg;
+      const userFacing = /reject|denied|cancel/i.test(errMsg)
+        ? "Transaction was rejected in your wallet."
+        : errMsg;
 
       const count = mintProgress;
       setSuccessCount(count);
@@ -1391,18 +1399,41 @@ export default function LandmarkPage() {
         />
       )}
 
-      {/* Select mode hint banner */}
-      {/* {selectMode && (
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-30 px-4 py-2 rounded-full bg-black/85 backdrop-blur-md border border-zinc-800 text-sm text-zinc-200 shadow-lg pointer-events-none">
-          Select mode: drag to select tiles · click a tile to toggle
-        </div>
-      )} */}
+      {/* Mode toggle — top of map so users notice which selection mode is active */}
+      <div className="absolute top-20 md:top-30 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 p-1 rounded-full bg-black/85 backdrop-blur-md border border-zinc-800 shadow-lg">
+        <button
+          type="button"
+          onClick={() => setSelectMode(false)}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all cursor-pointer w-[150px] justify-center",
+            !selectMode
+              ? "bg-primary text-black"
+              : "text-zinc-400 hover:text-white",
+          )}
+        >
+          {/* <MapPin className="h-4 w-4" /> */}
+          Single Map
+        </button>
+        <button
+          type="button"
+          onClick={() => setSelectMode(true)}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all cursor-pointer w-[150px] justify-center",
+            selectMode
+              ? "bg-primary text-black"
+              : "text-zinc-400 hover:text-white",
+          )}
+        >
+          {/* <BoxSelect className="h-4 w-4" /> */}
+          Drop Map
+        </button>
+      </div>
 
       {/* Floating Figma Layout Control Bar */}
       {!error && (
         <>
           {/* Buy tile bar — appears when tiles are selected (multi-select) */}
-          <div className="absolute bottom-12 md:bottom-8 left-1/2 -translate-x-1/2 w-full max-w-[1440px] z-20 px-6 sm:px-10 lg:px-[68px] space-y-2">
+          <div className="absolute bottom-12 md:bottom-8 left-0 right-0 mx-auto w-full max-w-[1440px] z-20 px-4 sm:px-10 lg:px-[68px] space-y-2 pb-[env(safe-area-inset-bottom)]">
             <div className="flex justify-between items-end gap-4">
               {selectedCells.length > 0 && (
                 <>
@@ -1514,7 +1545,7 @@ export default function LandmarkPage() {
                 {/* Search input trigger container */}
                 <div
                   onClick={() => setIsSearchDialogOpen(true)}
-                  className="bg-black flex gap-[16px] h-[48px] items-center pl-[6px] pr-[25px] py-[6px] relative w-full sm:w-[376px] rounded-xl border-0 border-transparent cursor-pointer"
+                  className="bg-black flex gap-[16px] h-[48px] items-center pl-[6px] pr-3 sm:pr-[25px] py-[6px] relative w-full sm:w-[376px] rounded-xl border-0 border-transparent cursor-pointer"
                   data-node-id="45:122"
                   data-name="Input Search Trigger"
                 >
@@ -1577,7 +1608,7 @@ export default function LandmarkPage() {
                         <div className="flex items-center justify-center size-[36px] rounded-xl border bg-zinc-900 border-zinc-800 text-zinc-400 group-hover:text-white group-hover:border-zinc-700">
                           <Layers className="h-5 w-5" />
                         </div>
-                        <span className="text-[16px] font-medium transition-colors text-white group-hover:text-primary hidden md:block">
+                        <span className="text-[16px] font-medium transition-colors text-white group-hover:text-primary">
                           {mapStyle === "default" ? "Default" : "Realistic"}
                         </span>
                       </button>
@@ -1617,7 +1648,7 @@ export default function LandmarkPage() {
                         <div className="flex items-center justify-center size-[36px] rounded-xl border bg-zinc-900 border-zinc-800 text-zinc-400 group-hover:text-white group-hover:border-zinc-700">
                           <MapPin className="h-5 w-5" />
                         </div>
-                        <span className="text-[16px] font-medium transition-colors text-white group-hover:text-primary hidden md:block">
+                        <span className="text-[16px] font-medium transition-colors text-white group-hover:text-primary">
                           Your Landmark
                         </span>
                       </button>
@@ -1832,26 +1863,6 @@ export default function LandmarkPage() {
                       </div>
                     </DialogContent>
                   </Dialog>
-
-                  {/* Divider Line */}
-                  <div className="h-[44px] w-px bg-zinc-800 shrink-0" />
-
-                  {/* Button: Toggle Box-Select mode */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectMode((prev) => !prev);
-                    }}
-                    title={selectMode ? "Exit Select mode" : "Select area"}
-                    className={cn(
-                      "flex items-center justify-center size-[36px] rounded-xl border focus:outline-none group cursor-pointer transition-colors me-[16px]",
-                      selectMode
-                        ? "border-primary bg-primary/15 text-primary"
-                        : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700",
-                    )}
-                  >
-                    <BoxSelect className="h-5 w-5" />
-                  </button>
                 </div>
               </div>
             </div>
@@ -1997,7 +2008,7 @@ export default function LandmarkPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-center gap-2 text-sm text-primary mt-1">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Processing...</span>
+                  <span>{mintPhase || "Processing..."}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm text-zinc-400">
                   <span>Minting Progress:</span>
