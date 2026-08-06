@@ -538,19 +538,28 @@ export default function LandmarkPage() {
 
       // 4. Buyer signs ONE on-chain transfer for the TOTAL price (all tiles).
       setMintPhase("Awaiting wallet approval...");
-      //    This replaces the old per-tile signing loop that made bulk purchases
-      //    painfully slow (N wallet popups). Now it's exactly 1 approval.
-      const totalLamports = BigInt(tilePrice.lamports * totalToMint);
+      //    Fetch a FRESH price from the backend right before signing — the
+      //    cached tilePrice may be stale (30s TTL) and SOL price fluctuates,
+      //    which would cause the backend's verifyPaymentToDevWallet to reject
+      //    the transaction because the amounts don't match.
+      const freshPriceRes = await fetch(`${BACKEND_URL}/api/tiles/price`);
+      const freshPriceData = await freshPriceRes.json();
+      if (!freshPriceData.ok || !freshPriceData.lamports) {
+        throw new Error("Failed to fetch current tile price");
+      }
+      const freshLamports = Number(freshPriceData.lamports);
+      const totalLamports = BigInt(freshLamports * totalToMint);
       const paymentSignature = await escrowSol(
         escrowAddress,
         totalLamports,
         wallet,
       );
 
-      // 5. Single bulk mint request — backend verifies the total payment once,
-      //    then mints every tile. Partial failures are refunded automatically.
-      setMintPhase("Minting tiles on blockchain...");
-      //    then mints every tile. Partial failures are refunded automatically.
+      // 5. Single bulk mint request — backend verifies payment, inserts tile
+      //    rows with status="minting", enqueues background jobs, and returns
+      //    INSTANTLY. NFTs are minted by the BullMQ worker without blocking.
+      //    Tiles appear on the map immediately; NFTs arrive in the wallet ~1 min.
+      setMintPhase("Submitting purchase...");
       const res = await mintTilesBulk({
         buyer: wallet.address,
         tiles: centers.map((c, i) => ({
@@ -566,48 +575,33 @@ export default function LandmarkPage() {
         throw new Error(res.error || "Bulk mint failed");
       }
 
-      const mintedCount = res.mintedCount ?? 0;
-      const failedCount = res.failedCount ?? 0;
+      const enqueuedCount = res.enqueuedCount ?? 0;
+      const skippedCount = res.skippedCount ?? 0;
 
-      // Remove successfully minted tiles from the UI state and map source.
-      const mintedCells = new Set(
-        (res.minted ?? []).map((m) =>
-          // Recompute the H3 cell from lat/lng so it matches the selection key.
-          getCell(m.lat, m.lng),
-        ),
-      );
-      const remainingCells = selectedCellsRef.current.filter(
-        (selectedCell) => !mintedCells.has(selectedCell),
-      );
-      selectedCellsRef.current = remainingCells;
+      // Clear all selected tiles — they're now in the DB (status="minting")
+      // and will appear as "sold" on the map once the overlay refreshes.
+      selectedCellsRef.current = [];
       if (mapRef.current) {
-        updateSelectedTilesSource(mapRef.current, remainingCells);
+        updateSelectedTilesSource(mapRef.current, []);
       }
-      setSelectedCells(remainingCells);
+      setSelectedCells([]);
 
-      setMintProgress(mintedCount);
-      setSuccessCount(mintedCount);
-      setSuccessPriceSol(tilePrice.sol * mintedCount);
+      setMintProgress(enqueuedCount);
+      setSuccessCount(enqueuedCount);
+      setSuccessPriceSol(tilePrice.sol * enqueuedCount);
+      setMintStatus("success");
 
-      if (failedCount > 0 && mintedCount > 0) {
-        setMintStatus("success");
+      if (skippedCount > 0) {
         toast.success(
-          `${mintedCount} of ${totalToMint} tiles purchased. ${failedCount} failed and will be refunded.`,
-        );
-      } else if (failedCount > 0 && mintedCount === 0) {
-        setMintStatus("error");
-        setMintError(`All ${totalToMint} tiles failed. You will be refunded.`);
-        toast.error(
-          `Purchase failed: all tiles could not be minted. You will be refunded.`,
+          `${enqueuedCount} tiles purchased! ${skippedCount} were already owned (refunded). NFTs minting in background.`,
         );
       } else {
-        setMintStatus("success");
         toast.success(
-          `Successfully purchased ${mintedCount} Landmark Tile${mintedCount > 1 ? "s" : ""}!`,
+          `Successfully purchased ${enqueuedCount} Landmark Tile${enqueuedCount > 1 ? "s" : ""}! NFTs minting in background.`,
         );
       }
 
-      // Trigger map update so freshly minted tiles convert to Gold (Sold)
+      // Trigger map update so purchased tiles show as owned/minting
       if (mapRef.current) mapRef.current.fire("moveend");
     } catch (err) {
       console.error("Mint error:", err);

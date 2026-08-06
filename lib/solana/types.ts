@@ -69,15 +69,9 @@ export interface BulkMintRequest {
 
 export interface BulkMintResponse {
   ok: boolean;
-  mintedCount?: number;
-  failedCount?: number;
+  enqueuedCount?: number;
+  skippedCount?: number;
   refundedLamports?: number;
-  minted?: Array<{
-    assetId: string;
-    h3Cell: string;
-    signature: string;
-    lat: number;
-    lng: number;
-  }>;
+  status?: string;
   error?: string;
 }
