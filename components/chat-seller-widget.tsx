@@ -219,7 +219,7 @@ export default function ChatSellerWidget({
                 }`}
               >
                 {/* Inline Tile Card if message references a tile */}
-                {msg.tile && (
+                {msg.tileId && msg.tile && (
                   <div className="max-w-[85%] mb-2">
                     <InlineTileCard tile={msg.tile} isOwn={isOwn} />
                   </div>

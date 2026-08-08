@@ -195,8 +195,11 @@ function MessagePageInner() {
     const text = newMessage;
     setNewMessage("");
 
-    // Check if we have already sent the tile context in the current hook session.
-    const finalTileId = sentTileInSession.current ? undefined : (tileId ?? activeConversation?.tileId ?? undefined);
+    // Only attach tile context from the URL params (entering a conversation from
+    // a tile listing). NEVER fall back to activeConversation.tileId — that would
+    // re-send the tile card on every page visit because the conversation always
+    // has a tileId in the DB.
+    const finalTileId = sentTileInSession.current ? undefined : (tileId ?? undefined);
 
     const ok = await send({
       recipientWallet: recipient,
